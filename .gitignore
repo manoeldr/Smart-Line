@@ -1,0 +1,27 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Ambiente
+.env
+*.env.local
+
+# macOS
+.DS_Store
+._*
+
+# Node / Frontend
+node_modules/
+dist/
+.next/
+
+# Docker
+*.log

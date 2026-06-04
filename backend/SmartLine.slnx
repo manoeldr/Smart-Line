@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartLine.API/SmartLine.API.csproj" />
+  <Project Path="SmartLine.Core/SmartLine.Core.csproj" />
+  <Project Path="SmartLine.Infrastructure/SmartLine.Infrastructure.csproj" />
+  <Project Path="SmartLine.Tests/SmartLine.Tests.csproj" />
+</Solution>
