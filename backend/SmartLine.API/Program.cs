@@ -1,23 +1,35 @@
+using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
+using SmartLine.Infrastructure.Data;
+
+Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Banco de dados
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                       ?? throw new InvalidOperationException("DATABASE_URL não configurada.");
 
+builder.Services.AddDbContext<SmartLineDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// Controllers
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
