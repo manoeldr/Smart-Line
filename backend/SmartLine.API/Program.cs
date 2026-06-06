@@ -1,6 +1,11 @@
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
+using SmartLine.Infrastructure.Repositories;
+using System.Text;
 
 Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 
@@ -12,6 +17,27 @@ var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
 
 builder.Services.AddDbContext<SmartLineDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Serviços
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// JWT
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
+                ?? throw new InvalidOperationException("JWT_SECRET não configurada.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // Controllers
 builder.Services.AddControllers();
@@ -29,6 +55,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
