@@ -2,6 +2,7 @@ namespace SmartLine.Core.Enums;
 
 public enum TipoParada
 {
-    Planejada,
-    NaoPlanejada
+    Interna,
+    Externa,
+    Planejada
 }
