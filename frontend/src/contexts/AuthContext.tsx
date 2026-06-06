@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
-import { Usuario, NivelUsuario } from '../types'
+import type { Usuario } from '../types'
 
 interface AuthState {
   usuario: Usuario | null
