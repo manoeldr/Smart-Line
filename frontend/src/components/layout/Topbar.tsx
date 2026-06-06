@@ -1,15 +1,17 @@
+import { useRef } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface TopbarProps {
   titulo: string
   dataFiltro?: string | null
-  onOpenFiltro: () => void
+  onOpenFiltro: (ref: React.RefObject<HTMLButtonElement | null>) => void
 }
 
 export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps) {
   const { theme, toggleTheme } = useTheme()
   const { usuario } = useAuth()
+  const filtroRef = useRef<HTMLButtonElement>(null)
 
   const nivelLabel: Record<string, string> = {
     SuperAdmin: 'Super Admin',
@@ -19,16 +21,13 @@ export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps
 
   return (
     <header className="h-12 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-4 gap-3 flex-shrink-0">
-      {/* Título */}
       <div className="flex items-center gap-2 flex-1">
         <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Sanmartin</span>
         <span className="text-zinc-300 dark:text-zinc-600">/</span>
         <span className="text-sm text-zinc-500">{titulo}</span>
       </div>
 
-      {/* Direita */}
       <div className="flex items-center gap-2">
-        {/* Usuário */}
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -41,21 +40,21 @@ export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps
           )}
         </div>
 
-        {/* Divisor */}
         <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
-        {/* Data */}
-        <span className={`text-xs px-2 py-1 rounded-md border text-zinc-500 ${
+        <span className={`text-xs px-2 py-1 rounded-md border ${
           dataFiltro
             ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-            : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+            : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700'
         }`}>
-          {dataFiltro ?? new Date().toLocaleDateString('pt-BR') + ' · ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          {dataFiltro
+            ? `${dataFiltro.split('-').reverse().join('/')} · histórico`
+            : new Date().toLocaleDateString('pt-BR') + ' · ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
         </span>
 
-        {/* Filtro */}
         <button
-          onClick={onOpenFiltro}
+          ref={filtroRef}
+          onClick={() => onOpenFiltro(filtroRef)}
           className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
             dataFiltro
               ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-600'
@@ -68,7 +67,6 @@ export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps
           </svg>
         </button>
 
-        {/* Tema */}
         <button
           onClick={toggleTheme}
           className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
