@@ -1,0 +1,69 @@
+using Microsoft.EntityFrameworkCore;
+using SmartLine.Core.Entities.Tenant;
+using SmartLine.Core.Enums;
+using SmartLine.Core.Interfaces;
+using SmartLine.Infrastructure.Data;
+
+namespace SmartLine.Infrastructure.Repositories;
+
+public class SessaoService : ISessaoService
+{
+    private readonly SmartLineDbContext _context;
+
+    public SessaoService(SmartLineDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId)
+    {
+        // Verifica se já existe sessão ativa para esta máquina
+        var sessaoExistente = await _context.Sessoes
+            .AnyAsync(s => s.MaquinaLinhaId == maquinaLinhaId && s.Status == StatusSessao.EmAndamento);
+
+        if (sessaoExistente) return null;
+
+        var sessao = new Sessao
+        {
+            Id = Guid.NewGuid(),
+            MaquinaLinhaId = maquinaLinhaId,
+            UsuarioId = usuarioId,
+            Inicio = DateTime.UtcNow,
+            Status = StatusSessao.EmAndamento,
+            CriadoEm = DateTime.UtcNow,
+        };
+
+        _context.Sessoes.Add(sessao);
+        await _context.SaveChangesAsync();
+
+        return ToDto(sessao);
+    }
+
+    public async Task<bool> FecharAsync(Guid sessaoId)
+    {
+        var sessao = await _context.Sessoes.FindAsync(sessaoId);
+        if (sessao is null) return false;
+
+        sessao.Fim = DateTime.UtcNow;
+        sessao.Status = StatusSessao.Finalizada;
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<SessaoDto?> GetByIdAsync(Guid sessaoId)
+    {
+        var sessao = await _context.Sessoes.FindAsync(sessaoId);
+        if (sessao is null) return null;
+        return ToDto(sessao);
+    }
+
+    private static SessaoDto ToDto(Sessao s) => new(
+        Id: s.Id.ToString(),
+        MaquinaLinhaId: s.MaquinaLinhaId.ToString(),
+        UsuarioId: s.UsuarioId.ToString(),
+        Inicio: s.Inicio,
+        Fim: s.Fim,
+        Status: s.Status.ToString()
+    );
+}

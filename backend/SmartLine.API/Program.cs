@@ -22,6 +22,7 @@ builder.Services.AddDbContext<SmartLineDbContext>(options =>
 // Serviços
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<ISessaoService, SessaoService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 
