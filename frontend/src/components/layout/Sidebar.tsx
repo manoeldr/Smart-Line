@@ -39,6 +39,21 @@ export default function Sidebar() {
           </svg>
           Overview
         </NavLink>
+        <NavLink
+          to="/medicao"
+          className={({ isActive }) =>
+            `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isActive
+                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+            }`
+          }
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12h3l3-9 4 18 3-9h3"/>
+          </svg>
+          Medição
+        </NavLink>
       </nav>
 
       {/* Usuário */}

@@ -26,7 +26,7 @@ export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
   const oeeColor = maquina.critica && !filtroAtivo ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'
 
   return (
-    <div className={`flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600 ${maquina.critica ? 'border-t-2 border-t-blue-600' : ''}`}>
+    <div className={`flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-3 cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600 ${maquina.critica ? 'border-t-2 border-t-blue-600' : ''}`}>
       {/* Topo */}
       <div className="flex items-center justify-between mb-1.5">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />

@@ -54,7 +54,7 @@ export default function Login() {
                 onChange={e => setForm(f => ({ ...f, login: e.target.value }))}
                 placeholder="seu.login"
                 required
-                className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="h-9 px-3 rounded-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -66,12 +66,12 @@ export default function Login() {
                 onChange={e => setForm(f => ({ ...f, senha: e.target.value }))}
                 placeholder="••••••••"
                 required
-                className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="h-9 px-3 rounded-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             {erro && (
-              <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg">
+              <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-sm">
                 {erro}
               </p>
             )}
@@ -79,7 +79,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-sm transition-colors"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

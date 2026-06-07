@@ -112,7 +112,7 @@ export default function DateFilterModal({ open, onClose, onApply, onClear, datas
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Filtrar por data</span>
-          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-sm text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -175,13 +175,13 @@ export default function DateFilterModal({ open, onClose, onApply, onClear, datas
         <button
           onClick={handleApply}
           disabled={!selecionado || !temSessao(diaNumSel)}
-          className="w-full py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mb-2"
+          className="w-full py-2 rounded-sm text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mb-2"
         >
           Ver informações
         </button>
         <button
           onClick={handleClear}
-          className="w-full py-1.5 rounded-lg text-xs text-zinc-500 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-full py-1.5 rounded-sm text-xs text-zinc-500 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
           Limpar filtro
         </button>
