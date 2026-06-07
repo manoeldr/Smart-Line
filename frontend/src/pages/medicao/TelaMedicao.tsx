@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import type { Linha, MaquinaLinha } from '../../types'
 import type { SessaoDto } from '../../services/sessaoService'
 import { sessaoService } from '../../services/sessaoService'
+import { maquinaService, type MotivoParadaDto } from '../../services/maquinaService'
+import MotivoParadaModal from '../../modals/MotivoParadaModal'
 
 interface Props {
   maquina: MaquinaLinha
@@ -25,6 +27,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [segundosParada, setSegundosParada] = useState(0)
   const [finalizando, setFinalizando] = useState(false)
   const paradaAtivaRef = useRef(false)
+  const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
+  const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
+  const [loadingMotivos, setLoadingMotivos] = useState(false)
 
   const horaInicio = useMemo(() => new Date(sessao.inicio), [sessao.inicio])
   const horaInicioStr = useMemo(() =>
@@ -38,7 +43,6 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   const ultimaHoraAdicionada = useRef(0)
 
-  // Tick geral — atualiza cronômetro principal e de parada
   useEffect(() => {
     const inicio = horaInicio.getTime()
     const id = setInterval(() => {
@@ -50,7 +54,6 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     return () => clearInterval(id)
   }, [horaInicio])
 
-  // Adiciona leitura horária a cada 1h
   useEffect(() => {
     const hora = Math.floor(segundos / 3600)
     if (hora === 0 || hora === ultimaHoraAdicionada.current) return
@@ -69,6 +72,20 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   function handleLeitura(hora: string, valor: string) {
     setLeituras(prev => prev.map(l => l.hora === hora ? { ...l, valor } : l))
+  }
+
+  async function handleMarcha() {
+    setStatus('Rodando')
+    paradaAtivaRef.current = false
+    setSegundosParada(0)
+    setLoadingMotivos(true)
+    setModalMotivoOpen(true)
+    try {
+      const data = await maquinaService.getMotivosParada(maquina.maquinaId)
+      setMotivos(data)
+    } finally {
+      setLoadingMotivos(false)
+    }
   }
 
   async function handleFinalizar() {
@@ -142,11 +159,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
         {/* Marcha / Parada */}
         <div className="grid grid-cols-2 gap-2 mb-3">
           <button
-            onClick={() => {
-              setStatus('Rodando')
-              paradaAtivaRef.current = false
-              setSegundosParada(0)
-            }}
+            onClick={handleMarcha}
             className={`h-11 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors ${
               status === 'Rodando'
                 ? 'bg-green-600 text-white border border-green-600'
@@ -249,6 +262,18 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           ))}
         </div>
       </div>
+
+      {/* Modal motivo de parada */}
+      <MotivoParadaModal
+        open={modalMotivoOpen}
+        motivos={motivos}
+        loading={loadingMotivos}
+        onConfirmar={(motivoId) => {
+          console.log('Motivo selecionado:', motivoId)
+          setModalMotivoOpen(false)
+        }}
+        onCadastrarNovo={() => setModalMotivoOpen(false)}
+      />
 
     </div>
   )
