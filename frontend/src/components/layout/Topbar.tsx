@@ -1,14 +1,27 @@
 import { useRef } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
+import type { RefObject } from 'react'
 
 interface TopbarProps {
   titulo: string
   dataFiltro?: string | null
-  onOpenFiltro: (ref: React.RefObject<HTMLButtonElement | null>) => void
+  clienteNome?: string | null
+  isSuperAdmin?: boolean
+  seletorAnchorRef?: RefObject<HTMLButtonElement | null>
+  onOpenFiltro: (ref: RefObject<HTMLButtonElement | null>) => void
+  onOpenSeletor?: () => void
 }
 
-export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps) {
+export default function Topbar({
+  titulo,
+  dataFiltro,
+  clienteNome,
+  isSuperAdmin,
+  seletorAnchorRef,
+  onOpenFiltro,
+  onOpenSeletor,
+}: TopbarProps) {
   const { theme, toggleTheme } = useTheme()
   const { usuario } = useAuth()
   const filtroRef = useRef<HTMLButtonElement>(null)
@@ -22,7 +35,23 @@ export default function Topbar({ titulo, dataFiltro, onOpenFiltro }: TopbarProps
   return (
     <header className="h-12 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-4 gap-3 flex-shrink-0">
       <div className="flex items-center gap-2 flex-1">
-        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Sanmartin</span>
+        {/* Seletor de cliente */}
+        {isSuperAdmin && onOpenSeletor ? (
+          <button
+            ref={seletorAnchorRef}
+            onClick={onOpenSeletor}
+            className="flex items-center gap-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            {clienteNome ?? 'Selecionar cliente'}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        ) : (
+          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            {clienteNome ?? 'SmartLine'}
+          </span>
+        )}
         <span className="text-zinc-300 dark:text-zinc-600">/</span>
         <span className="text-sm text-zinc-500">{titulo}</span>
       </div>
