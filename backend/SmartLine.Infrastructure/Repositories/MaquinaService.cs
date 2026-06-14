@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
 
@@ -24,5 +25,21 @@ public class MaquinaService : IMaquinaService
                 m.Tipo.ToString()
             ))
             .ToListAsync();
+    }
+
+    public async Task<MotivoParadaDto> CriarMotivoParadaAsync(Guid maquinaId, string nome, string tipo)
+    {
+        var tipoEnum = tipo == "Externa" ? TipoParada.Externa : TipoParada.Interna;
+        var motivo = new SmartLine.Core.Entities.Global.MotivoParada
+        {
+            Id = Guid.NewGuid(),
+            MaquinaId = maquinaId,
+            Nome = nome,
+            Tipo = tipoEnum,
+            Ativo = true,
+        };
+        _context.MotivosParada.Add(motivo);
+        await _context.SaveChangesAsync();
+        return new MotivoParadaDto(motivo.Id.ToString(), motivo.Nome, motivo.Tipo.ToString());
     }
 }

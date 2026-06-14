@@ -5,6 +5,7 @@ import { sessaoService } from '../../services/sessaoService'
 import { maquinaService, type MotivoParadaDto } from '../../services/maquinaService'
 import { paradaService, type ParadaDto } from '../../services/paradaService'
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
+import PausarMedicaoModal from '../../modals/PausarMedicaoModal'
 
 interface Props {
   maquina: MaquinaLinha
@@ -37,7 +38,6 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     [horaInicio]
   )
 
-  // Restaura estado salvo se for da mesma sessão
   const estadoSalvo = useMemo<EstadoSalvo | null>(() => {
     try {
       const raw = localStorage.getItem(ESTADO_KEY)
@@ -48,13 +48,17 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   }, [sessao.id])
 
   const [status, setStatus] = useState<StatusMaquina>(estadoSalvo?.status ?? 'Rodando')
-  const [segundos, setSegundos] = useState(0)
+  const [segundos, setSegundos] = useState(() =>
+    Math.floor((Date.now() - new Date(sessao.inicio).getTime()) / 1000)
+  )
   const [segundosParada, setSegundosParada] = useState(0)
   const [finalizando, setFinalizando] = useState(false)
   const paradaAtivaRef = useRef(false)
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
+  const [modalPausaOpen, setModalPausaOpen] = useState(false)
   const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
   const [loadingMotivos, setLoadingMotivos] = useState(false)
+  const [loadingPausa, setLoadingPausa] = useState(false)
   const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(null)
 
   const [leituras, setLeituras] = useState<LeituraHoraria[]>(
@@ -69,18 +73,15 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       : 0
   )
 
-  // Persiste estado ao mudar
   useEffect(() => {
     const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras }
     localStorage.setItem(ESTADO_KEY, JSON.stringify(estado))
   }, [sessao.id, status, leituras])
 
-  // Restaura flag de parada ativa
   useEffect(() => {
     paradaAtivaRef.current = status === 'Parada'
   }, [status])
 
-  // Cronômetro principal
   useEffect(() => {
     const inicio = horaInicio.getTime()
     const id = setInterval(() => {
@@ -92,7 +93,6 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     return () => clearInterval(id)
   }, [horaInicio])
 
-  // Adiciona leitura horária a cada 1h
   useEffect(() => {
     const hora = Math.floor(segundos / 3600)
     if (hora === 0 || hora === ultimaHoraAdicionada.current) return
@@ -127,6 +127,17 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       setMotivos(data)
     } finally {
       setLoadingMotivos(false)
+    }
+  }
+
+  async function handlePausar() {
+    setLoadingPausa(true)
+    setModalPausaOpen(true)
+    try {
+      const data = await maquinaService.getMotivosParada(maquina.maquinaId)
+      setMotivos(data)
+    } finally {
+      setLoadingPausa(false)
     }
   }
 
@@ -250,7 +261,10 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
         {/* Pausar / Finalizar */}
         <div className="grid grid-cols-2 gap-2">
-          <button className="h-9 flex items-center justify-center gap-1.5 rounded-md text-xs text-zinc-500 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          <button
+            onClick={handlePausar}
+            className="h-9 flex items-center justify-center gap-1.5 rounded-md text-xs text-zinc-500 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+          >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>
             </svg>
@@ -328,7 +342,33 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           }
           setModalMotivoOpen(false)
         }}
-        onCadastrarNovo={() => setModalMotivoOpen(false)}
+        onCadastrarNovo={async (nome, tipo) => {
+          const novo = await maquinaService.criarMotivoParada(maquina.maquinaId, nome, tipo)
+          setMotivos(prev => [...prev, novo])
+          return novo.id
+        }}
+      />
+
+      {/* Modal pausar medição */}
+      <PausarMedicaoModal
+        open={modalPausaOpen}
+        motivos={motivos}
+        loading={loadingPausa}
+        onConfirmar={async (motivoId) => {
+          setModalPausaOpen(false)
+          setStatus('Parada')
+          paradaAtivaRef.current = true
+          setSegundosParada(0)
+          try {
+            const p = await paradaService.abrir(sessao.id, new Date())
+            setParadaAtiva(p)
+            await paradaService.fechar(p.id, motivoId, new Date())
+            setParadaAtiva(null)
+          } catch {
+            console.error('Erro ao registrar pausa')
+          }
+        }}
+        onCancelar={() => setModalPausaOpen(false)}
       />
 
     </div>

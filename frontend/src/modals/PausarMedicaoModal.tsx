@@ -6,32 +6,19 @@ interface Props {
   motivos: MotivoParadaDto[]
   loading: boolean
   onConfirmar: (motivoId: string) => void
-  onCadastrarNovo: (nome: string, tipo: 'Interna' | 'Externa') => Promise<string>
+  onCancelar: () => void
+  onCadastrarNovo: (nome: string) => Promise<string>
 }
 
-export default function MotivoParadaModal({ open, motivos, loading, onConfirmar, onCadastrarNovo }: Props) {
+export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar, onCancelar, onCadastrarNovo }: Props) {
   const [selecionado, setSelecionado] = useState<string | null>(null)
-  const [filtro, setFiltro] = useState<'todos' | 'Interna' | 'Externa'>('todos')
   const [cadastrando, setCadastrando] = useState(false)
   const [novoNome, setNovoNome] = useState('')
-  const [novoTipo, setNovoTipo] = useState<'Interna' | 'Externa'>('Interna')
   const [salvando, setSalvando] = useState(false)
 
   if (!open) return null
 
-  const filtrados = motivos.filter(m =>
-    m.tipo !== 'Planejada' && (filtro === 'todos' || m.tipo === filtro)
-  )
-
-  const tipoLabel: Record<string, string> = {
-    Interna: 'interna',
-    Externa: 'externa',
-  }
-
-  const tipoCor: Record<string, string> = {
-    Interna: 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400',
-    Externa: 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400',
-  }
+  const planejados = motivos.filter(m => m.tipo === 'Planejada')
 
   function handleConfirmar() {
     if (!selecionado) return
@@ -45,7 +32,7 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
     if (!novoNome.trim()) return
     setSalvando(true)
     try {
-      const novoId = await onCadastrarNovo(novoNome.trim(), novoTipo)
+      const novoId = await onCadastrarNovo(novoNome.trim())
       setSelecionado(novoId)
       setCadastrando(false)
       setNovoNome('')
@@ -60,37 +47,20 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
 
         {/* Header */}
         <div className="mb-4">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Motivo da parada</p>
-          <p className="text-xs text-zinc-400 mt-0.5">Selecione o motivo que causou a parada</p>
+          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Pausar medição</p>
+          <p className="text-xs text-zinc-400 mt-0.5">Selecione o motivo da pausa planejada</p>
         </div>
 
         {!cadastrando ? (
           <>
-            {/* Filtro por tipo */}
-            <div className="flex gap-1.5 mb-3">
-              {(['todos', 'Interna', 'Externa'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setFiltro(t)}
-                  className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${
-                    filtro === t
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  {t === 'todos' ? 'Todos' : t === 'Interna' ? 'Internas' : 'Externas'}
-                </button>
-              ))}
-            </div>
-
-            {/* Lista de motivos */}
+            {/* Lista de motivos planejados */}
             <div className="flex flex-col gap-1 max-h-52 overflow-y-auto mb-3">
               {loading ? (
                 <p className="text-xs text-zinc-400 text-center py-4">Carregando...</p>
-              ) : filtrados.length === 0 ? (
-                <p className="text-xs text-zinc-400 text-center py-4">Nenhum motivo cadastrado</p>
+              ) : planejados.length === 0 ? (
+                <p className="text-xs text-zinc-400 text-center py-4">Nenhum motivo planejado cadastrado</p>
               ) : (
-                filtrados.map(m => (
+                planejados.map(m => (
                   <button
                     key={m.id}
                     onClick={() => setSelecionado(m.id)}
@@ -101,8 +71,8 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
                     }`}
                   >
                     <span className="text-xs text-zinc-900 dark:text-zinc-100">{m.nome}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ml-2 ${tipoCor[m.tipo] ?? ''}`}>
-                      {tipoLabel[m.tipo] ?? m.tipo}
+                    <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ml-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-500">
+                      planejada
                     </span>
                   </button>
                 ))
@@ -120,18 +90,26 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
               Cadastrar novo motivo
             </button>
 
-            {/* Confirmar */}
-            <button
-              onClick={handleConfirmar}
-              disabled={!selecionado}
-              className="w-full h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded transition-colors"
-            >
-              Confirmar
-            </button>
+            {/* Botões */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onCancelar}
+                className="h-9 rounded border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmar}
+                disabled={!selecionado}
+                className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
+              >
+                Pausar
+              </button>
+            </div>
           </>
         ) : (
           <>
-            {/* Formulário novo motivo */}
+            {/* Formulário novo motivo planejado */}
             <div className="flex flex-col gap-3 mb-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs text-zinc-500">Descrição do motivo</label>
@@ -139,36 +117,13 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
                   type="text"
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
-                  placeholder="Ex: Falta de matéria-prima"
+                  placeholder="Ex: Almoço, Setup, Reunião..."
                   autoFocus
                   className="h-9 px-3 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-zinc-500">Tipo</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setNovoTipo('Interna')}
-                    className={`h-9 rounded border text-xs font-medium transition-colors ${
-                      novoTipo === 'Interna'
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    Interna
-                  </button>
-                  <button
-                    onClick={() => setNovoTipo('Externa')}
-                    className={`h-9 rounded border text-xs font-medium transition-colors ${
-                      novoTipo === 'Externa'
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    Externa
-                  </button>
-                </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800 rounded px-3 py-2 text-xs text-zinc-400">
+                Motivos cadastrados aqui são do tipo <span className="font-medium text-zinc-600 dark:text-zinc-300">planejada</span> — não penalizam o OEE da máquina.
               </div>
             </div>
 
