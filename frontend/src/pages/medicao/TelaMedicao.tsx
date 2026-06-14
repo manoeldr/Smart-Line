@@ -3,6 +3,7 @@ import type { Linha, MaquinaLinha } from '../../types'
 import type { SessaoDto } from '../../services/sessaoService'
 import { sessaoService } from '../../services/sessaoService'
 import { maquinaService, type MotivoParadaDto } from '../../services/maquinaService'
+import { paradaService, type ParadaDto } from '../../services/paradaService'
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
 
 interface Props {
@@ -21,8 +22,32 @@ interface LeituraHoraria {
 
 type StatusMaquina = 'Rodando' | 'Parada'
 
+const ESTADO_KEY = 'estadoMedicao'
+
+interface EstadoSalvo {
+  sessaoId: string
+  status: StatusMaquina
+  leituras: LeituraHoraria[]
+}
+
 export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, onFinalizar }: Props) {
-  const [status, setStatus] = useState<StatusMaquina>('Rodando')
+  const horaInicio = useMemo(() => new Date(sessao.inicio), [sessao.inicio])
+  const horaInicioStr = useMemo(() =>
+    horaInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    [horaInicio]
+  )
+
+  // Restaura estado salvo se for da mesma sessão
+  const estadoSalvo = useMemo<EstadoSalvo | null>(() => {
+    try {
+      const raw = localStorage.getItem(ESTADO_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw) as EstadoSalvo
+      return parsed.sessaoId === sessao.id ? parsed : null
+    } catch { return null }
+  }, [sessao.id])
+
+  const [status, setStatus] = useState<StatusMaquina>(estadoSalvo?.status ?? 'Rodando')
   const [segundos, setSegundos] = useState(0)
   const [segundosParada, setSegundosParada] = useState(0)
   const [finalizando, setFinalizando] = useState(false)
@@ -30,19 +55,32 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
   const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
   const [loadingMotivos, setLoadingMotivos] = useState(false)
+  const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(null)
 
-  const horaInicio = useMemo(() => new Date(sessao.inicio), [sessao.inicio])
-  const horaInicioStr = useMemo(() =>
-    horaInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    [horaInicio]
+  const [leituras, setLeituras] = useState<LeituraHoraria[]>(
+    estadoSalvo?.leituras ?? [
+      { hora: horaInicioStr, valor: String(leiturasIniciais['producao'] ?? ''), inicial: true }
+    ]
   )
 
-  const [leituras, setLeituras] = useState<LeituraHoraria[]>([
-    { hora: horaInicioStr, valor: String(leiturasIniciais['producao'] ?? ''), inicial: true }
-  ])
+  const ultimaHoraAdicionada = useRef(
+    estadoSalvo?.leituras
+      ? Math.max(0, estadoSalvo.leituras.filter(l => !l.inicial).length)
+      : 0
+  )
 
-  const ultimaHoraAdicionada = useRef(0)
+  // Persiste estado ao mudar
+  useEffect(() => {
+    const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras }
+    localStorage.setItem(ESTADO_KEY, JSON.stringify(estado))
+  }, [sessao.id, status, leituras])
 
+  // Restaura flag de parada ativa
+  useEffect(() => {
+    paradaAtivaRef.current = status === 'Parada'
+  }, [status])
+
+  // Cronômetro principal
   useEffect(() => {
     const inicio = horaInicio.getTime()
     const id = setInterval(() => {
@@ -54,13 +92,17 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     return () => clearInterval(id)
   }, [horaInicio])
 
+  // Adiciona leitura horária a cada 1h
   useEffect(() => {
     const hora = Math.floor(segundos / 3600)
     if (hora === 0 || hora === ultimaHoraAdicionada.current) return
     ultimaHoraAdicionada.current = hora
     const novaHora = new Date(horaInicio.getTime() + hora * 3600000)
     const horaStr = novaHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    setLeituras(prev => [...prev, { hora: horaStr, valor: '' }])
+    setLeituras(prev => {
+      if (prev.some(l => l.hora === horaStr)) return prev
+      return [...prev, { hora: horaStr, valor: '' }]
+    })
   }, [segundos, horaInicio])
 
   function formatarTempo(seg: number) {
@@ -93,6 +135,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     setFinalizando(true)
     try {
       await sessaoService.fechar(sessao.id)
+      localStorage.removeItem(ESTADO_KEY)
       onFinalizar()
     } catch {
       alert('Erro ao finalizar medição.')
@@ -170,10 +213,16 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             Marcha
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               setStatus('Parada')
               paradaAtivaRef.current = true
               setSegundosParada(0)
+              try {
+                const p = await paradaService.abrir(sessao.id, new Date())
+                setParadaAtiva(p)
+              } catch {
+                console.error('Erro ao registrar parada')
+              }
             }}
             className={`h-11 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors ${
               status === 'Parada'
@@ -268,8 +317,15 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
         open={modalMotivoOpen}
         motivos={motivos}
         loading={loadingMotivos}
-        onConfirmar={(motivoId) => {
-          console.log('Motivo selecionado:', motivoId)
+        onConfirmar={async (motivoId) => {
+          if (paradaAtiva) {
+            try {
+              await paradaService.fechar(paradaAtiva.id, motivoId, new Date())
+            } catch {
+              console.error('Erro ao fechar parada')
+            }
+            setParadaAtiva(null)
+          }
           setModalMotivoOpen(false)
         }}
         onCadastrarNovo={() => setModalMotivoOpen(false)}

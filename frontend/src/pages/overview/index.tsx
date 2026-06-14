@@ -16,7 +16,7 @@ export default function Overview() {
   const { dataFiltro } = useOutletContext<OutletContext>()
   const { clienteId } = useAuth()
   const [linhas, setLinhas] = useState<Linha[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
@@ -36,6 +36,8 @@ export default function Overview() {
     }
 
     carregar()
+    const id = setInterval(carregar, 30000)
+    return () => clearInterval(id)
   }, [clienteId])
 
   if (!clienteId) {

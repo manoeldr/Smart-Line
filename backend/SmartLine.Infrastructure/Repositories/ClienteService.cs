@@ -101,6 +101,8 @@ public class ClienteService : IClienteService
         var paradaAtiva = sessaoAtiva.Paradas.FirstOrDefault(p => !p.Fim.HasValue);
         if (paradaAtiva is null) return "Rodando";
 
+        if (paradaAtiva.Motivo is null) return "ParadaInterna";
+
         return paradaAtiva.Motivo.Tipo switch
         {
             TipoParada.Interna   => "ParadaInterna",
