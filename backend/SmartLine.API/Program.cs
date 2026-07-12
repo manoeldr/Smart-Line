@@ -30,6 +30,8 @@ builder.Services.AddScoped<IProducaoService, ProducaoService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 
+builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
+
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
                 ?? throw new InvalidOperationException("JWT_SECRET não configurada.");
