@@ -18,14 +18,25 @@ public class SessaoController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Abrir([FromBody] AbrirSessaoRequest request)
+    public async Task<IActionResult> Abrir([FromBody] AbrirSessaoHttpRequest request)
     {
         var usuarioId = Guid.Parse(
             User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? User.FindFirst("sub")?.Value
             ?? throw new Exception("Usuário não autenticado")
         );
-        var resultado = await _sessaoService.AbrirAsync(request.MaquinaLinhaId, usuarioId);
+
+        var resultado = await _sessaoService.AbrirAsync(
+            request.MaquinaLinhaId,
+            usuarioId,
+            new AbrirSessaoRequest(
+                request.VelocidadeNominal,
+                request.SobreVelocidade,
+                request.PrevisaoTermino,
+                request.TipoColeta
+            )
+        );
+
         if (resultado is null)
             return Conflict(new { mensagem = "Já existe uma sessão ativa para esta máquina." });
         return Ok(resultado);
@@ -48,4 +59,10 @@ public class SessaoController : ControllerBase
     }
 }
 
-public record AbrirSessaoRequest(Guid MaquinaLinhaId);
+public record AbrirSessaoHttpRequest(
+    Guid MaquinaLinhaId,
+    decimal VelocidadeNominal,
+    decimal SobreVelocidade,
+    DateTime? PrevisaoTermino,
+    string TipoColeta
+);

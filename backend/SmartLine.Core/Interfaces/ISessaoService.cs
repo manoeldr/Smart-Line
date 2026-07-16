@@ -2,7 +2,7 @@ namespace SmartLine.Core.Interfaces;
 
 public interface ISessaoService
 {
-    Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId);
+    Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId, AbrirSessaoRequest req);
     Task<bool> FecharAsync(Guid sessaoId);
     Task<SessaoDto?> GetByIdAsync(Guid sessaoId);
 }
@@ -13,5 +13,16 @@ public record SessaoDto(
     string UsuarioId,
     DateTime Inicio,
     DateTime? Fim,
-    string Status
+    DateTime? PrevisaoTermino,
+    string Status,
+    string TipoColeta,
+    decimal VelocidadeNominal,
+    decimal SobreVelocidade
+);
+
+public record AbrirSessaoRequest(
+    decimal VelocidadeNominal,
+    decimal SobreVelocidade,
+    DateTime? PrevisaoTermino,
+    string TipoColeta
 );

@@ -22,17 +22,14 @@ export default function Medicao() {
   const [loading, setLoading] = useState(false)
   const [restaurando, setRestaurando] = useState(true)
 
-  // Restaura sessão ativa do localStorage ao montar
   useEffect(() => {
     async function restaurar() {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw || !clienteId) { setRestaurando(false); return }
       try {
         const salvo = JSON.parse(raw) as SessaoAtiva
-        // Verifica se a sessão ainda está ativa na API
         const sessao = await sessaoService.getById(salvo.sessao.id)
         if (sessao && sessao.status === 'EmAndamento') {
-          // Rebusca os dados atualizados da linha/máquina
           const linhas = await linhaService.getLinhasByCliente(clienteId)
           const linha = linhas.find(l => l.id === salvo.linha.id)
           const maquina = linha?.maquinas.find(m => m.id === salvo.maquina.id)
@@ -56,12 +53,24 @@ export default function Medicao() {
   async function handleIniciar(
     maquina: MaquinaLinha,
     linha: Linha,
-    leiturasIniciais: Record<string, number>
+    leiturasIniciais: Record<string, number>,
+    params: {
+      velocidadeNominal: number
+      sobreVelocidade: number
+      previsaoTermino: string | null
+      tipoColeta: string
+    }
   ) {
     setErro(null)
     setLoading(true)
     try {
-      const sessao = await sessaoService.abrir(maquina.id)
+      const sessao = await sessaoService.abrir({
+        maquinaLinhaId: maquina.id,
+        velocidadeNominal: params.velocidadeNominal,
+        sobreVelocidade: params.sobreVelocidade,
+        previsaoTermino: params.previsaoTermino,
+        tipoColeta: params.tipoColeta,
+      })
       const nova: SessaoAtiva = { maquina, linha, sessao, leiturasIniciais }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nova))
       setSessaoAtiva(nova)
@@ -101,7 +110,7 @@ export default function Medicao() {
     <>
       {erro && (
         <div className="max-w-lg mx-auto mt-4 px-4">
-          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md px-3 py-2 text-xs text-red-600 dark:text-red-400">
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
             {erro}
           </div>
         </div>

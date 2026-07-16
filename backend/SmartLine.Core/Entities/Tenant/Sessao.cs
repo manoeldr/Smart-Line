@@ -9,7 +9,11 @@ public class Sessao
     public Guid UsuarioId { get; set; }
     public DateTime Inicio { get; set; }
     public DateTime? Fim { get; set; }
+    public DateTime? PrevisaoTermino { get; set; }
     public StatusSessao Status { get; set; } = StatusSessao.EmAndamento;
+    public TipoColeta TipoColeta { get; set; } = TipoColeta.Manual;
+    public decimal VelocidadeNominal { get; set; }
+    public decimal SobreVelocidade { get; set; } = 0;
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
     // Navegação

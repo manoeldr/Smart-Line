@@ -15,13 +15,14 @@ public class SessaoService : ISessaoService
         _context = context;
     }
 
-    public async Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId)
+    public async Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId, AbrirSessaoRequest req)
     {
-        // Verifica se já existe sessão ativa para esta máquina
         var sessaoExistente = await _context.Sessoes
             .AnyAsync(s => s.MaquinaLinhaId == maquinaLinhaId && s.Status == StatusSessao.EmAndamento);
 
         if (sessaoExistente) return null;
+
+        var tipoColeta = Enum.TryParse<TipoColeta>(req.TipoColeta, out var tc) ? tc : TipoColeta.Manual;
 
         var sessao = new Sessao
         {
@@ -30,6 +31,10 @@ public class SessaoService : ISessaoService
             UsuarioId = usuarioId,
             Inicio = DateTime.UtcNow,
             Status = StatusSessao.EmAndamento,
+            VelocidadeNominal = req.VelocidadeNominal,
+            SobreVelocidade = req.SobreVelocidade,
+            PrevisaoTermino = req.PrevisaoTermino,
+            TipoColeta = tipoColeta,
             CriadoEm = DateTime.UtcNow,
         };
 
@@ -64,6 +69,10 @@ public class SessaoService : ISessaoService
         UsuarioId: s.UsuarioId.ToString(),
         Inicio: s.Inicio,
         Fim: s.Fim,
-        Status: s.Status.ToString()
+        PrevisaoTermino: s.PrevisaoTermino,
+        Status: s.Status.ToString(),
+        TipoColeta: s.TipoColeta.ToString(),
+        VelocidadeNominal: s.VelocidadeNominal,
+        SobreVelocidade: s.SobreVelocidade
     );
 }
