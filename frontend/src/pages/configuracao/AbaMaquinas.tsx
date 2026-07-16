@@ -49,7 +49,6 @@ export default function AbaMaquinas() {
           <thead>
             <tr className="border-b border-zinc-200 dark:border-zinc-800">
               <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Nome</th>
-              <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Fabricante</th>
               <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Descrição</th>
               <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Status</th>
               <th className="py-2" />
@@ -59,7 +58,6 @@ export default function AbaMaquinas() {
             {maquinas.map(m => (
               <tr key={m.id} className="border-b border-zinc-100 dark:border-zinc-800">
                 <td className="py-2.5 pr-4 text-zinc-900 dark:text-zinc-100">{m.nome}</td>
-                <td className="py-2.5 pr-4 text-zinc-500">{m.fabricante ?? '—'}</td>
                 <td className="py-2.5 pr-4 text-zinc-500">{m.descricao ?? '—'}</td>
                 <td className="py-2.5 pr-4">
                   <span className={`px-1.5 py-0.5 text-[10px] ${m.ativo ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}`}>

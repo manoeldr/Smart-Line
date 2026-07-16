@@ -17,7 +17,6 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   const [abaModal, setAbaModal] = useState<AbaModal>('manual')
   const [form, setForm] = useState({
     nome: maquina?.nome ?? '',
-    fabricante: maquina?.fabricante ?? '',
     descricao: maquina?.descricao ?? ''
   })
   const [salvando, setSalvando] = useState(false)
@@ -37,7 +36,6 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   const [formMotivo, setFormMotivo] = useState({ nome: '', tipo: 'Interna' })
   const [salvandoMotivo, setSalvandoMotivo] = useState(false)
 
-  // Carrega dados ao abrir
   useEffect(() => {
     if (!open || !maquina) return
     carregarCampos(maquina.id)
@@ -59,7 +57,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   async function salvarDados() {
     setSalvando(true)
     try {
-      const data = { nome: form.nome, fabricante: form.fabricante || null, descricao: form.descricao || null }
+      const data = { nome: form.nome, descricao: form.descricao || null }
       if (maquina) {
         await configuracaoService.editarMaquina(maquina.id, { ...data, ativo: maquina.ativo })
       } else {
@@ -144,14 +142,10 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
 
           {/* Dados básicos */}
           <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
                 <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Fabricante</label>
-                <input value={form.fabricante} onChange={e => setForm(f => ({ ...f, fabricante: e.target.value }))} className={inputCls} />
               </div>
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block">Descrição</label>
