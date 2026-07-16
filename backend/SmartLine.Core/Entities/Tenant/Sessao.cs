@@ -18,4 +18,6 @@ public class Sessao
     public ICollection<Producao> Producoes { get; set; } = [];
     public ICollection<Parada> Paradas { get; set; } = [];
     public ICollection<Medicao> Medicoes { get; set; } = [];
+    public ICollection<SessaoCampo> SessoesCampo { get; set; } = [];
+    public ICollection<LeituraExtra> LeiturasExtra { get; set; } = [];
 }

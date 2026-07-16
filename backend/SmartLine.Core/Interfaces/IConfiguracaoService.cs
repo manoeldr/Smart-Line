@@ -25,6 +25,12 @@ public interface IConfiguracaoService
     Task<MaquinaConfDto> CriarMaquinaAsync(CriarMaquinaRequest req);
     Task<MaquinaConfDto> EditarMaquinaAsync(Guid id, EditarMaquinaRequest req);
     Task DeletarMaquinaAsync(Guid id);
+
+    // Campos de Máquina
+    Task<IList<CampoMaquinaDto>> GetCamposMaquinaAsync(Guid maquinaId);
+    Task<CampoMaquinaDto> CriarCampoMaquinaAsync(Guid maquinaId, CriarCampoMaquinaRequest req);
+    Task<CampoMaquinaDto> EditarCampoMaquinaAsync(Guid id, EditarCampoMaquinaRequest req);
+    Task DeletarCampoMaquinaAsync(Guid id);
 }
 
 // ── DTOs ──────────────────────────────────────────────────────
@@ -32,6 +38,7 @@ public record UsuarioConfDto(string Id, string Nome, string Login, string Nivel,
 public record ClienteConfDto(string Id, string Nome, string? Estado, bool Ativo);
 public record LinhaConfDto(string Id, string Nome, string ClienteId, string ClienteNome, bool Ativo);
 public record MaquinaConfDto(string Id, string Nome, string? Fabricante, string? Descricao, bool Ativo);
+public record CampoMaquinaDto(string Id, string MaquinaId, string Nome, string? Unidade, int Ordem, bool Ativo);
 
 // ── Requests ──────────────────────────────────────────────────
 public record CriarUsuarioRequest(string Nome, string Login, string Senha, string Nivel, string? ClienteId);
@@ -42,3 +49,5 @@ public record CriarLinhaRequest(string Nome, string ClienteId);
 public record EditarLinhaRequest(string Nome, bool Ativo);
 public record CriarMaquinaRequest(string Nome, string? Fabricante, string? Descricao);
 public record EditarMaquinaRequest(string Nome, string? Fabricante, string? Descricao, bool Ativo);
+public record CriarCampoMaquinaRequest(string Nome, string? Unidade, int Ordem);
+public record EditarCampoMaquinaRequest(string Nome, string? Unidade, int Ordem, bool Ativo);

@@ -12,4 +12,5 @@ public class Maquina
     // Navegação
     public ICollection<MotivoParada> MotivosParada { get; set; } = [];
     public ICollection<TipoMedicao> TiposMedicao { get; set; } = [];
+    public ICollection<CampoMaquina> CamposMaquina { get; set; } = [];
 }

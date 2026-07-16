@@ -33,6 +33,15 @@ export interface MaquinaConfDto {
   ativo: boolean
 }
 
+export interface CampoMaquinaDto {
+  id: string
+  maquinaId: string
+  nome: string
+  unidade: string | null
+  ordem: number
+  ativo: boolean
+}
+
 export const configuracaoService = {
   // Usuários
   getUsuarios: () => api.get<UsuarioConfDto[]>('/configuracao/usuarios'),
@@ -57,4 +66,10 @@ export const configuracaoService = {
   criarMaquina: (data: object) => api.post<MaquinaConfDto>('/configuracao/maquinas', data),
   editarMaquina: (id: string, data: object) => api.put<MaquinaConfDto>(`/configuracao/maquinas/${id}`, data),
   deletarMaquina: (id: string) => api.delete(`/configuracao/maquinas/${id}`),
+
+  // Campos de Máquina
+  getCamposMaquina: (maquinaId: string) => api.get<CampoMaquinaDto[]>(`/configuracao/maquinas/${maquinaId}/campos`),
+  criarCampoMaquina: (maquinaId: string, data: object) => api.post<CampoMaquinaDto>(`/configuracao/maquinas/${maquinaId}/campos`, data),
+  editarCampoMaquina: (id: string, data: object) => api.put<CampoMaquinaDto>(`/configuracao/campos/${id}`, data),
+  deletarCampoMaquina: (id: string) => api.delete(`/configuracao/campos/${id}`),
 }

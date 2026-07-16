@@ -203,4 +203,51 @@ public class ConfiguracaoService : IConfiguracaoService
         maquina.Ativo = false;
         await _context.SaveChangesAsync();
     }
+
+    // ── Campos de Máquina ─────────────────────────────────────
+    public async Task<IList<CampoMaquinaDto>> GetCamposMaquinaAsync(Guid maquinaId) =>
+        await _context.CamposMaquina
+            .Where(c => c.MaquinaId == maquinaId)
+            .OrderBy(c => c.Ordem)
+            .Select(c => new CampoMaquinaDto(
+                c.Id.ToString(), c.MaquinaId.ToString(),
+                c.Nome, c.Unidade, c.Ordem, c.Ativo
+            ))
+            .ToListAsync();
+
+    public async Task<CampoMaquinaDto> CriarCampoMaquinaAsync(Guid maquinaId, CriarCampoMaquinaRequest req)
+    {
+        var campo = new CampoMaquina
+        {
+            Id = Guid.NewGuid(),
+            MaquinaId = maquinaId,
+            Nome = req.Nome,
+            Unidade = req.Unidade,
+            Ordem = req.Ordem,
+            Ativo = true
+        };
+        _context.CamposMaquina.Add(campo);
+        await _context.SaveChangesAsync();
+        return new CampoMaquinaDto(campo.Id.ToString(), campo.MaquinaId.ToString(), campo.Nome, campo.Unidade, campo.Ordem, campo.Ativo);
+    }
+
+    public async Task<CampoMaquinaDto> EditarCampoMaquinaAsync(Guid id, EditarCampoMaquinaRequest req)
+    {
+        var campo = await _context.CamposMaquina.FindAsync(id)
+            ?? throw new Exception("Campo não encontrado");
+        campo.Nome = req.Nome;
+        campo.Unidade = req.Unidade;
+        campo.Ordem = req.Ordem;
+        campo.Ativo = req.Ativo;
+        await _context.SaveChangesAsync();
+        return new CampoMaquinaDto(campo.Id.ToString(), campo.MaquinaId.ToString(), campo.Nome, campo.Unidade, campo.Ordem, campo.Ativo);
+    }
+
+    public async Task DeletarCampoMaquinaAsync(Guid id)
+    {
+        var campo = await _context.CamposMaquina.FindAsync(id)
+            ?? throw new Exception("Campo não encontrado");
+        campo.Ativo = false;
+        await _context.SaveChangesAsync();
+    }
 }

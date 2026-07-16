@@ -25,6 +25,9 @@ public class SmartLineDbContext : DbContext
     public DbSet<Producao> Producoes => Set<Producao>();
     public DbSet<Parada> Paradas => Set<Parada>();
     public DbSet<Medicao> Medicoes => Set<Medicao>();
+    public DbSet<CampoMaquina> CamposMaquina => Set<CampoMaquina>();
+    public DbSet<SessaoCampo> SessoesCampo => Set<SessaoCampo>();
+    public DbSet<LeituraExtra> LeiturasExtra => Set<LeituraExtra>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

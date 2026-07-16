@@ -95,4 +95,24 @@ public class ConfiguracaoController : ControllerBase
         await _service.DeletarMaquinaAsync(id);
         return NoContent();
     }
+
+    // ── Campos de Máquina ─────────────────────────────────────
+    [HttpGet("maquinas/{maquinaId}/campos")]
+    public async Task<IActionResult> GetCamposMaquina(Guid maquinaId) =>
+        Ok(await _service.GetCamposMaquinaAsync(maquinaId));
+
+    [HttpPost("maquinas/{maquinaId}/campos")]
+    public async Task<IActionResult> CriarCampoMaquina(Guid maquinaId, [FromBody] CriarCampoMaquinaRequest req) =>
+        Ok(await _service.CriarCampoMaquinaAsync(maquinaId, req));
+
+    [HttpPut("campos/{id}")]
+    public async Task<IActionResult> EditarCampoMaquina(Guid id, [FromBody] EditarCampoMaquinaRequest req) =>
+        Ok(await _service.EditarCampoMaquinaAsync(id, req));
+
+    [HttpDelete("campos/{id}")]
+    public async Task<IActionResult> DeletarCampoMaquina(Guid id)
+    {
+        await _service.DeletarCampoMaquinaAsync(id);
+        return NoContent();
+    }
 }

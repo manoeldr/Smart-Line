@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { configuracaoService, type MaquinaConfDto } from '../../services/configuracaoService'
+import ConfiguracaoMaquinaModal from '../../modals/ConfiguracaoMaquinaModal'
 
 export default function AbaMaquinas() {
   const [maquinas, setMaquinas] = useState<MaquinaConfDto[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<MaquinaConfDto | null>(null)
-  const [form, setForm] = useState({ nome: '', fabricante: '', descricao: '' })
-  const [salvando, setSalvando] = useState(false)
 
   useEffect(() => { carregar() }, [])
 
@@ -19,32 +18,12 @@ export default function AbaMaquinas() {
 
   function abrirNovo() {
     setEditando(null)
-    setForm({ nome: '', fabricante: '', descricao: '' })
     setModalOpen(true)
   }
 
   function abrirEditar(m: MaquinaConfDto) {
     setEditando(m)
-    setForm({ nome: m.nome, fabricante: m.fabricante ?? '', descricao: m.descricao ?? '' })
     setModalOpen(true)
-  }
-
-  async function salvar() {
-    setSalvando(true)
-    try {
-      const data = {
-        nome: form.nome,
-        fabricante: form.fabricante || null,
-        descricao: form.descricao || null,
-      }
-      if (editando) {
-        await configuracaoService.editarMaquina(editando.id, { ...data, ativo: editando.ativo })
-      } else {
-        await configuracaoService.criarMaquina(data)
-      }
-      setModalOpen(false)
-      await carregar()
-    } finally { setSalvando(false) }
   }
 
   async function deletar(id: string) {
@@ -101,39 +80,12 @@ export default function AbaMaquinas() {
         </table>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-80 p-5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">
-              {editando ? 'Editar máquina' : 'Nova máquina'}
-            </p>
-            <div className="flex flex-col gap-3 mb-4">
-              <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
-                <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Fabricante</label>
-                <input value={form.fabricante} onChange={e => setForm(f => ({ ...f, fabricante: e.target.value }))}
-                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Descrição</label>
-                <input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
-                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button onClick={salvar} disabled={!form.nome || salvando}
-                className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfiguracaoMaquinaModal
+        open={modalOpen}
+        maquina={editando}
+        onFechar={() => setModalOpen(false)}
+        onSalvo={carregar}
+      />
     </div>
   )
 }
