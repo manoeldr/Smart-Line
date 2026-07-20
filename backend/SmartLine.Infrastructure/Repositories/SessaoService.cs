@@ -39,9 +39,23 @@ public class SessaoService : ISessaoService
         };
 
         _context.Sessoes.Add(sessao);
+
+        if (req.CampoMaquinaIds is { Count: > 0 })
+        {
+            foreach (var campoId in req.CampoMaquinaIds)
+            {
+                _context.SessoesCampo.Add(new SessaoCampo
+                {
+                    Id = Guid.NewGuid(),
+                    SessaoId = sessao.Id,
+                    CampoMaquinaId = campoId,
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        return ToDto(sessao);
+        return await ToDtoAsync(sessao);
     }
 
     public async Task<bool> FecharAsync(Guid sessaoId)
@@ -60,19 +74,28 @@ public class SessaoService : ISessaoService
     {
         var sessao = await _context.Sessoes.FindAsync(sessaoId);
         if (sessao is null) return null;
-        return ToDto(sessao);
+        return await ToDtoAsync(sessao);
     }
 
-    private static SessaoDto ToDto(Sessao s) => new(
-        Id: s.Id.ToString(),
-        MaquinaLinhaId: s.MaquinaLinhaId.ToString(),
-        UsuarioId: s.UsuarioId.ToString(),
-        Inicio: s.Inicio,
-        Fim: s.Fim,
-        PrevisaoTermino: s.PrevisaoTermino,
-        Status: s.Status.ToString(),
-        TipoColeta: s.TipoColeta.ToString(),
-        VelocidadeNominal: s.VelocidadeNominal,
-        SobreVelocidade: s.SobreVelocidade
-    );
+    private async Task<SessaoDto> ToDtoAsync(Sessao s)
+    {
+        var camposSelecionados = await _context.SessoesCampo
+            .Where(sc => sc.SessaoId == s.Id)
+            .Select(sc => sc.CampoMaquinaId.ToString())
+            .ToListAsync();
+
+        return new SessaoDto(
+            Id: s.Id.ToString(),
+            MaquinaLinhaId: s.MaquinaLinhaId.ToString(),
+            UsuarioId: s.UsuarioId.ToString(),
+            Inicio: s.Inicio,
+            Fim: s.Fim,
+            PrevisaoTermino: s.PrevisaoTermino,
+            Status: s.Status.ToString(),
+            TipoColeta: s.TipoColeta.ToString(),
+            VelocidadeNominal: s.VelocidadeNominal,
+            SobreVelocidade: s.SobreVelocidade,
+            CamposSelecionados: camposSelecionados
+        );
+    }
 }

@@ -33,7 +33,8 @@ public class SessaoController : ControllerBase
                 request.VelocidadeNominal,
                 request.SobreVelocidade,
                 request.PrevisaoTermino,
-                request.TipoColeta
+                request.TipoColeta,
+                request.CampoMaquinaIds ?? new List<Guid>()
             )
         );
 
@@ -64,5 +65,6 @@ public record AbrirSessaoHttpRequest(
     decimal VelocidadeNominal,
     decimal SobreVelocidade,
     DateTime? PrevisaoTermino,
-    string TipoColeta
+    string TipoColeta,
+    IList<Guid>? CampoMaquinaIds
 );

@@ -17,12 +17,14 @@ public record SessaoDto(
     string Status,
     string TipoColeta,
     decimal VelocidadeNominal,
-    decimal SobreVelocidade
+    decimal SobreVelocidade,
+    IList<string> CamposSelecionados
 );
 
 public record AbrirSessaoRequest(
     decimal VelocidadeNominal,
     decimal SobreVelocidade,
     DateTime? PrevisaoTermino,
-    string TipoColeta
+    string TipoColeta,
+    IList<Guid> CampoMaquinaIds
 );

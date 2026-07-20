@@ -11,6 +11,7 @@ export interface SessaoDto {
   tipoColeta: string
   velocidadeNominal: number
   sobreVelocidade: number
+  camposSelecionados: string[]
 }
 
 export interface AbrirSessaoParams {
@@ -19,6 +20,7 @@ export interface AbrirSessaoParams {
   sobreVelocidade: number
   previsaoTermino: string | null
   tipoColeta: string
+  campoMaquinaIds: string[]
 }
 
 export const sessaoService = {

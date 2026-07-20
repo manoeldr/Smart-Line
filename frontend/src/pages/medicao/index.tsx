@@ -59,6 +59,7 @@ export default function Medicao() {
       sobreVelocidade: number
       previsaoTermino: string | null
       tipoColeta: string
+      campoMaquinaIds: string[]
     }
   ) {
     setErro(null)
@@ -70,6 +71,7 @@ export default function Medicao() {
         sobreVelocidade: params.sobreVelocidade,
         previsaoTermino: params.previsaoTermino,
         tipoColeta: params.tipoColeta,
+        campoMaquinaIds: params.campoMaquinaIds,
       })
       const nova: SessaoAtiva = { maquina, linha, sessao, leiturasIniciais }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nova))

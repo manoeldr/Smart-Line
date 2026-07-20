@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
+import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import type { Linha, MaquinaLinha } from '../../types'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
       sobreVelocidade: number
       previsaoTermino: string | null
       tipoColeta: string
+      campoMaquinaIds: string[]
     }
   ) => void
   loading?: boolean
@@ -35,6 +37,11 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const [tipoColeta, setTipoColeta] = useState<TipoColeta>('Manual')
   const [producaoInicial, setProducaoInicial] = useState('')
 
+  // Campos de coleta extras
+  const [camposDisponiveis, setCamposDisponiveis] = useState<CampoMaquinaDto[]>([])
+  const [loadingCampos, setLoadingCampos] = useState(false)
+  const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     if (!clienteId) return
     async function carregar() {
@@ -55,7 +62,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setMaquinaSelecionada(null)
   }
 
-  function handleMaquinaChange(maquinaId: string) {
+  async function handleMaquinaChange(maquinaId: string) {
     const maquina = linhaSelecionada?.maquinas.find(m => m.id === maquinaId) ?? null
     setMaquinaSelecionada(maquina)
     if (maquina) {
@@ -64,6 +71,15 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       setPrevisaoTermino('')
       setProducaoInicial('')
       setTipoColeta('Manual')
+      setCamposSelecionados(new Set())
+
+      setLoadingCampos(true)
+      try {
+        const campos = await configuracaoService.getCamposMaquina(maquina.maquinaId)
+        setCamposDisponiveis(campos.filter(c => c.ativo))
+      } finally {
+        setLoadingCampos(false)
+      }
     }
   }
 
@@ -71,16 +87,23 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setModalOpen(true)
   }
 
+  function toggleCampo(campoId: string) {
+    setCamposSelecionados(prev => {
+      const novo = new Set(prev)
+      if (novo.has(campoId)) novo.delete(campoId)
+      else novo.add(campoId)
+      return novo
+    })
+  }
+
   function handleConfirmar() {
     if (!maquinaSelecionada || !linhaSelecionada) return
 
-    // Monta previsão de término como ISO string com a data de hoje
     let previsaoISO: string | null = null
     if (previsaoTermino) {
       const hoje = new Date()
       const [hh, mm] = previsaoTermino.split(':').map(Number)
       const dt = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), hh, mm, 0)
-      // Se hora já passou, considera amanhã
       if (dt <= new Date()) dt.setDate(dt.getDate() + 1)
       previsaoISO = dt.toISOString()
     }
@@ -94,6 +117,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
         sobreVelocidade: Number(sobreVelocidade) || 0,
         previsaoTermino: previsaoISO,
         tipoColeta,
+        campoMaquinaIds: Array.from(camposSelecionados),
       }
     )
     setModalOpen(false)
@@ -166,7 +190,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       {/* Modal de configuração */}
       {modalOpen && maquinaSelecionada && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-[480px] flex flex-col">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-[480px] max-h-[90vh] flex flex-col">
 
             {/* Header */}
             <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -174,7 +198,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
               <p className="text-xs text-zinc-400 mt-0.5">{maquinaSelecionada.maquinaNome}</p>
             </div>
 
-            <div className="px-5 py-4 flex flex-col gap-4">
+            <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
 
               {/* Forma de medição */}
               <div>
@@ -248,6 +272,38 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 <p className="text-[10px] text-zinc-400 mt-1">
                   Ao atingir este horário, a medição será finalizada automaticamente após 5 minutos
                 </p>
+              </div>
+
+              {/* Campos a coletar */}
+              <div>
+                <label className="text-xs text-zinc-500 mb-2 block">Campos a coletar</label>
+
+                {/* Produção fixo */}
+                <div className="flex items-center gap-2 py-1.5">
+                  <input type="checkbox" checked disabled className="accent-blue-600" />
+                  <span className="text-xs text-zinc-900 dark:text-zinc-100">Produção</span>
+                  <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
+                </div>
+
+                {loadingCampos ? (
+                  <p className="text-xs text-zinc-400 mt-1">Carregando campos...</p>
+                ) : camposDisponiveis.length === 0 ? (
+                  <p className="text-xs text-zinc-400 mt-1">Nenhum campo extra cadastrado para esta máquina</p>
+                ) : (
+                  camposDisponiveis.map(c => (
+                    <label key={c.id} className="flex items-center gap-2 py-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={camposSelecionados.has(c.id)}
+                        onChange={() => toggleCampo(c.id)}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-xs text-zinc-900 dark:text-zinc-100">
+                        {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
+                      </span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
 
