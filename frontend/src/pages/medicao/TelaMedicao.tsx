@@ -5,6 +5,7 @@ import { sessaoService } from '../../services/sessaoService'
 import { maquinaService, type MotivoParadaDto } from '../../services/maquinaService'
 import { paradaService, type ParadaDto } from '../../services/paradaService'
 import { producaoService } from '../../services/producaoService'
+import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
 import PausarMedicaoModal from '../../modals/PausarMedicaoModal'
 
@@ -20,6 +21,7 @@ interface LeituraHoraria {
   hora: string
   valor: string
   inicial?: boolean
+  extras: Record<string, string> // campoId -> valor
 }
 
 type StatusMaquina = 'Rodando' | 'Parada' | 'Pausada'
@@ -64,9 +66,21 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(null)
   const [leiturasSalvas, setLeiturasSalvas] = useState<Set<string>>(new Set())
 
+  // Campos extras selecionados nesta sessão
+  const [camposExtras, setCamposExtras] = useState<CampoMaquinaDto[]>([])
+
   const [leituras, setLeituras] = useState<LeituraHoraria[]>(
     estadoSalvo?.leituras ?? [
-      { hora: horaInicioStr, valor: String(leiturasIniciais['producao'] ?? ''), inicial: true }
+      {
+        hora: horaInicioStr,
+        valor: String(leiturasIniciais['producao'] ?? ''),
+        inicial: true,
+        extras: Object.fromEntries(
+          Object.entries(leiturasIniciais)
+            .filter(([k]) => k !== 'producao')
+            .map(([k, v]) => [k, String(v)])
+        ),
+      }
     ]
   )
 
@@ -75,6 +89,21 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       ? Math.max(0, estadoSalvo.leituras.filter(l => !l.inicial).length)
       : 0
   )
+
+  // Busca detalhes dos campos extras selecionados na sessão
+  useEffect(() => {
+    if (!sessao.camposSelecionados || sessao.camposSelecionados.length === 0) return
+    async function carregar() {
+      try {
+        const todosCampos = await configuracaoService.getCamposMaquina(maquina.maquinaId)
+        const selecionados = todosCampos.filter(c => sessao.camposSelecionados.includes(c.id))
+        setCamposExtras(selecionados.sort((a, b) => a.ordem - b.ordem))
+      } catch {
+        console.error('Erro ao carregar campos extras')
+      }
+    }
+    carregar()
+  }, [sessao.camposSelecionados, maquina.maquinaId])
 
   useEffect(() => {
     const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras }
@@ -117,7 +146,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     const horaStr = novaHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     setLeituras(prev => {
       if (prev.some(l => l.hora === horaStr)) return prev
-      return [...prev, { hora: horaStr, valor: '' }]
+      return [...prev, { hora: horaStr, valor: '', extras: {} }]
     })
   }, [segundos, horaInicio])
 
@@ -130,6 +159,12 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   function handleLeitura(hora: string, valor: string) {
     setLeituras(prev => prev.map(l => l.hora === hora ? { ...l, valor } : l))
+  }
+
+  function handleLeituraExtra(hora: string, campoId: string, valor: string) {
+    setLeituras(prev => prev.map(l =>
+      l.hora === hora ? { ...l, extras: { ...l.extras, [campoId]: valor } } : l
+    ))
   }
 
   async function handleSalvarLeitura(hora: string, valor: string) {
@@ -194,6 +229,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     Parada:  'bg-red-500',
     Pausada: 'bg-amber-500',
   }
+
+  // Grid dinâmico: Horário | Produção | [campo extra]... | check
+  const gridTemplate = `80px 1fr ${camposExtras.map(() => '1fr').join(' ')} 40px`.trim()
 
   return (
     <div className="flex flex-col h-full">
@@ -356,9 +394,17 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           </div>
 
           {/* Header tabela */}
-          <div className="grid grid-cols-[80px_1fr_40px] border-b border-zinc-200 dark:border-zinc-800 px-6 py-2">
+          <div
+            className="grid border-b border-zinc-200 dark:border-zinc-800 px-6 py-2"
+            style={{ gridTemplateColumns: gridTemplate }}
+          >
             <span className="text-[10px] font-medium text-zinc-400">Horário</span>
-            <span className="text-[10px] font-medium text-zinc-400">Quantidade</span>
+            <span className="text-[10px] font-medium text-zinc-400">Produção</span>
+            {camposExtras.map(c => (
+              <span key={c.id} className="text-[10px] font-medium text-zinc-400">
+                {c.nome}{c.unidade ? ` (${c.unidade})` : ''}
+              </span>
+            ))}
           </div>
 
           {/* Leituras */}
@@ -366,13 +412,16 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             {leituras.map((l, i) => (
               <div
                 key={l.hora}
-                className={`grid grid-cols-[80px_1fr_40px] items-center px-6 py-2 ${
+                className={`grid items-center px-6 py-2 gap-2 ${
                   i < leituras.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''
                 }`}
+                style={{ gridTemplateColumns: gridTemplate }}
               >
                 <span className={`text-xs ${l.inicial ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-zinc-400'}`}>
                   {l.hora}
                 </span>
+
+                {/* Produção */}
                 <input
                   type="number"
                   min="0"
@@ -388,6 +437,24 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                         : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
                   }`}
                 />
+
+                {/* Campos extras */}
+                {camposExtras.map(c => (
+                  <input
+                    key={c.id}
+                    type="number"
+                    value={l.extras?.[c.id] ?? ''}
+                    onChange={e => handleLeituraExtra(l.hora, c.id, e.target.value)}
+                    disabled={l.inicial || leiturasSalvas.has(l.hora)}
+                    placeholder="—"
+                    className={`h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                      l.inicial || leiturasSalvas.has(l.hora)
+                        ? 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed'
+                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
+                    }`}
+                  />
+                ))}
+
                 <div className="flex items-center justify-center">
                   {!l.inicial && !leiturasSalvas.has(l.hora) && l.valor && (
                     <button

@@ -41,6 +41,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const [camposDisponiveis, setCamposDisponiveis] = useState<CampoMaquinaDto[]>([])
   const [loadingCampos, setLoadingCampos] = useState(false)
   const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
+  const [valoresIniciaisExtras, setValoresIniciaisExtras] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!clienteId) return
@@ -72,6 +73,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       setProducaoInicial('')
       setTipoColeta('Manual')
       setCamposSelecionados(new Set())
+      setValoresIniciaisExtras({})
 
       setLoadingCampos(true)
       try {
@@ -90,10 +92,22 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   function toggleCampo(campoId: string) {
     setCamposSelecionados(prev => {
       const novo = new Set(prev)
-      if (novo.has(campoId)) novo.delete(campoId)
-      else novo.add(campoId)
+      if (novo.has(campoId)) {
+        novo.delete(campoId)
+        setValoresIniciaisExtras(v => {
+          const copia = { ...v }
+          delete copia[campoId]
+          return copia
+        })
+      } else {
+        novo.add(campoId)
+      }
       return novo
     })
+  }
+
+  function handleValorInicialExtra(campoId: string, valor: string) {
+    setValoresIniciaisExtras(prev => ({ ...prev, [campoId]: valor }))
   }
 
   function handleConfirmar() {
@@ -108,10 +122,17 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       previsaoISO = dt.toISOString()
     }
 
+    const leiturasIniciais: Record<string, number> = {
+      producao: Number(producaoInicial) || 0,
+    }
+    for (const campoId of camposSelecionados) {
+      leiturasIniciais[campoId] = Number(valoresIniciaisExtras[campoId]) || 0
+    }
+
     onIniciar(
       maquinaSelecionada,
       linhaSelecionada,
-      { producao: Number(producaoInicial) || 0 },
+      leiturasIniciais,
       {
         velocidadeNominal: Number(velocidadeNominal) || 0,
         sobreVelocidade: Number(sobreVelocidade) || 0,
@@ -259,6 +280,24 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                   className={inputCls}
                 />
               </div>
+
+              {/* Leituras iniciais dos campos extras selecionados */}
+              {camposDisponiveis
+                .filter(c => camposSelecionados.has(c.id))
+                .map(c => (
+                  <div key={c.id}>
+                    <label className="text-xs text-zinc-500 mb-1 block">
+                      {c.nome} até então {c.unidade && `(${c.unidade})`}
+                    </label>
+                    <input
+                      type="number"
+                      value={valoresIniciaisExtras[c.id] ?? ''}
+                      onChange={e => handleValorInicialExtra(c.id, e.target.value)}
+                      placeholder="Leitura atual"
+                      className={inputCls}
+                    />
+                  </div>
+                ))}
 
               {/* Previsão de término */}
               <div>
