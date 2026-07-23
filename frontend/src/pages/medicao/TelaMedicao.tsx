@@ -5,6 +5,7 @@ import { sessaoService } from '../../services/sessaoService'
 import { maquinaService, type MotivoParadaDto } from '../../services/maquinaService'
 import { paradaService, type ParadaDto } from '../../services/paradaService'
 import { producaoService } from '../../services/producaoService'
+import { leituraExtraService } from '../../services/leituraExtraService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
 import PausarMedicaoModal from '../../modals/PausarMedicaoModal'
@@ -172,8 +173,21 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   async function handleSalvarLeitura(hora: string, valor: string) {
     const quantidade = parseInt(valor)
     if (isNaN(quantidade) || quantidade < 0) return
+
+    const leitura = leituras.find(l => l.hora === hora)
+    const agora = new Date()
+
     try {
-      await producaoService.registrar(sessao.id, quantidade, 0, new Date())
+      await producaoService.registrar(sessao.id, quantidade, 0, agora)
+
+      // Salva os campos extras preenchidos nesta mesma leitura
+      if (leitura && camposExtras.length > 0) {
+        const promessas = camposExtras
+          .filter(c => leitura.extras[c.id] !== undefined && leitura.extras[c.id] !== '')
+          .map(c => leituraExtraService.registrar(sessao.id, c.id, Number(leitura.extras[c.id]) || 0, agora))
+        await Promise.all(promessas)
+      }
+
       setLeiturasSalvas(prev => new Set([...prev, hora]))
     } catch {
       console.error('Erro ao salvar leitura')
@@ -209,21 +223,21 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     setModalFinalOpen(true)
   }
 
-async function handleConfirmarFinalizar(
-  producaoFinal: number,
-  extras: { campoMaquinaId: string; valor: number }[]
-) {
-  setFinalizando(true)
-  try {
-    await sessaoService.finalizar(sessao.id, producaoFinal, 0, extras)
-    localStorage.removeItem(ESTADO_KEY)
-    setModalFinalOpen(false)
-    onFinalizar()
-  } catch {
-    alert('Erro ao finalizar medição.')
-    setFinalizando(false)
+  async function handleConfirmarFinalizar(
+    producaoFinal: number,
+    extras: { campoMaquinaId: string; valor: number }[]
+  ) {
+    setFinalizando(true)
+    try {
+      await sessaoService.finalizar(sessao.id, producaoFinal, 0, extras)
+      localStorage.removeItem(ESTADO_KEY)
+      setModalFinalOpen(false)
+      onFinalizar()
+    } catch {
+      alert('Erro ao finalizar medição.')
+      setFinalizando(false)
+    }
   }
-}
 
   const ultimaLeitura = leituras[leituras.length - 1]
 
