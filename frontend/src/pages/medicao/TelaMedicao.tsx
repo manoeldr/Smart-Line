@@ -8,6 +8,7 @@ import { producaoService } from '../../services/producaoService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
 import PausarMedicaoModal from '../../modals/PausarMedicaoModal'
+import LeituraFinalModal from '../../modals/LeituraFinalModal'
 
 interface Props {
   maquina: MaquinaLinha
@@ -60,6 +61,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const pausadaRef = useRef(false)
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
   const [modalPausaOpen, setModalPausaOpen] = useState(false)
+  const [modalFinalOpen, setModalFinalOpen] = useState(false)
   const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
   const [loadingMotivos, setLoadingMotivos] = useState(false)
   const [loadingPausa, setLoadingPausa] = useState(false)
@@ -203,18 +205,25 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     }
   }
 
-  async function handleFinalizar() {
-    if (!confirm('Deseja finalizar a medição?')) return
-    setFinalizando(true)
-    try {
-      await sessaoService.fechar(sessao.id)
-      localStorage.removeItem(ESTADO_KEY)
-      onFinalizar()
-    } catch {
-      alert('Erro ao finalizar medição.')
-      setFinalizando(false)
-    }
+  function handleAbrirFinalizar() {
+    setModalFinalOpen(true)
   }
+
+async function handleConfirmarFinalizar(
+  producaoFinal: number,
+  extras: { campoMaquinaId: string; valor: number }[]
+) {
+  setFinalizando(true)
+  try {
+    await sessaoService.finalizar(sessao.id, producaoFinal, 0, extras)
+    localStorage.removeItem(ESTADO_KEY)
+    setModalFinalOpen(false)
+    onFinalizar()
+  } catch {
+    alert('Erro ao finalizar medição.')
+    setFinalizando(false)
+  }
+}
 
   const ultimaLeitura = leituras[leituras.length - 1]
 
@@ -370,7 +379,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
               Pausar medição
             </button>
             <button
-              onClick={handleFinalizar}
+              onClick={handleAbrirFinalizar}
               disabled={finalizando}
               className="h-11 flex items-center justify-center gap-1.5 text-xs text-red-600 dark:text-red-400 border-t border-zinc-200 dark:border-zinc-800 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
             >
@@ -524,6 +533,15 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           setMotivos(prev => [...prev, novo])
           return novo.id
         }}
+      />
+
+      {/* Modal leitura final */}
+      <LeituraFinalModal
+        open={modalFinalOpen}
+        camposExtras={camposExtras}
+        salvando={finalizando}
+        onConfirmar={handleConfirmarFinalizar}
+        onCancelar={() => setModalFinalOpen(false)}
       />
     </div>
   )

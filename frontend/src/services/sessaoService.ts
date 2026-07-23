@@ -23,6 +23,11 @@ export interface AbrirSessaoParams {
   campoMaquinaIds: string[]
 }
 
+export interface FinalizarExtra {
+  campoMaquinaId: string
+  valor: number
+}
+
 export const sessaoService = {
   abrir: (params: AbrirSessaoParams) =>
     api.post<SessaoDto>('/sessoes', params),
@@ -35,4 +40,11 @@ export const sessaoService = {
 
   estender: (sessaoId: string, previsaoTermino: string) =>
     api.patch<SessaoDto>(`/sessoes/${sessaoId}/estender`, { previsaoTermino }),
+
+  finalizar: (sessaoId: string, producaoFinal: number, refugoFinal: number, extras: FinalizarExtra[]) =>
+    api.patch<void>(`/sessoes/${sessaoId}/finalizar`, {
+      producaoFinal,
+      refugoFinal,
+      extras,
+    }),
 }

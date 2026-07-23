@@ -6,6 +6,7 @@ public interface ISessaoService
     Task<bool> FecharAsync(Guid sessaoId);
     Task<SessaoDto?> GetByIdAsync(Guid sessaoId);
     Task<SessaoDto?> EstenderAsync(Guid sessaoId, DateTime novaPrevisaoTermino);
+    Task<bool> FinalizarComLeituraAsync(Guid sessaoId, FinalizarSessaoRequest req);
 }
 
 public record SessaoDto(
@@ -29,3 +30,11 @@ public record AbrirSessaoRequest(
     string TipoColeta,
     IList<Guid> CampoMaquinaIds
 );
+
+public record FinalizarSessaoRequest(
+    int ProducaoFinal,
+    int RefugoFinal,
+    IList<LeituraExtraFinalRequest> Extras
+);
+
+public record LeituraExtraFinalRequest(Guid CampoMaquinaId, decimal Valor);

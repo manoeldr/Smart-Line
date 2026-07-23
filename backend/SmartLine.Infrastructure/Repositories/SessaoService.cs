@@ -88,6 +88,46 @@ public class SessaoService : ISessaoService
         return await ToDtoAsync(sessao);
     }
 
+    public async Task<bool> FinalizarComLeituraAsync(Guid sessaoId, FinalizarSessaoRequest req)
+    {
+        var sessao = await _context.Sessoes.FindAsync(sessaoId);
+        if (sessao is null) return false;
+
+        var agora = DateTime.UtcNow;
+
+        // Salva a leitura final de produção
+        _context.Producoes.Add(new Producao
+        {
+            Id = Guid.NewGuid(),
+            SessaoId = sessaoId,
+            Quantidade = req.ProducaoFinal,
+            Refugo = req.RefugoFinal,
+            Hora = agora,
+        });
+
+        // Salva os valores finais dos campos extras
+        if (req.Extras is { Count: > 0 })
+        {
+            foreach (var extra in req.Extras)
+            {
+                _context.LeiturasExtra.Add(new LeituraExtra
+                {
+                    Id = Guid.NewGuid(),
+                    SessaoId = sessaoId,
+                    CampoMaquinaId = extra.CampoMaquinaId,
+                    Valor = extra.Valor,
+                    Hora = agora,
+                });
+            }
+        }
+
+        sessao.Fim = agora;
+        sessao.Status = StatusSessao.Finalizada;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private async Task<SessaoDto> ToDtoAsync(Sessao s)
     {
         var camposSelecionados = await _context.SessoesCampo

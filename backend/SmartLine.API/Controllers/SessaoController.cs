@@ -66,6 +66,21 @@ public class SessaoController : ControllerBase
         if (resultado is null) return NotFound();
         return Ok(resultado);
     }
+
+    [HttpPatch("{id}/finalizar")]
+    public async Task<IActionResult> Finalizar(Guid id, [FromBody] FinalizarSessaoHttpRequest request)
+    {
+        var sucesso = await _sessaoService.FinalizarComLeituraAsync(
+            id,
+            new FinalizarSessaoRequest(
+                request.ProducaoFinal,
+                request.RefugoFinal,
+                request.Extras ?? new List<LeituraExtraFinalRequest>()
+            )
+        );
+        if (!sucesso) return NotFound();
+        return NoContent();
+    }
 }
 
 public record AbrirSessaoHttpRequest(
@@ -78,3 +93,9 @@ public record AbrirSessaoHttpRequest(
 );
 
 public record EstenderSessaoRequest(DateTime PrevisaoTermino);
+
+public record FinalizarSessaoHttpRequest(
+    int ProducaoFinal,
+    int RefugoFinal,
+    IList<LeituraExtraFinalRequest>? Extras
+);
