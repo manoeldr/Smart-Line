@@ -58,6 +58,14 @@ public class SessaoController : ControllerBase
         if (sessao is null) return NotFound();
         return Ok(sessao);
     }
+
+    [HttpPatch("{id}/estender")]
+    public async Task<IActionResult> Estender(Guid id, [FromBody] EstenderSessaoRequest request)
+    {
+        var resultado = await _sessaoService.EstenderAsync(id, request.PrevisaoTermino);
+        if (resultado is null) return NotFound();
+        return Ok(resultado);
+    }
 }
 
 public record AbrirSessaoHttpRequest(
@@ -68,3 +76,5 @@ public record AbrirSessaoHttpRequest(
     string TipoColeta,
     IList<Guid>? CampoMaquinaIds
 );
+
+public record EstenderSessaoRequest(DateTime PrevisaoTermino);

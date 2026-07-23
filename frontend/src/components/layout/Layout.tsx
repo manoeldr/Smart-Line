@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import DateFilterModal from '../../modals/DateFilterModal'
 import ClienteSelectorModal from '../../modals/ClienteSelectorModal'
+import Watcher from '../SessaoGlobal/Watcher'
 import { clienteService } from '../../services/clienteService'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Cliente } from '../../types'
@@ -79,6 +80,8 @@ export default function Layout() {
         clientes={clientes}
         anchorRef={seletorAnchorRef}
       />
+
+      <Watcher />
     </div>
   )
 }

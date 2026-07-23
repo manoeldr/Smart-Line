@@ -32,4 +32,7 @@ export const sessaoService = {
 
   getById: (sessaoId: string) =>
     api.get<SessaoDto>(`/sessoes/${sessaoId}`),
+
+  estender: (sessaoId: string, previsaoTermino: string) =>
+    api.patch<SessaoDto>(`/sessoes/${sessaoId}/estender`, { previsaoTermino }),
 }

@@ -77,6 +77,17 @@ public class SessaoService : ISessaoService
         return await ToDtoAsync(sessao);
     }
 
+    public async Task<SessaoDto?> EstenderAsync(Guid sessaoId, DateTime novaPrevisaoTermino)
+    {
+        var sessao = await _context.Sessoes.FindAsync(sessaoId);
+        if (sessao is null) return null;
+
+        sessao.PrevisaoTermino = novaPrevisaoTermino;
+        await _context.SaveChangesAsync();
+
+        return await ToDtoAsync(sessao);
+    }
+
     private async Task<SessaoDto> ToDtoAsync(Sessao s)
     {
         var camposSelecionados = await _context.SessoesCampo

@@ -5,6 +5,7 @@ public interface ISessaoService
     Task<SessaoDto?> AbrirAsync(Guid maquinaLinhaId, Guid usuarioId, AbrirSessaoRequest req);
     Task<bool> FecharAsync(Guid sessaoId);
     Task<SessaoDto?> GetByIdAsync(Guid sessaoId);
+    Task<SessaoDto?> EstenderAsync(Guid sessaoId, DateTime novaPrevisaoTermino);
 }
 
 public record SessaoDto(
