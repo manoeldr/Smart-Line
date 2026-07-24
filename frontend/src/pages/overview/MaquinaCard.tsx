@@ -21,8 +21,20 @@ const statusLabel: Record<string, string> = {
   SemSessao:       'Sem sessão ativa',
 }
 
+function formatarUltimaSessao(dataIso: string) {
+  const data = new Date(dataIso)
+  const dia = data.toLocaleDateString('pt-BR')
+  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${dia} ${hora}`
+}
+
 export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
-  const dotClass = filtroAtivo ? 'bg-blue-600' : (statusDot[maquina.status] ?? 'bg-zinc-400')
+  const temHistorico = !maquina.sessaoAtiva && maquina.ultimaSessaoFim
+  const dotClass = filtroAtivo
+    ? 'bg-blue-600'
+    : temHistorico
+      ? 'bg-zinc-400'
+      : (statusDot[maquina.status] ?? 'bg-zinc-400')
   const oeeColor = maquina.critica && !filtroAtivo ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'
 
   return (
@@ -45,7 +57,9 @@ export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
       {/* Status */}
       {!filtroAtivo && (
         <p className="text-[10px] text-zinc-400 mb-2 truncate">
-          {statusLabel[maquina.status] ?? '—'}
+          {temHistorico
+            ? `última sessão: ${formatarUltimaSessao(maquina.ultimaSessaoFim!)}`
+            : statusLabel[maquina.status] ?? '—'}
         </p>
       )}
       {filtroAtivo && <div className="mb-2" />}

@@ -42,6 +42,7 @@ export interface MaquinaLinha {
   status: StatusMaquina
   oee: number | null
   sessaoAtiva: boolean
+  ultimaSessaoFim: string | null
 }
 
 export interface Linha {

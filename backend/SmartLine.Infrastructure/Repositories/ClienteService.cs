@@ -43,57 +43,76 @@ public class ClienteService : IClienteService
             .Where(l => l.ClienteId == clienteId && l.Ativo)
             .Include(l => l.Maquinas)
                 .ThenInclude(ml => ml.Maquina)
-            .Include(l => l.Maquinas)
-                .ThenInclude(ml => ml.Sessoes.Where(s => s.Status == StatusSessao.EmAndamento))
-                    .ThenInclude(s => s.Producoes)
-            .Include(l => l.Maquinas)
-                .ThenInclude(ml => ml.Sessoes.Where(s => s.Status == StatusSessao.EmAndamento))
-                    .ThenInclude(s => s.Paradas)
-                        .ThenInclude(p => p.Motivo)
             .OrderBy(l => l.Nome)
             .ToListAsync();
 
-        return linhas.Select(linha => new LinhaOverviewDto(
-            Id: linha.Id.ToString(),
-            ClienteId: linha.ClienteId.ToString(),
-            Nome: linha.Nome,
-            Ativo: linha.Ativo,
-            Maquinas: linha.Maquinas
-                .Where(ml => ml.Ativo)
-                .OrderBy(ml => ml.Ordem)
-                .Select(ml =>
+        var resultado = new List<LinhaOverviewDto>();
+
+        foreach (var linha in linhas)
+        {
+            var maquinasDto = new List<MaquinaLinhaOverviewDto>();
+
+            foreach (var ml in linha.Maquinas.Where(m => m.Ativo).OrderBy(m => m.Ordem))
+            {
+                var sessaoAtiva = await _context.Sessoes
+                    .Include(s => s.Producoes)
+                    .Include(s => s.Paradas)
+                        .ThenInclude(p => p.Motivo)
+                    .FirstOrDefaultAsync(s => s.MaquinaLinhaId == ml.Id && s.Status == StatusSessao.EmAndamento);
+
+                Core.Entities.Tenant.Sessao? ultimaSessaoFinalizada = null;
+
+                if (sessaoAtiva is null)
                 {
-                    var sessaoAtiva = ml.Sessoes.FirstOrDefault(s => s.Status == StatusSessao.EmAndamento);
-                    var status = ResolverStatus(ml, sessaoAtiva);
-                    double? oee = null;
+                    ultimaSessaoFinalizada = await _context.Sessoes
+                        .Include(s => s.Producoes)
+                        .Include(s => s.Paradas)
+                            .ThenInclude(p => p.Motivo)
+                        .Where(s => s.MaquinaLinhaId == ml.Id && s.Status == StatusSessao.Finalizada)
+                        .OrderByDescending(s => s.Fim)
+                        .FirstOrDefaultAsync();
+                }
 
-                    if (sessaoAtiva is not null)
-                    {
-                        var resultado = _oeeService.Calcular(sessaoAtiva, ml.VelocidadeNominal);
-                        oee = resultado.Oee;
-                    }
+                var sessaoParaOee = sessaoAtiva ?? ultimaSessaoFinalizada;
+                var status = ResolverStatus(sessaoAtiva);
+                double? oee = null;
 
-                    return new MaquinaLinhaOverviewDto(
-                        Id: ml.Id.ToString(),
-                        LinhaId: ml.LinhaId.ToString(),
-                        MaquinaId: ml.MaquinaId.ToString(),
-                        MaquinaNome: ml.Maquina.Nome,
-                        TipoColeta: ml.TipoColeta.ToString(),
-                        VelocidadeNominal: ml.VelocidadeNominal,
-                        Critica: ml.Critica,
-                        Ordem: ml.Ordem,
-                        Ativo: ml.Ativo,
-                        Status: status,
-                        Oee: oee.HasValue ? Math.Round(oee.Value, 1) : null,
-                        SessaoAtiva: sessaoAtiva is not null
-                    );
-                })
-                .ToList()
-        )).ToList();
+                if (sessaoParaOee is not null)
+                {
+                    var resultadoOee = _oeeService.Calcular(sessaoParaOee, ml.VelocidadeNominal);
+                    oee = resultadoOee.Oee;
+                }
+
+                maquinasDto.Add(new MaquinaLinhaOverviewDto(
+                    Id: ml.Id.ToString(),
+                    LinhaId: ml.LinhaId.ToString(),
+                    MaquinaId: ml.MaquinaId.ToString(),
+                    MaquinaNome: ml.Maquina.Nome,
+                    TipoColeta: ml.TipoColeta.ToString(),
+                    VelocidadeNominal: ml.VelocidadeNominal,
+                    Critica: ml.Critica,
+                    Ordem: ml.Ordem,
+                    Ativo: ml.Ativo,
+                    Status: status,
+                    Oee: oee.HasValue ? Math.Round(oee.Value, 1) : null,
+                    SessaoAtiva: sessaoAtiva is not null,
+                    UltimaSessaoFim: ultimaSessaoFinalizada?.Fim
+                ));
+            }
+
+            resultado.Add(new LinhaOverviewDto(
+                Id: linha.Id.ToString(),
+                ClienteId: linha.ClienteId.ToString(),
+                Nome: linha.Nome,
+                Ativo: linha.Ativo,
+                Maquinas: maquinasDto
+            ));
+        }
+
+        return resultado;
     }
 
     private static string ResolverStatus(
-        SmartLine.Core.Entities.Tenant.MaquinaLinha ml,
         SmartLine.Core.Entities.Tenant.Sessao? sessaoAtiva)
     {
         if (sessaoAtiva is null) return "SemSessao";
