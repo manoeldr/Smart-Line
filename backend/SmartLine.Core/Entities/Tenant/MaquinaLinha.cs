@@ -1,4 +1,4 @@
-using SmartLine.Core.Enums;
+﻿using SmartLine.Core.Enums;
 using SmartLine.Core.Entities.Global;
 
 namespace SmartLine.Core.Entities.Tenant;
@@ -10,6 +10,7 @@ public class MaquinaLinha
     public Guid MaquinaId { get; set; }
     public TipoColeta TipoColeta { get; set; }
     public decimal VelocidadeNominal { get; set; }
+    public decimal SobreVelocidade { get; set; } = 0;
     public bool Critica { get; set; } = false;
     public int Ordem { get; set; }
     public bool Ativo { get; set; } = true;

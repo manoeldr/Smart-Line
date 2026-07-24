@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { configuracaoService, type ClienteConfDto } from '../../services/configuracaoService'
+import ConfiguracaoClienteModal from '../../modals/ConfiguracaoClienteModal'
 
 const ESTADOS_BR = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
 
 export default function AbaClientes() {
   const [clientes, setClientes] = useState<ClienteConfDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalNovoOpen, setModalNovoOpen] = useState(false)
+  const [modalEditarOpen, setModalEditarOpen] = useState(false)
   const [editando, setEditando] = useState<ClienteConfDto | null>(null)
   const [form, setForm] = useState({ nome: '', estado: '' })
   const [salvando, setSalvando] = useState(false)
@@ -20,27 +22,20 @@ export default function AbaClientes() {
   }
 
   function abrirNovo() {
-    setEditando(null)
     setForm({ nome: '', estado: '' })
-    setModalOpen(true)
+    setModalNovoOpen(true)
   }
 
   function abrirEditar(c: ClienteConfDto) {
     setEditando(c)
-    setForm({ nome: c.nome, estado: c.estado ?? '' })
-    setModalOpen(true)
+    setModalEditarOpen(true)
   }
 
-  async function salvar() {
+  async function salvarNovo() {
     setSalvando(true)
     try {
-      const data = { nome: form.nome, estado: form.estado || null }
-      if (editando) {
-        await configuracaoService.editarCliente(editando.id, { ...data, ativo: editando.ativo })
-      } else {
-        await configuracaoService.criarCliente(data)
-      }
-      setModalOpen(false)
+      await configuracaoService.criarCliente({ nome: form.nome, estado: form.estado || null })
+      setModalNovoOpen(false)
       await carregar()
     } finally { setSalvando(false) }
   }
@@ -97,13 +92,10 @@ export default function AbaClientes() {
         </table>
       )}
 
-      {/* Modal */}
-      {modalOpen && (
+      {modalNovoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-80 p-5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">
-              {editando ? 'Editar cliente' : 'Novo cliente'}
-            </p>
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Novo cliente</p>
             <div className="flex flex-col gap-3 mb-4">
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
@@ -120,14 +112,21 @@ export default function AbaClientes() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button onClick={salvar} disabled={!form.nome || salvando} className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
+              <button onClick={() => setModalNovoOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
+              <button onClick={salvarNovo} disabled={!form.nome || salvando} className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfiguracaoClienteModal
+        open={modalEditarOpen}
+        cliente={editando}
+        onFechar={() => setModalEditarOpen(false)}
+        onSalvo={carregar}
+      />
     </div>
   )
 }

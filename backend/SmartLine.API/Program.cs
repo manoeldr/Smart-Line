@@ -27,10 +27,9 @@ builder.Services.AddScoped<IMaquinaService, MaquinaService>();
 builder.Services.AddScoped<IParadaRegistroService, ParadaRegistroService>();
 builder.Services.AddScoped<IProducaoService, ProducaoService>();
 builder.Services.AddScoped<ILeituraExtraService, LeituraExtraService>();
-
+builder.Services.AddScoped<ILinhaMaquinaService, LinhaMaquinaService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
-
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
 
 // JWT
