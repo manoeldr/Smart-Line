@@ -79,4 +79,14 @@ public class MaquinaService : IMaquinaService
         await _context.SaveChangesAsync();
         return new MotivoParadaDto(motivo.Id.ToString(), motivo.Nome, motivo.Tipo.ToString());
     }
+
+    public async Task<bool> DeletarMotivoParadaAsync(Guid motivoId)
+    {
+        var motivo = await _context.MotivosParada.FindAsync(motivoId);
+        if (motivo is null) return false;
+
+        motivo.Ativo = false;
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

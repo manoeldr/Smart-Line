@@ -15,4 +15,7 @@ export const maquinaService = {
 
   criarMotivoParadaPlanejado: (maquinaId: string, nome: string) =>
     api.post<MotivoParadaDto>(`/maquinas/${maquinaId}/motivos-parada`, { nome, tipo: 'Planejada' }),
+
+  deletarMotivoParada: (motivoId: string) =>
+    api.delete<void>(`/maquinas/motivos-parada/${motivoId}`),
 }

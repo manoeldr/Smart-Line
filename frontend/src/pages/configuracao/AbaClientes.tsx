@@ -1,10 +1,15 @@
 ﻿import { useEffect, useState } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import { configuracaoService, type ClienteConfDto } from '../../services/configuracaoService'
 import ConfiguracaoClienteModal from '../../modals/ConfiguracaoClienteModal'
 
 const ESTADOS_BR = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
 
 export default function AbaClientes() {
+  const { usuario } = useAuth()
+  const nivel = usuario?.nivel ?? ''
+  const somenteLinhas = nivel === 'Auditor'
+
   const [clientes, setClientes] = useState<ClienteConfDto[]>([])
   const [loading, setLoading] = useState(true)
   const [modalNovoOpen, setModalNovoOpen] = useState(false)
@@ -49,11 +54,15 @@ export default function AbaClientes() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Clientes</p>
-        <button onClick={abrirNovo} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo cliente
-        </button>
+        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          {somenteLinhas ? 'Clientes — Linhas de produção' : 'Clientes'}
+        </p>
+        {!somenteLinhas && (
+          <button onClick={abrirNovo} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo cliente
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -80,11 +89,17 @@ export default function AbaClientes() {
                 </td>
                 <td className="py-2.5 flex items-center justify-end gap-2">
                   <button onClick={() => abrirEditar(c)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    {somenteLinhas ? (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    )}
                   </button>
-                  <button onClick={() => deletar(c.id)} className="text-zinc-400 hover:text-red-500">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                  </button>
+                  {!somenteLinhas && (
+                    <button onClick={() => deletar(c.id)} className="text-zinc-400 hover:text-red-500">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -92,7 +107,7 @@ export default function AbaClientes() {
         </table>
       )}
 
-      {modalNovoOpen && (
+      {!somenteLinhas && modalNovoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-80 p-5">
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Novo cliente</p>
@@ -124,6 +139,7 @@ export default function AbaClientes() {
       <ConfiguracaoClienteModal
         open={modalEditarOpen}
         cliente={editando}
+        somenteLinhas={somenteLinhas}
         onFechar={() => setModalEditarOpen(false)}
         onSalvo={carregar}
       />

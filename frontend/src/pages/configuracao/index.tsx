@@ -2,24 +2,22 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
 import AbaClientes from './AbaClientes'
-import AbaLinhas from './AbaLinhas'
 import AbaMaquinas from './AbaMaquinas'
 
-type Aba = 'usuarios' | 'clientes' | 'linhas' | 'maquinas'
+type Aba = 'usuarios' | 'clientes' | 'maquinas'
 
 export default function Configuracao() {
   const { usuario } = useAuth()
   const nivel = usuario?.nivel ?? ''
 
   const [abaAtiva, setAbaAtiva] = useState<Aba>(() => {
-    if (nivel === 'Auditor') return 'linhas'
+    if (nivel === 'Auditor') return 'clientes'
     return 'usuarios'
   })
 
   const abas: { id: Aba; label: string; niveis: string[] }[] = [
     { id: 'usuarios', label: 'Usuários', niveis: ['SuperAdmin'] },
-    { id: 'clientes', label: 'Clientes', niveis: ['SuperAdmin'] },
-    { id: 'linhas', label: 'Linhas', niveis: ['SuperAdmin', 'Auditor'] },
+    { id: 'clientes', label: 'Clientes', niveis: ['SuperAdmin', 'Auditor'] },
     { id: 'maquinas', label: 'Máquinas', niveis: ['SuperAdmin', 'Auditor'] },
   ]
 
@@ -35,7 +33,6 @@ export default function Configuracao() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Abas */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 flex">
         {abasVisiveis.map(aba => (
           <button
@@ -51,12 +48,9 @@ export default function Configuracao() {
           </button>
         ))}
       </div>
-
-      {/* Conteúdo */}
       <div className="flex-1 overflow-auto p-6">
         {abaAtiva === 'usuarios' && <AbaUsuarios />}
         {abaAtiva === 'clientes' && <AbaClientes />}
-        {abaAtiva === 'linhas' && <AbaLinhas />}
         {abaAtiva === 'maquinas' && <AbaMaquinas />}
       </div>
     </div>

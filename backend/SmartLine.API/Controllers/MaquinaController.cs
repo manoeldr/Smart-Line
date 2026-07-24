@@ -29,6 +29,14 @@ public class MaquinaController : ControllerBase
         var motivo = await _maquinaService.CriarMotivoParadaAsync(id, request.Nome, request.Tipo);
         return Ok(motivo);
     }
+
+    [HttpDelete("motivos-parada/{motivoId}")]
+    public async Task<IActionResult> DeletarMotivoParada(Guid motivoId)
+    {
+        var sucesso = await _maquinaService.DeletarMotivoParadaAsync(motivoId);
+        if (!sucesso) return NotFound();
+        return NoContent();
+    }
 }
 
 public record CriarMotivoParadaRequest(string Nome, string Tipo);

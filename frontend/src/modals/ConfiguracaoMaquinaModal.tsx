@@ -13,6 +13,20 @@ interface Props {
 
 const inputCls = 'w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500'
 
+function tempId() {
+  return `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+interface CampoStaged extends CampoMaquinaDto {
+  isNew: boolean
+  isDeleted: boolean
+}
+
+interface MotivoStaged extends MotivoParadaDto {
+  isNew: boolean
+  isDeleted: boolean
+}
+
 export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSalvo }: Props) {
   const [abaModal, setAbaModal] = useState<AbaModal>('manual')
   const [form, setForm] = useState({
@@ -22,108 +36,146 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   const [salvando, setSalvando] = useState(false)
 
   // Campos
-  const [campos, setCampos] = useState<CampoMaquinaDto[]>([])
+  const [campos, setCampos] = useState<CampoStaged[]>([])
   const [loadingCampos, setLoadingCampos] = useState(false)
   const [modalCampoOpen, setModalCampoOpen] = useState(false)
-  const [editandoCampo, setEditandoCampo] = useState<CampoMaquinaDto | null>(null)
+  const [editandoCampo, setEditandoCampo] = useState<CampoStaged | null>(null)
   const [formCampo, setFormCampo] = useState({ nome: '', unidade: '', ordem: 1 })
-  const [salvandoCampo, setSalvandoCampo] = useState(false)
 
   // Motivos
-  const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
+  const [motivos, setMotivos] = useState<MotivoStaged[]>([])
   const [loadingMotivos, setLoadingMotivos] = useState(false)
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
   const [formMotivo, setFormMotivo] = useState({ nome: '', tipo: 'Interna' })
-  const [salvandoMotivo, setSalvandoMotivo] = useState(false)
 
   useEffect(() => {
-    if (!open || !maquina) return
-    carregarCampos(maquina.id)
-    carregarMotivos(maquina.id)
+    if (!open) return
+    setForm({ nome: maquina?.nome ?? '', descricao: maquina?.descricao ?? '' })
+    if (maquina) {
+      carregarCampos(maquina.id)
+      carregarMotivos(maquina.id)
+    } else {
+      setCampos([])
+      setMotivos([])
+    }
   }, [open, maquina])
 
   async function carregarCampos(id: string) {
     setLoadingCampos(true)
-    try { setCampos(await configuracaoService.getCamposMaquina(id)) }
-    finally { setLoadingCampos(false) }
+    try {
+      const data = await configuracaoService.getCamposMaquina(id)
+      setCampos(data.map(c => ({ ...c, isNew: false, isDeleted: false })))
+    } finally { setLoadingCampos(false) }
   }
 
   async function carregarMotivos(id: string) {
     setLoadingMotivos(true)
-    try { setMotivos(await maquinaService.getMotivosParada(id)) }
-    finally { setLoadingMotivos(false) }
-  }
-
-  async function salvarDados() {
-    setSalvando(true)
     try {
-      const data = { nome: form.nome, descricao: form.descricao || null }
-      if (maquina) {
-        await configuracaoService.editarMaquina(maquina.id, { ...data, ativo: maquina.ativo })
-      } else {
-        await configuracaoService.criarMaquina(data)
-      }
-      onSalvo()
-      onFechar()
-    } finally { setSalvando(false) }
+      const data = await maquinaService.getMotivosParada(id)
+      setMotivos(data.map(m => ({ ...m, isNew: false, isDeleted: false })))
+    } finally { setLoadingMotivos(false) }
   }
 
-  // ── Campos ────────────────────────────────────────────────
+  // Campos — staged
   function abrirNovoCampo() {
     setEditandoCampo(null)
-    setFormCampo({ nome: '', unidade: '', ordem: campos.length + 1 })
+    setFormCampo({ nome: '', unidade: '', ordem: campos.filter(c => !c.isDeleted).length + 1 })
     setModalCampoOpen(true)
   }
 
-  function abrirEditarCampo(c: CampoMaquinaDto) {
-    setEditandoCampo(c)
-    setFormCampo({ nome: c.nome, unidade: c.unidade ?? '', ordem: c.ordem })
-    setModalCampoOpen(true)
+  function adicionarCampoLocal() {
+    if (!formCampo.nome.trim()) return
+    setCampos(prev => [...prev, {
+      id: tempId(),
+      maquinaId: maquina?.id ?? '',
+      nome: formCampo.nome.trim(),
+      unidade: formCampo.unidade || null,
+      ordem: formCampo.ordem,
+      ativo: true,
+      isNew: true,
+      isDeleted: false,
+    }])
+    setModalCampoOpen(false)
   }
 
-  async function salvarCampo() {
-    if (!maquina) return
-    setSalvandoCampo(true)
-    try {
-      const data = { nome: formCampo.nome, unidade: formCampo.unidade || null, ordem: formCampo.ordem }
-      if (editandoCampo) {
-        await configuracaoService.editarCampoMaquina(editandoCampo.id, { ...data, ativo: editandoCampo.ativo })
-      } else {
-        await configuracaoService.criarCampoMaquina(maquina.id, data)
-      }
-      setModalCampoOpen(false)
-      await carregarCampos(maquina.id)
-    } finally { setSalvandoCampo(false) }
+  function removerCampoLocal(id: string) {
+    if (!confirm('Remover este campo?')) return
+    setCampos(prev => {
+      const item = prev.find(c => c.id === id)
+      if (!item) return prev
+      if (item.isNew) return prev.filter(c => c.id !== id)
+      return prev.map(c => c.id === id ? { ...c, isDeleted: true } : c)
+    })
   }
 
-  async function deletarCampo(id: string) {
-    if (!maquina || !confirm('Desativar este campo?')) return
-    await configuracaoService.deletarCampoMaquina(id)
-    await carregarCampos(maquina.id)
-  }
-
-  // ── Motivos ───────────────────────────────────────────────
+  // Motivos — staged
   function abrirNovoMotivo() {
     setFormMotivo({ nome: '', tipo: 'Interna' })
     setModalMotivoOpen(true)
   }
 
-  async function salvarMotivo() {
-    if (!maquina) return
-    setSalvandoMotivo(true)
+  function adicionarMotivoLocal() {
+    if (!formMotivo.nome.trim()) return
+    setMotivos(prev => [...prev, {
+      id: tempId(),
+      nome: formMotivo.nome.trim(),
+      tipo: formMotivo.tipo,
+      isNew: true,
+      isDeleted: false,
+    }])
+    setModalMotivoOpen(false)
+  }
+
+  function removerMotivoLocal(id: string) {
+    if (!confirm('Remover este motivo?')) return
+    setMotivos(prev => {
+      const item = prev.find(m => m.id === id)
+      if (!item) return prev
+      if (item.isNew) return prev.filter(m => m.id !== id)
+      return prev.map(m => m.id === id ? { ...m, isDeleted: true } : m)
+    })
+  }
+
+  async function salvarTudo() {
+    setSalvando(true)
     try {
-      await maquinaService.criarMotivoParada(maquina.id, formMotivo.nome, formMotivo.tipo)
-      setModalMotivoOpen(false)
-      await carregarMotivos(maquina.id)
-    } finally { setSalvandoMotivo(false) }
+      const data = { nome: form.nome, descricao: form.descricao || null }
+      let maquinaId = maquina?.id
+
+      if (maquina) {
+        await configuracaoService.editarMaquina(maquina.id, { ...data, ativo: maquina.ativo })
+      } else {
+        const criada = await configuracaoService.criarMaquina(data)
+        maquinaId = criada.id
+      }
+
+      if (maquinaId) {
+        // Campos
+        for (const c of campos) {
+          if (c.isDeleted && !c.isNew) {
+            await configuracaoService.deletarCampoMaquina(c.id)
+          } else if (c.isNew && !c.isDeleted) {
+            await configuracaoService.criarCampoMaquina(maquinaId, { nome: c.nome, unidade: c.unidade, ordem: c.ordem })
+          }
+        }
+
+        // Motivos
+        for (const m of motivos) {
+          if (m.isDeleted && !m.isNew) {
+            await maquinaService.deletarMotivoParada(m.id)
+          } else if (m.isNew && !m.isDeleted) {
+            await maquinaService.criarMotivoParada(maquinaId, m.nome, m.tipo)
+          }
+        }
+      }
+
+      onSalvo()
+      onFechar()
+    } finally { setSalvando(false) }
   }
 
-  async function deletarMotivo(id: string) {
-    if (!maquina || !confirm('Remover este motivo?')) return
-    setMotivos(prev => prev.filter(m => m.id !== id))
-  }
-
-  const motivosFiltrados = motivos.filter(m => m.tipo !== 'Planejada')
+  const camposVisiveis = campos.filter(c => !c.isDeleted)
+  const motivosVisiveis = motivos.filter(m => !m.isDeleted && m.tipo !== 'Planejada')
 
   if (!open) return null
 
@@ -197,24 +249,20 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
 
                       {loadingCampos ? (
                         <p className="text-xs text-zinc-400 mt-2">Carregando...</p>
-                      ) : campos.length === 0 ? (
+                      ) : camposVisiveis.length === 0 ? (
                         <p className="text-xs text-zinc-400 mt-2">Nenhum campo extra</p>
-                      ) : campos.map(c => (
+                      ) : camposVisiveis.map(c => (
                         <div key={c.id} className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
                           <div>
                             <p className="text-xs text-zinc-900 dark:text-zinc-100">
                               {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
+                              {c.isNew && <span className="text-[9px] text-blue-500 ml-1">(novo)</span>}
                             </p>
                             <p className="text-[10px] text-zinc-400">ordem {c.ordem}</p>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={() => abrirEditarCampo(c)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                            <button onClick={() => deletarCampo(c.id)} className="text-zinc-400 hover:text-red-500">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                            </button>
-                          </div>
+                          <button onClick={() => removerCampoLocal(c.id)} className="text-zinc-400 hover:text-red-500">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -231,17 +279,19 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
 
                       {loadingMotivos ? (
                         <p className="text-xs text-zinc-400">Carregando...</p>
-                      ) : motivosFiltrados.length === 0 ? (
+                      ) : motivosVisiveis.length === 0 ? (
                         <p className="text-xs text-zinc-400">Nenhum motivo cadastrado</p>
-                      ) : motivosFiltrados.map(m => (
+                      ) : motivosVisiveis.map(m => (
                         <div key={m.id} className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
                           <div>
-                            <p className="text-xs text-zinc-900 dark:text-zinc-100">{m.nome}</p>
+                            <p className="text-xs text-zinc-900 dark:text-zinc-100">
+                              {m.nome} {m.isNew && <span className="text-[9px] text-blue-500">(novo)</span>}
+                            </p>
                             <span className={`text-[10px] ${m.tipo === 'Interna' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
                               {m.tipo === 'Interna' ? 'interna' : 'externa'}
                             </span>
                           </div>
-                          <button onClick={() => deletarMotivo(m.id)} className="text-zinc-400 hover:text-red-500">
+                          <button onClick={() => removerMotivoLocal(m.id)} className="text-zinc-400 hover:text-red-500">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                           </button>
                         </div>
@@ -263,10 +313,10 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
 
           {/* Footer */}
           <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-2">
-            <button onClick={onFechar} className="h-8 px-4 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-              Fechar
+            <button onClick={onFechar} disabled={salvando} className="h-8 px-4 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">
+              Cancelar
             </button>
-            <button onClick={salvarDados} disabled={!form.nome || salvando} className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
+            <button onClick={salvarTudo} disabled={!form.nome || salvando} className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
               {salvando ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
@@ -277,9 +327,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
       {modalCampoOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-72 p-5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">
-              {editandoCampo ? 'Editar campo' : 'Novo campo'}
-            </p>
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Novo campo</p>
             <div className="flex flex-col gap-3 mb-4">
               <div>
                 <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
@@ -299,9 +347,9 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setModalCampoOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button onClick={salvarCampo} disabled={!formCampo.nome || salvandoCampo}
+              <button onClick={adicionarCampoLocal} disabled={!formCampo.nome}
                 className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
-                {salvandoCampo ? 'Salvando...' : 'Salvar'}
+                Adicionar
               </button>
             </div>
           </div>
@@ -335,9 +383,9 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setModalMotivoOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button onClick={salvarMotivo} disabled={!formMotivo.nome || salvandoMotivo}
+              <button onClick={adicionarMotivoLocal} disabled={!formMotivo.nome}
                 className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
-                {salvandoMotivo ? 'Salvando...' : 'Salvar'}
+                Adicionar
               </button>
             </div>
           </div>
