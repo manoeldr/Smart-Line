@@ -30,6 +30,21 @@ export default function Sidebar() {
             Monitoramento
           </p>
           <NavLink
+            to="/medicao"
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+              }`
+            }
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12h3l3-9 4 18 3-9h3"/>
+            </svg>
+            Medição
+          </NavLink>
+          <NavLink
             to="/overview"
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -45,7 +60,7 @@ export default function Sidebar() {
             Overview
           </NavLink>
           <NavLink
-            to="/medicao"
+            to="/dashboard"
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
                 isActive
@@ -55,9 +70,9 @@ export default function Sidebar() {
             }
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12h3l3-9 4 18 3-9h3"/>
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
-            Medição
+            Dashboard
           </NavLink>
         </div>
 
