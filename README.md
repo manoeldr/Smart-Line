@@ -10,66 +10,93 @@ SmartLine permite que indústrias acompanhem em tempo real o desempenho de suas 
 
 SmartLine suporta três modos de coleta de dados, adaptáveis à realidade de cada planta industrial:
 
-### Manual
-O auditor acompanha a linha presencialmente e registra as informações diretamente no sistema. É o modo mais flexível e não requer nenhum hardware adicional.
+### Manual ✅ Completo
+O auditor acompanha a linha presencialmente e registra as informações diretamente no sistema. Não requer nenhum hardware adicional.
 
-- Leituras de produção inseridas a cada hora pelo auditor
+- Configuração da medição antes de iniciar: forma de coleta, velocidade nominal, sobre velocidade (herdadas da configuração da linha), previsão de término e seleção de campos extras a coletar
+- Leituras de produção inseridas a cada hora pelo auditor, com campos extras dinâmicos por máquina
 - Registro de paradas com motivo (interna, externa ou planejada)
-- Campos de coleta configuráveis por máquina (temperatura, pressão, refugo, etc.)
-- Velocidade nominal e sobre velocidade informadas no início de cada medição
-- Previsão de término com finalização automática ao atingir o horário
+- Cadastro de novos motivos de parada diretamente no modal
+- Motivos de pausa planejada compartilhados entre todas as máquinas da linha
+- Contador regressivo de 5 minutos ao atingir a previsão de término, com opção de estender ou finalizar — funciona globalmente, em qualquer tela do sistema
+- Leitura final obrigatória (produção + campos extras) ao encerrar a medição manualmente
+- Estado da medição persistido — ao sair e retornar, a sessão continua de onde parou
 
-### Semi Automático *(em desenvolvimento)*
-Integração com dispositivos IoT instalados nas máquinas para coleta parcialmente automatizada. Cada máquina pode ter até 4 placas de sensores, cada uma monitorando um parâmetro diferente (temperatura, vibração, pressão, etc.).
+### Semi Automático 🚧 Planejado
+Integração com dispositivos IoT instalados nas máquinas para coleta parcialmente automatizada.
 
-- Coleta via dispositivos IoT com envio a cada 5 segundos
+- Coleta via dispositivos IoT (ex: WISE-4051) com envio a cada 5 segundos
 - Agregação em memória com persistência horária no banco
 - Atualização do overview em tempo real via WebSocket
-- Compatível com sensores de pulso rápido (WISE-4051)
 
-### Automático *(em desenvolvimento)*
-Integração direta com o protocolo de comunicação da máquina, eliminando a necessidade de intervenção humana na coleta de dados.
+### Automático 🚧 Planejado
+Integração direta com o protocolo de comunicação da máquina.
 
 - Conexão direta com o CLP/controlador da máquina
 - Coleta contínua sem necessidade de auditor presente
-- Protocolo já testado e pronto para refatoração
 
 ---
 
 ## Funcionalidades
 
 ### Monitoramento em tempo real
-- Overview de todas as linhas e máquinas do cliente com status ao vivo (Rodando, Parada Interna, Parada Externa, Parada Planejada)
+- Overview de todas as linhas e máquinas do cliente com status ao vivo
+- Quando não há sessão ativa, mostra automaticamente os dados da última sessão finalizada (com indicação visual diferenciada)
 - Atualização automática a cada 30 segundos
-- Indicador de OEE por máquina em sessão ativa
+- Indicador de OEE por máquina
 
 ### Medição de produção
-- Seleção de linha e máquina para iniciar uma sessão de medição
-- Configuração de velocidade nominal, sobre velocidade e previsão de término antes de iniciar
 - Cronômetro de medição com controles de Marcha, Parada e Pausa
-- Registro de paradas com motivo (Interna, Externa ou Planejada)
-- Cadastro de novos motivos de parada diretamente no modal
-- Motivos de pausa planejada compartilhados entre todas as máquinas da linha
-- Leituras de produção horárias com confirmação individual
-- Estado da medição persistido — ao sair e retornar, a sessão continua de onde parou
-- Finalização automática ao atingir a previsão de término (com janela de 5 minutos para extensão)
-
-### Campos de coleta dinâmicos
-- Cada máquina pode ter campos de coleta personalizados além da produção (refugo, temperatura, pressão, etc.)
-- Configuração por máquina na tela de Configurações
-- Seleção de quais campos coletar ao iniciar cada medição
-- Histórico de campos coletados salvo por sessão
+- Cronômetro congela corretamente durante pausas planejadas
+- Layout de duas colunas: controles à esquerda, leituras à direita
+- Campos de coleta dinâmicos por máquina (temperatura, pressão, refugo, etc.), configuráveis em Configurações → Máquinas
+- Sessão registra o histórico de velocidade nominal, sobre velocidade e campos coletados
 
 ### Cálculo de OEE
 - Disponibilidade, Performance e Qualidade calculados no backend
 - Paradas planejadas descontadas do tempo disponível
 - Paradas externas registradas separadamente, sem penalizar OEE
-- Velocidade nominal e sobre velocidade registradas por sessão para histórico
 
 ### Configurações
-- CRUD completo de Clientes, Linhas, Máquinas e Usuários
+- CRUD completo de Clientes, Usuários e Máquinas
+- Gestão de Linhas movida para dentro do modal de edição do Cliente — cadastro de linhas com nome e máquinas associadas
+- Reordenação de máquinas dentro de uma linha via drag and drop
+- Padrão de "alterações pendentes": todas as ações dentro de um modal (criar linha, adicionar/remover máquina, reordenar, criar campo, criar motivo) só são persistidas ao clicar em Salvar
+- Velocidade nominal e sobre velocidade configuradas pelo Administrador por máquina/linha — não editáveis pelo auditor durante a medição
 - Gestão de campos de coleta e motivos de parada por máquina
 - Controle de acesso por nível: SuperAdmin, Auditor e Visualizador
+  - Auditor tem uma visão restrita de Clientes, focada apenas na gestão de Linhas
+
+---
+
+## Roadmap
+
+### 📋 Manual — ✅ Completo
+- [x] Contador regressivo de previsão de término
+- [x] Leitura final obrigatória ao finalizar medição
+
+### 📊 Dashboard — em andamento
+- [x] Overview mostra última sessão finalizada quando não há sessão ativa
+- [ ] Captura e upload de foto em paradas (adiado — depende de decisão de armazenamento e exportação de arquivos)
+- [ ] Dashboard específico por Linha (resumo de OEE e produção das máquinas)
+- [ ] Modal de detalhes da máquina: histórico da última medição, linha do tempo de paradas e de produção separadas
+
+### 🌐 Global
+- [x] Salvar leituras de campos extras (`LeituraExtra`) junto com produção
+- [x] Reestruturar gestão de Linhas (dentro do Cliente, com drag and drop)
+- [ ] Separar estilos Tailwind em pasta `styles/` — centralizar classes reutilizáveis
+- [ ] Exportação/Importação via JSON (Clientes, Linhas, Máquinas, dados de medição, incluindo fotos de paradas) — sincronizar PC central com demais estações
+- [ ] Migração PostgreSQL → SQLite + empacotamento self-contained .NET com WebView2, gerando um único `.exe` instalável
+- [ ] Reformular níveis de usuário: renomear SuperAdmin → Administrador e Visualizador → Cliente; adicionar nível Desenvolvedor (mesmo acesso do Administrador + telas de debug/logs/health check)
+
+### 🔌 Semi Automático *(detalhar quando chegar a hora)*
+- [ ] Sistema para leitura do dispositivo IoT
+- [ ] Configuração do sistema IoT
+- [ ] Configuração das fórmulas para contadores
+- [ ] Configuração de placas por máquina
+
+### 🤖 Automático *(detalhar quando chegar a hora)*
+- [ ] Configurar comunicação com a máquina
 
 ---
 
@@ -79,7 +106,8 @@ Integração direta com o protocolo de comunicação da máquina, eliminando a n
 |--------|-----------|
 | Backend | ASP.NET Core 10 + EF Core 10 |
 | Banco de dados | PostgreSQL 16 (Docker) |
-| Frontend | React 19 + Vite + TypeScript + Tailwind CSS |
+| Frontend | React 19 + Vite + TypeScript + Tailwind CSS v4 |
+| Drag and drop | @dnd-kit |
 | Autenticação | JWT |
 | IDE Backend | JetBrains Rider |
 | IDE Frontend | VS Code |
@@ -91,6 +119,7 @@ Integração direta com o protocolo de comunicação da máquina, eliminando a n
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 20+](https://nodejs.org/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Ferramenta `dotnet-ef` instalada globalmente: `dotnet tool install --global dotnet-ef`
 
 ---
 
@@ -108,7 +137,7 @@ cd Smart-Line
 Crie um arquivo `.env` na raiz do projeto:
 
 ```env
-DATABASE_URL=Host=localhost;Port=5432;Database=smartline;Username=smartline;Password=smartline
+DATABASE_URL=Host=localhost;Port=5432;Database=smartline;Username=smartline;Password=smartline123
 JWT_SECRET=sua_chave_secreta_aqui
 ```
 
@@ -143,30 +172,11 @@ npm run dev
 
 O frontend estará disponível em `http://localhost:5173`.
 
+> **Nota (Windows):** se o `global.json` exigir uma versão específica do SDK que você não tem instalada, ajuste o campo `version` para a versão disponível e adicione `"rollForward": "latestMinor"`.
+
 ---
 
 ## Estrutura do projeto
-
-```
-SmartLine/
-├── backend/
-│   ├── SmartLine.API/              # Controllers, Program.cs
-│   ├── SmartLine.Core/             # Entidades, Interfaces, Serviços, Enums
-│   ├── SmartLine.Infrastructure/   # EF Core, Migrations, Repositórios
-│   └── SmartLine.Tests/            # Testes
-├── frontend/
-│   └── src/
-│       ├── components/             # Layout, Sidebar, Topbar
-│       ├── contexts/               # AuthContext, ThemeContext
-│       ├── modals/                 # Modais de parada, pausa, configuração
-│       ├── pages/                  # Overview, Medição, Configurações, Login
-│       ├── services/               # Clientes HTTP por domínio
-│       └── types/                  # Tipos TypeScript
-├── docker-compose.yml
-├── .env
-├── build.sh
-└── clean.sh
-```
 
 ---
 
@@ -174,8 +184,8 @@ SmartLine/
 
 | Nível | Overview | Medição | Configurações |
 |-------|----------|---------|---------------|
-| SuperAdmin | ✅ | ✅ | Usuários, Clientes, Linhas, Máquinas |
-| Auditor | ✅ | ✅ | Linhas, Máquinas |
+| SuperAdmin | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas |
+| Auditor | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas |
 | Visualizador | ✅ | ❌ | ❌ |
 
 ---
@@ -183,23 +193,11 @@ SmartLine/
 ## Scripts utilitários
 
 ```bash
-./clean.sh    # Remove arquivos ._ gerados pelo macOS antes de commits
-./build.sh    # Limpa arquivos ._ e executa dotnet build
+./clean.sh    # Remove arquivos ._ gerados pelo macOS antes de commits (Mac apenas)
+./build.sh    # Limpa ._ e executa dotnet build (Mac apenas)
 ```
 
----
-
-## Roadmap
-
-- [ ] Seleção de campos a coletar ao iniciar medição
-- [ ] Tabela dinâmica de leituras na tela de medição
-- [ ] Contador regressivo com extensão ou finalização automática
-- [ ] Dashboard de OEE por sessão
-- [ ] Leitura final ao encerrar medição
-- [ ] Modo Semi Automático (IoT)
-- [ ] Modo Automático (integração direta com máquina)
-- [ ] PWA (Progressive Web App)
-- [ ] Deploy em produção
+No Windows, use `dotnet build` diretamente.
 
 ---
 
