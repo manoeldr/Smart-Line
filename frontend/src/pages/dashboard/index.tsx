@@ -4,6 +4,7 @@ import { linhaService } from '../../services/linhaService'
 import { dashboardService, type MaquinaDashboardDto } from '../../services/dashboardService'
 import type { Linha } from '../../types'
 import MaquinaDashboardCard from './MaquinaDashboardCard'
+import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 
 function formatarDataInput(data: Date) {
   return data.toISOString().slice(0, 10)
@@ -24,6 +25,9 @@ export default function Dashboard() {
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [loadingDados, setLoadingDados] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [maquinaLinhaSelecionada, setMaquinaLinhaSelecionada] = useState<string | null>(null)
 
   useEffect(() => {
     if (!clienteId) return
@@ -58,6 +62,11 @@ export default function Dashboard() {
     }
     carregarDados()
   }, [linhaSelecionada, dataInicio, dataFim])
+
+  function abrirDetalhe(maquinaLinhaId: string) {
+    setMaquinaLinhaSelecionada(maquinaLinhaId)
+    setModalOpen(true)
+  }
 
   const inputCls = 'h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -101,10 +110,18 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {dados.map(m => (
-            <MaquinaDashboardCard key={m.maquinaLinhaId} dados={m} />
+            <div key={m.maquinaLinhaId} onClick={() => abrirDetalhe(m.maquinaLinhaId)}>
+              <MaquinaDashboardCard dados={m} />
+            </div>
           ))}
         </div>
       )}
+
+      <MaquinaDetalheModal
+        open={modalOpen}
+        maquinaLinhaId={maquinaLinhaSelecionada}
+        onFechar={() => setModalOpen(false)}
+      />
     </div>
   )
 }

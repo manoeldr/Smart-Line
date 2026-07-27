@@ -29,6 +29,7 @@ builder.Services.AddScoped<IProducaoService, ProducaoService>();
 builder.Services.AddScoped<ILeituraExtraService, LeituraExtraService>();
 builder.Services.AddScoped<ILinhaMaquinaService, LinhaMaquinaService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ISessaoDetalheService, SessaoDetalheService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
