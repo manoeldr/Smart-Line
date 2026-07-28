@@ -1,5 +1,5 @@
 // Menu lateral de navegação. Item "Configurações" só aparece para SuperAdmin e Auditor.
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 // Item de navegação padrão — reutiliza a mesma lógica de estilo ativo/inativo em todos os links
@@ -12,9 +12,15 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 }
 
 export default function Sidebar() {
-  const { usuario } = useAuth()
+  const { usuario, logout } = useAuth()
+  const navigate = useNavigate()
   const nivel = usuario?.nivel ?? ''
   const temConfiguracao = ['SuperAdmin', 'Auditor'].includes(nivel)
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <aside className="w-52 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col h-full flex-shrink-0">
@@ -77,7 +83,7 @@ export default function Sidebar() {
 
       {/* Usuário */}
       <div className="px-2 py-3 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg">
           <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
             {usuario?.nome?.slice(0, 2).toUpperCase() ?? 'U'}
           </div>
@@ -89,9 +95,15 @@ export default function Sidebar() {
               {usuario?.nivel ?? '—'}
             </p>
           </div>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <button
+            onClick={handleLogout}
+            title="Sair"
+            className="text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         </div>
       </div>
     </aside>

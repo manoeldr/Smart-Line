@@ -38,6 +38,7 @@ interface EstadoSalvo {
   sessaoId: string
   status: StatusMaquina
   leituras: LeituraHoraria[]
+  segundosTotalParado?: number
 }
 
 export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, onFinalizar }: Props) {
@@ -61,6 +62,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     Math.floor((Date.now() - new Date(sessao.inicio).getTime()) / 1000)
   )
   const [segundosParada, setSegundosParada] = useState(0)
+  // Acumula o tempo de TODAS as paradas da sessão (não reseta a cada nova parada, diferente de segundosParada)
+  const [segundosTotalParado, setSegundosTotalParado] = useState(estadoSalvo?.segundosTotalParado ?? 0)
   const [finalizando, setFinalizando] = useState(false)
   const paradaAtivaRef = useRef(false)
   const pausadaRef = useRef(false)
@@ -114,9 +117,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   // Persiste o estado da medição a cada mudança — permite retomar ao sair e voltar da tela
   useEffect(() => {
-    const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras }
+    const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras, segundosTotalParado }
     localStorage.setItem(ESTADO_KEY, JSON.stringify(estado))
-  }, [sessao.id, status, leituras])
+  }, [sessao.id, status, leituras, segundosTotalParado])
 
   useEffect(() => {
     paradaAtivaRef.current = status === 'Parada'
@@ -141,6 +144,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       setSegundos(Math.floor((Date.now() - inicio - totalPausadoMs) / 1000))
       if (paradaAtivaRef.current) {
         setSegundosParada(s => s + 1)
+        setSegundosTotalParado(s => s + 1)
       }
     }, 1000)
     return () => clearInterval(id)
@@ -307,7 +311,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             </div>
             <div className={`${metricaBox} border-r border-zinc-200 dark:border-zinc-800`}>
               <p className={metricaLabel}>Total Parado</p>
-              <p className={metricaValor}>—</p>
+              <p className={metricaValor}>{formatarTempo(segundosTotalParado)}</p>
             </div>
             <div className={metricaBox}>
               <p className={metricaLabel}>Parada Atual</p>
@@ -429,10 +433,10 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             className="grid border-b border-zinc-200 dark:border-zinc-800 px-6 py-2"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            <span className="text-[10px] font-medium text-zinc-400">Horário</span>
-            <span className="text-[10px] font-medium text-zinc-400">Produção</span>
+            <span className="min-w-0 text-[10px] font-medium text-zinc-400">Horário</span>
+            <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">Produção</span>
             {camposExtras.map(c => (
-              <span key={c.id} className="text-[10px] font-medium text-zinc-400">
+              <span key={c.id} className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">
                 {c.nome}{c.unidade ? ` (${c.unidade})` : ''}
               </span>
             ))}
@@ -448,7 +452,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                 }`}
                 style={{ gridTemplateColumns: gridTemplate }}
               >
-                <span className={`text-xs ${l.inicial ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-zinc-400'}`}>
+                <span className={`min-w-0 text-xs truncate ${l.inicial ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-zinc-400'}`}>
                   {l.hora}
                 </span>
 
@@ -460,7 +464,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   onChange={e => handleLeitura(l.hora, e.target.value)}
                   disabled={l.inicial || leiturasSalvas.has(l.hora)}
                   placeholder={l === ultimaLeitura && !l.inicial ? 'agora' : '—'}
-                  className={`h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                  className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
                     l.inicial || leiturasSalvas.has(l.hora)
                       ? inputDisabled
                       : l === ultimaLeitura
@@ -478,7 +482,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                     onChange={e => handleLeituraExtra(l.hora, c.id, e.target.value)}
                     disabled={l.inicial || leiturasSalvas.has(l.hora)}
                     placeholder="—"
-                    className={`h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
                       l.inicial || leiturasSalvas.has(l.hora)
                         ? 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed'
                         : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
