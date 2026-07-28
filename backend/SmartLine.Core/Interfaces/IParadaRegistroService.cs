@@ -4,6 +4,7 @@ public interface IParadaRegistroService
 {
     Task<ParadaDto> AbrirAsync(Guid sessaoId, DateTime inicio);
     Task<ParadaDto?> FecharAsync(Guid paradaId, Guid motivoId, DateTime fim);
+    Task<ParadaDto?> SalvarFotoAsync(Guid paradaId, Stream conteudoFoto, string extensaoArquivo);
 }
 
 public record ParadaDto(
@@ -11,5 +12,6 @@ public record ParadaDto(
     string SessaoId,
     string? MotivoId,
     DateTime Inicio,
-    DateTime? Fim
+    DateTime? Fim,
+    string? FotoPath
 );

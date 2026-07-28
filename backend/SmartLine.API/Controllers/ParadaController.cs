@@ -30,6 +30,18 @@ public class ParadaController : ControllerBase
         if (parada is null) return NotFound();
         return Ok(parada);
     }
+
+    [HttpPost("{id}/foto")]
+    public async Task<IActionResult> UploadFoto(Guid id, IFormFile foto)
+    {
+        var extensao = Path.GetExtension(foto.FileName);
+        if (string.IsNullOrEmpty(extensao)) extensao = ".jpg";
+
+        await using var stream = foto.OpenReadStream();
+        var parada = await _paradaService.SalvarFotoAsync(id, stream, extensao);
+        if (parada is null) return NotFound();
+        return Ok(parada);
+    }
 }
 
 public record AbrirParadaRequest(Guid SessaoId, DateTime Inicio);

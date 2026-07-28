@@ -74,6 +74,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [loadingMotivos, setLoadingMotivos] = useState(false)
   const [loadingPausa, setLoadingPausa] = useState(false)
   const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(null)
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
+  const [fotoEnviada, setFotoEnviada] = useState(false)
   const [leiturasSalvas, setLeiturasSalvas] = useState<Set<string>>(new Set())
 
   // Campos extras selecionados nesta sessão
@@ -201,6 +203,22 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       setLeiturasSalvas(prev => new Set([...prev, hora]))
     } catch {
       console.error('Erro ao salvar leitura')
+    }
+  }
+
+  async function handleTirarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo || !paradaAtiva) return
+
+    setEnviandoFoto(true)
+    try {
+      await paradaService.uploadFoto(paradaAtiva.id, arquivo)
+      setFotoEnviada(true)
+    } catch {
+      console.error('Erro ao enviar foto')
+      alert('Erro ao enviar a foto. Tente novamente.')
+    } finally {
+      setEnviandoFoto(false)
     }
   }
 
@@ -342,6 +360,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                 setStatus('Parada')
                 paradaAtivaRef.current = true
                 setSegundosParada(0)
+                setFotoEnviada(false)
                 try {
                   const p = await paradaService.abrir(sessao.id, new Date())
                   setParadaAtiva(p)
@@ -380,15 +399,29 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           )}
 
           {/* Foto strip */}
-          {status === 'Parada' && (
+          {status === 'Parada' && paradaAtiva && (
             <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-4 py-2.5 text-xs text-zinc-500">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
               </svg>
-              Registrar foto da parada?
-              <button className="ml-auto text-xs border border-zinc-200 dark:border-zinc-700 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700">
-                Tirar foto
-              </button>
+              {fotoEnviada ? 'Foto registrada' : 'Registrar foto da parada?'}
+              {fotoEnviada ? (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#639922" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : (
+                <label className="ml-auto text-xs border border-zinc-200 dark:border-zinc-700 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer">
+                  {enviandoFoto ? 'Enviando...' : 'Tirar foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleTirarFoto}
+                    disabled={enviandoFoto}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
           )}
 
