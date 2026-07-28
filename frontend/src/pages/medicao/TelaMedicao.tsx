@@ -1,3 +1,5 @@
+// Tela principal de medição — cronômetro, controles Marcha/Parada/Pausa,
+// tabela de leituras horárias (produção + campos extras dinâmicos) e finalização.
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { Linha, MaquinaLinha } from '../../types'
 import type { SessaoDto } from '../../services/sessaoService'
@@ -10,6 +12,8 @@ import { configuracaoService, type CampoMaquinaDto } from '../../services/config
 import MotivoParadaModal from '../../modals/MotivoParadaModal'
 import PausarMedicaoModal from '../../modals/PausarMedicaoModal'
 import LeituraFinalModal from '../../modals/LeituraFinalModal'
+import { metricaBox, metricaValor, metricaLabel } from '../../styles/cards'
+import { inputDisabled } from '../../styles/inputs'
 
 interface Props {
   maquina: MaquinaLinha
@@ -93,7 +97,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       : 0
   )
 
-  // Busca detalhes dos campos extras selecionados na sessão
+  // Busca detalhes dos campos extras selecionados na sessão (para montar as colunas dinâmicas)
   useEffect(() => {
     if (!sessao.camposSelecionados || sessao.camposSelecionados.length === 0) return
     async function carregar() {
@@ -108,6 +112,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     carregar()
   }, [sessao.camposSelecionados, maquina.maquinaId])
 
+  // Persiste o estado da medição a cada mudança — permite retomar ao sair e voltar da tela
   useEffect(() => {
     const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras }
     localStorage.setItem(ESTADO_KEY, JSON.stringify(estado))
@@ -118,7 +123,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     pausadaRef.current = status === 'Pausada'
   }, [status])
 
-  // Cronômetro — congela durante pausa
+  // Cronômetro — congela durante pausa planejada, soma tempo de parada quando aplicável
   useEffect(() => {
     const inicio = horaInicio.getTime()
     let pausaInicio = 0
@@ -141,6 +146,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     return () => clearInterval(id)
   }, [horaInicio])
 
+  // Adiciona uma nova linha de leitura a cada hora completa
   useEffect(() => {
     const hora = Math.floor(segundos / 3600)
     if (hora === 0 || hora === ultimaHoraAdicionada.current) return
@@ -241,6 +247,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   const ultimaLeitura = leituras[leituras.length - 1]
 
+  // Cores do badge de status — específicas dessa tela (Rodando/Parada/Pausada), não fazem
+  // parte do sistema de estilos genérico porque são um conjunto de 3 estados só usado aqui
   const badgeColor = {
     Rodando: 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400',
     Parada:  'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400',
@@ -293,16 +301,16 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
           {/* Indicadores */}
           <div className="grid grid-cols-3 border-b border-zinc-200 dark:border-zinc-800">
-            <div className="px-4 py-3 text-center border-r border-zinc-200 dark:border-zinc-800">
-              <p className="text-[10px] text-zinc-400 mb-1">Tempo Medição</p>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatarTempo(segundos)}</p>
+            <div className={`${metricaBox} border-r border-zinc-200 dark:border-zinc-800`}>
+              <p className={metricaLabel}>Tempo Medição</p>
+              <p className={metricaValor}>{formatarTempo(segundos)}</p>
             </div>
-            <div className="px-4 py-3 text-center border-r border-zinc-200 dark:border-zinc-800">
-              <p className="text-[10px] text-zinc-400 mb-1">Total Parado</p>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">—</p>
+            <div className={`${metricaBox} border-r border-zinc-200 dark:border-zinc-800`}>
+              <p className={metricaLabel}>Total Parado</p>
+              <p className={metricaValor}>—</p>
             </div>
-            <div className="px-4 py-3 text-center">
-              <p className="text-[10px] text-zinc-400 mb-1">Parada Atual</p>
+            <div className={metricaBox}>
+              <p className={metricaLabel}>Parada Atual</p>
               <p className={`text-sm font-medium ${status === 'Parada' ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
                 {status === 'Parada' ? formatarTempo(segundosParada) : '—'}
               </p>
@@ -454,7 +462,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   placeholder={l === ultimaLeitura && !l.inicial ? 'agora' : '—'}
                   className={`h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
                     l.inicial || leiturasSalvas.has(l.hora)
-                      ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 cursor-not-allowed'
+                      ? inputDisabled
                       : l === ultimaLeitura
                         ? 'bg-zinc-50 dark:bg-zinc-800 border-green-300 dark:border-green-700 text-zinc-900 dark:text-zinc-100'
                         : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'

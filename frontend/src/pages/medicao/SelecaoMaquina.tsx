@@ -1,8 +1,15 @@
+// Tela inicial da Medição: seleciona linha e máquina, depois abre o modal de configuração
+// da sessão (forma de coleta, velocidade nominal/sobrevelocidade herdadas da linha,
+// produção até então, previsão de término e campos extras a coletar).
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import type { Linha, MaquinaLinha } from '../../types'
+import { btnPrimary, btnSecondarySm, btnToggle } from '../../styles/buttons'
+import { inputMdFull, label, checkbox } from '../../styles/inputs'
+import { modalOverlay, modalPanel, modalHeader, modalTitle, modalSubtitle, modalBody, modalFooter } from '../../styles/modals'
+import { cardPadded } from '../../styles/cards'
 
 interface Props {
   onIniciar: (
@@ -30,14 +37,14 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const [loadingLinhas, setLoadingLinhas] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
 
-  // Campos do modal
+  // Campos do modal de configuração
   const [velocidadeNominal, setVelocidadeNominal] = useState('')
   const [sobreVelocidade, setSobreVelocidade] = useState('0')
   const [previsaoTermino, setPrevisaoTermino] = useState('')
   const [tipoColeta, setTipoColeta] = useState<TipoColeta>('Manual')
   const [producaoInicial, setProducaoInicial] = useState('')
 
-  // Campos de coleta extras
+  // Campos de coleta extras da máquina
   const [camposDisponiveis, setCamposDisponiveis] = useState<CampoMaquinaDto[]>([])
   const [loadingCampos, setLoadingCampos] = useState(false)
   const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
@@ -67,6 +74,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     const maquina = linhaSelecionada?.maquinas.find(m => m.id === maquinaId) ?? null
     setMaquinaSelecionada(maquina)
     if (maquina) {
+      // Velocidade nominal vem pré-preenchida da configuração da linha, mas é editável aqui
       setVelocidadeNominal(String(maquina.velocidadeNominal ?? ''))
       setSobreVelocidade('0')
       setPrevisaoTermino('')
@@ -113,6 +121,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   function handleConfirmar() {
     if (!maquinaSelecionada || !linhaSelecionada) return
 
+    // Converte a hora escolhida (HH:MM) para um ISO completo. Se já passou hoje, assume amanhã.
     let previsaoISO: string | null = null
     if (previsaoTermino) {
       const hoje = new Date()
@@ -147,22 +156,20 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const podeAbrirModal = !!maquinaSelecionada && !maquinaSelecionada.sessaoAtiva && !loadingExterno
   const podeConfirmar = !!velocidadeNominal && Number(velocidadeNominal) > 0
 
-  const inputCls = 'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500'
-
   return (
     <>
       <div className="max-w-lg mx-auto mt-8">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5">
+        <div className={cardPadded}>
           <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Nova medição</h2>
 
           {/* Linha */}
           <div className="flex flex-col gap-1.5 mb-3">
-            <label className="text-xs text-zinc-500">Linha de produção</label>
+            <label className={label}>Linha de produção</label>
             <select
               value={linhaSelecionada?.id ?? ''}
               onChange={e => handleLinhaChange(e.target.value)}
               disabled={loadingLinhas}
-              className="h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className={inputMdFull}
             >
               <option value="">{loadingLinhas ? 'Carregando...' : 'Selecionar linha...'}</option>
               {linhas.map(l => (
@@ -173,12 +180,12 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
 
           {/* Máquina */}
           <div className="flex flex-col gap-1.5 mb-4">
-            <label className="text-xs text-zinc-500">Máquina</label>
+            <label className={label}>Máquina</label>
             <select
               value={maquinaSelecionada?.id ?? ''}
               onChange={e => handleMaquinaChange(e.target.value)}
               disabled={!linhaSelecionada}
-              className="h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className={inputMdFull}
             >
               <option value="">Selecionar máquina...</option>
               {linhaSelecionada?.maquinas
@@ -198,11 +205,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
             </div>
           )}
 
-          <button
-            onClick={handleAbrirModal}
-            disabled={!podeAbrirModal}
-            className="w-full h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
-          >
+          <button onClick={handleAbrirModal} disabled={!podeAbrirModal} className={`w-full ${btnPrimary}`}>
             {loadingExterno ? 'Iniciando...' : 'Configurar medição'}
           </button>
         </div>
@@ -210,16 +213,15 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
 
       {/* Modal de configuração */}
       {modalOpen && maquinaSelecionada && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-[480px] max-h-[90vh] flex flex-col">
+        <div className={modalOverlay}>
+          <div className={`${modalPanel} w-[480px] max-h-[90vh]`}>
 
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Configurar medição</p>
-              <p className="text-xs text-zinc-400 mt-0.5">{maquinaSelecionada.maquinaNome}</p>
+            <div className={modalHeader}>
+              <p className={modalTitle}>Configurar medição</p>
+              <p className={modalSubtitle}>{maquinaSelecionada.maquinaNome}</p>
             </div>
 
-            <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
+            <div className={modalBody}>
 
               {/* Forma de medição */}
               <div>
@@ -230,11 +232,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                       key={t}
                       onClick={() => setTipoColeta(t)}
                       disabled={t !== 'Manual'}
-                      className={`h-9 text-xs font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        tipoColeta === t
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                      }`}
+                      className={btnToggle(tipoColeta === t, 'blue')}
                     >
                       {t === 'Manual' ? 'Manual' : t === 'SemiAutomatico' ? 'Semi Auto' : 'Automático'}
                     </button>
@@ -248,36 +246,36 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
               {/* Velocidade */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Velocidade nominal (prod/h)</label>
+                  <label className={label}>Velocidade nominal (prod/h)</label>
                   <input
                     type="number" min="0"
                     value={velocidadeNominal}
                     onChange={e => setVelocidadeNominal(e.target.value)}
                     placeholder="Ex: 1200"
-                    className={inputCls}
+                    className={inputMdFull}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Sobre velocidade (%)</label>
+                  <label className={label}>Sobre velocidade (%)</label>
                   <input
                     type="number" min="0" max="100"
                     value={sobreVelocidade}
                     onChange={e => setSobreVelocidade(e.target.value)}
                     placeholder="Ex: 10"
-                    className={inputCls}
+                    className={inputMdFull}
                   />
                 </div>
               </div>
 
               {/* Produção inicial */}
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Produção até então</label>
+                <label className={label}>Produção até então</label>
                 <input
                   type="number" min="0"
                   value={producaoInicial}
                   onChange={e => setProducaoInicial(e.target.value)}
                   placeholder="Leitura atual do contador"
-                  className={inputCls}
+                  className={inputMdFull}
                 />
               </div>
 
@@ -286,7 +284,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 .filter(c => camposSelecionados.has(c.id))
                 .map(c => (
                   <div key={c.id}>
-                    <label className="text-xs text-zinc-500 mb-1 block">
+                    <label className={label}>
                       {c.nome} até então {c.unidade && `(${c.unidade})`}
                     </label>
                     <input
@@ -294,19 +292,19 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                       value={valoresIniciaisExtras[c.id] ?? ''}
                       onChange={e => handleValorInicialExtra(c.id, e.target.value)}
                       placeholder="Leitura atual"
-                      className={inputCls}
+                      className={inputMdFull}
                     />
                   </div>
                 ))}
 
               {/* Previsão de término */}
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Previsão de término</label>
+                <label className={label}>Previsão de término</label>
                 <input
                   type="time"
                   value={previsaoTermino}
                   onChange={e => setPrevisaoTermino(e.target.value)}
-                  className={inputCls}
+                  className={inputMdFull}
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">
                   Ao atingir este horário, a medição será finalizada automaticamente após 5 minutos
@@ -319,7 +317,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
 
                 {/* Produção fixo */}
                 <div className="flex items-center gap-2 py-1.5">
-                  <input type="checkbox" checked disabled className="accent-blue-600" />
+                  <input type="checkbox" checked disabled className={checkbox} />
                   <span className="text-xs text-zinc-900 dark:text-zinc-100">Produção</span>
                   <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
                 </div>
@@ -335,7 +333,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                         type="checkbox"
                         checked={camposSelecionados.has(c.id)}
                         onChange={() => toggleCampo(c.id)}
-                        className="accent-blue-600"
+                        className={checkbox}
                       />
                       <span className="text-xs text-zinc-900 dark:text-zinc-100">
                         {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
@@ -346,19 +344,11 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-2">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="h-8 px-4 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              >
+            <div className={modalFooter}>
+              <button onClick={() => setModalOpen(false)} className={btnSecondarySm}>
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirmar}
-                disabled={!podeConfirmar || !!loadingExterno}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium"
-              >
+              <button onClick={handleConfirmar} disabled={!podeConfirmar || !!loadingExterno} className={btnPrimary}>
                 {loadingExterno ? 'Iniciando...' : 'Iniciar medição'}
               </button>
             </div>
