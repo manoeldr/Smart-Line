@@ -1,3 +1,5 @@
+// Tela de Dashboard — seleciona uma linha e um período de datas,
+// mostra cards com OEE agregado de cada máquina. Clicar num card abre o modal de detalhes.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
@@ -5,6 +7,8 @@ import { dashboardService, type MaquinaDashboardDto } from '../../services/dashb
 import type { Linha } from '../../types'
 import MaquinaDashboardCard from './MaquinaDashboardCard'
 import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
+import { inputMd } from '../../styles/inputs'
+import { cardPadded } from '../../styles/cards'
 
 function formatarDataInput(data: Date) {
   return data.toISOString().slice(0, 10)
@@ -16,6 +20,7 @@ export default function Dashboard() {
   const [linhaSelecionada, setLinhaSelecionada] = useState<string>('')
   const [loadingLinhas, setLoadingLinhas] = useState(false)
 
+  // Padrão: últimos 7 dias
   const hoje = new Date()
   const seteDiasAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000)
 
@@ -68,20 +73,18 @@ export default function Dashboard() {
     setModalOpen(true)
   }
 
-  const inputCls = 'h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
-
   return (
     <div className="p-4 flex flex-col gap-4">
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 flex items-end gap-3 flex-wrap">
+      <div className={`${cardPadded} flex items-end gap-3 flex-wrap`}>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs text-zinc-500">Linha</label>
           <select
             value={linhaSelecionada}
             onChange={e => setLinhaSelecionada(e.target.value)}
             disabled={loadingLinhas}
-            className={inputCls}
+            className={inputMd}
           >
             {linhas.map(l => (
               <option key={l.id} value={l.id}>{l.nome}</option>
@@ -91,12 +94,12 @@ export default function Dashboard() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs text-zinc-500">Data início</label>
-          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className={inputCls} />
+          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className={inputMd} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs text-zinc-500">Data fim</label>
-          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={inputCls} />
+          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={inputMd} />
         </div>
       </div>
 

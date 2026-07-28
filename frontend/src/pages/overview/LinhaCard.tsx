@@ -1,5 +1,8 @@
+// Card de linha no Overview — agrupa os MaquinaCard de todas as máquinas daquela linha,
+// exibidas em sequência (com setas indicando o fluxo de produção).
 import type { Linha } from '../../types'
 import MaquinaCard from './MaquinaCard'
+import { cardBase, cardHeader } from '../../styles/cards'
 
 interface Props {
   linha: Linha
@@ -20,9 +23,9 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro }: Props) {
       : 'sem sessão ativa'
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+    <div className={`${cardBase} overflow-hidden`}>
       {/* Header da linha */}
-      <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+      <div className={cardHeader}>
         <div className="flex items-center gap-2">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1961c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>

@@ -1,4 +1,8 @@
+// Card de resumo de OEE por máquina no Dashboard, agregando dados de todas as sessões
+// finalizadas dentro do período selecionado. Ao clicar, abre o MaquinaDetalheModal.
 import type { MaquinaDashboardDto } from '../../services/dashboardService'
+import { badgeCritica } from '../../styles/badges'
+import { cardPadded, cardCritica } from '../../styles/cards'
 
 interface Props {
   dados: MaquinaDashboardDto
@@ -17,14 +21,12 @@ export default function MaquinaDashboardCard({ dados }: Props) {
       : 'text-red-600 dark:text-red-400'
 
   return (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 ${dados.critica ? 'border-t-2 border-t-blue-600' : ''}`}>
+    <div className={`${cardPadded} ${cardCritica(dados.critica)}`}>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{dados.maquinaNome}</p>
-        {dados.critica && (
-          <span className="text-[9px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5">crítica</span>
-        )}
+        {dados.critica && <span className={badgeCritica}>crítica</span>}
       </div>
 
       {/* OEE grande */}

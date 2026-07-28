@@ -1,8 +1,11 @@
+// Tela de Configurações — navegação por abas.
+// Visibilidade das abas por nível: SuperAdmin vê tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
 import AbaClientes from './AbaClientes'
 import AbaMaquinas from './AbaMaquinas'
+import { tabButton } from '../../styles/tables'
 
 type Aba = 'usuarios' | 'clientes' | 'maquinas'
 
@@ -35,15 +38,7 @@ export default function Configuracao() {
     <div className="flex flex-col h-full">
       <div className="border-b border-zinc-200 dark:border-zinc-800 flex">
         {abasVisiveis.map(aba => (
-          <button
-            key={aba.id}
-            onClick={() => setAbaAtiva(aba.id)}
-            className={`px-5 py-3 text-xs font-medium border-b-2 transition-colors ${
-              abaAtiva === aba.id
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
-            }`}
-          >
+          <button key={aba.id} onClick={() => setAbaAtiva(aba.id)} className={tabButton(abaAtiva === aba.id)}>
             {aba.label}
           </button>
         ))}
