@@ -163,6 +163,7 @@ O frontend estará disponível em `http://localhost:5173`.
 
 ## Estrutura do projeto
 
+```
 SmartLine/
 ├── backend/
 │ ├── SmartLine.API/ # Controllers, Program.cs
@@ -184,6 +185,7 @@ SmartLine/
 ├── .env
 ├── build.sh
 └── clean.sh
+```
 
 ---
 
