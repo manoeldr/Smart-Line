@@ -162,3 +162,71 @@ O frontend estará disponível em `http://localhost:5173`.
 ---
 
 ## Estrutura do projeto
+
+SmartLine/
+├── backend/
+│ ├── SmartLine.API/ # Controllers, Program.cs
+│ ├── SmartLine.Core/ # Entidades, Interfaces, Serviços, Enums
+│ ├── SmartLine.Infrastructure/ # EF Core, Migrations, Repositórios
+│ └── SmartLine.Tests/ # Testes
+├── frontend/
+│ └── src/
+│ ├── components/
+│ │ ├── layout/ # Layout, Sidebar, Topbar
+│ │ └── SessaoGlobal/ # Watcher — monitora sessão ativa em qualquer tela
+│ ├── contexts/ # AuthContext, ThemeContext
+│ ├── modals/ # Modais de parada, pausa, configuração, detalhes
+│ ├── pages/ # Overview, Medição, Dashboard, Configurações, Login
+│ ├── services/ # Clientes HTTP por domínio
+│ ├── styles/ # Classes Tailwind centralizadas (buttons, inputs, badges, modals, cards, tables)
+│ └── types/ # Tipos TypeScript
+├── docker-compose.yml
+├── .env
+├── build.sh
+└── clean.sh
+
+---
+
+## Níveis de acesso
+
+| Nível | Overview | Medição | Dashboard | Configurações |
+|-------|----------|---------|-----------|---------------|
+| SuperAdmin | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Exportar/Importar |
+| Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas |
+| Visualizador | ✅ | ❌ | ❌ | ❌ |
+
+---
+
+## Scripts utilitários
+
+```bash
+./clean.sh    # Remove arquivos ._ gerados pelo macOS antes de commits (Mac apenas)
+./build.sh    # Limpa ._ e executa dotnet build (Mac apenas)
+```
+
+No Windows, use `dotnet build` diretamente.
+
+---
+
+## Roadmap
+
+### ✅ Concluído
+- Modo Manual completo (medição, paradas, leituras, contador de término)
+- Dashboard com métricas agregadas, gráfico dinâmico e linha do tempo
+- Sistema de estilos Tailwind centralizado
+- Exportação/Importação de dados via `.zip`
+
+### Em aberto
+- [ ] Migração PostgreSQL → SQLite + empacotamento self-contained .NET com WebView2, gerando um único `.exe` instalável
+- [ ] Reformular níveis de usuário: renomear SuperAdmin → Administrador e Visualizador → Cliente; adicionar nível Desenvolvedor
+- [ ] Captura e upload de foto em paradas (estrutura de armazenamento e banco já preparadas)
+- [ ] Modo Semi Automático (IoT)
+- [ ] Modo Automático (integração direta com máquina)
+
+---
+
+## Licença
+
+Todos os direitos reservados. Este software é proprietário e não pode ser copiado, modificado ou distribuído sem autorização expressa do autor.
+
+© 2026 Manoel Rodrigues. Todos os direitos reservados.
