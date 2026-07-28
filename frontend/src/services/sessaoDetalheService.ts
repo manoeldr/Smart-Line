@@ -23,6 +23,7 @@ export interface EventoTimelineDto {
   motivoNome: string | null
   motivoTipo: string | null
   duracaoMs: number | null
+  fotoPath: string | null
 }
 
 export interface SessaoDetalheDto {

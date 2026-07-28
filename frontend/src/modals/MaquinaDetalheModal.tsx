@@ -73,10 +73,25 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
     })
   }
 
+  // Busca a foto autenticada (JWT) como blob e abre numa nova aba —
+  // não dá para usar a URL direto porque o endpoint exige Authorization header
+  async function abrirFoto(fotoPath: string) {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`/api/paradas/foto/${fotoPath}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error('Erro ao carregar foto')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch {
+      alert('Erro ao carregar a foto.')
+    }
+  }
+
   if (!open) return null
 
-  // Combina produção + campos extras num único array de pontos por horário,
-  // para o recharts desenhar barra e linhas juntas no mesmo eixo X
   const dadosGrafico = (() => {
     if (!dados) return []
     const horarios = new Set<string>()
@@ -198,18 +213,31 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
                   {dados.eventos.map((evento, i) => (
                     <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                       <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${evento.tipo === 'Marcha' ? 'bg-green-600' : 'bg-red-500'}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium ${evento.tipo === 'Marcha' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                            {evento.tipo}
-                          </span>
-                          <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
+                      <div className="flex-1 flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-medium ${evento.tipo === 'Marcha' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                              {evento.tipo}
+                            </span>
+                            <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
+                          </div>
+                          {evento.motivoNome && (
+                            <p className="text-[11px] text-zinc-500 mt-0.5">
+                              {evento.motivoNome}
+                              {evento.duracaoMs !== null && ` — ${formatarHoras(evento.duracaoMs!)}`}
+                            </p>
+                          )}
                         </div>
-                        {evento.motivoNome && (
-                          <p className="text-[11px] text-zinc-500 mt-0.5">
-                            {evento.motivoNome}
-                            {evento.duracaoMs !== null && ` — ${formatarHoras(evento.duracaoMs!)}`}
-                          </p>
+                        {evento.fotoPath && (
+                          <button
+                            onClick={() => abrirFoto(evento.fotoPath!)}
+                            title="Ver foto da parada"
+                            className="flex-shrink-0 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                            </svg>
+                          </button>
                         )}
                       </div>
                     </div>

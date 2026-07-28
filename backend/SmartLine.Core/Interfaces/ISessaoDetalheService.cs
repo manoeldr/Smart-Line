@@ -44,5 +44,6 @@ public record EventoTimelineDto(
     DateTime Horario,
     string? MotivoNome,
     string? MotivoTipo,
-    double? DuracaoMs
+    double? DuracaoMs,
+    string? FotoPath
 );

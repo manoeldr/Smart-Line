@@ -80,7 +80,7 @@ public class SessaoDetalheService : ISessaoDetalheService
         // Timeline de eventos (Marcha/Parada)
         var eventos = new List<EventoTimelineDto>();
 
-        eventos.Add(new EventoTimelineDto("Marcha", sessao.Inicio, null, null, null));
+        eventos.Add(new EventoTimelineDto("Marcha", sessao.Inicio, null, null, null, null));
 
         foreach (var parada in sessao.Paradas.OrderBy(p => p.Inicio))
         {
@@ -93,12 +93,13 @@ public class SessaoDetalheService : ISessaoDetalheService
                 parada.Inicio,
                 parada.Motivo?.Nome,
                 parada.Motivo?.Tipo.ToString(),
-                duracao
+                duracao,
+                parada.FotoPath
             ));
 
             if (parada.Fim.HasValue)
             {
-                eventos.Add(new EventoTimelineDto("Marcha", parada.Fim.Value, null, null, null));
+                eventos.Add(new EventoTimelineDto("Marcha", parada.Fim.Value, null, null, null, null));
             }
         }
 
