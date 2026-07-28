@@ -1,8 +1,14 @@
+// Modal de detalhes de uma máquina, aberto ao clicar num card do Dashboard.
+// Mostra métricas da última sessão (ativa ou finalizada), gráfico dinâmico por hora
+// (produção em barra + campos extras selecionáveis em linha) e linha do tempo de eventos Marcha/Parada.
 import { useEffect, useState } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { sessaoDetalheService, type SessaoDetalheDto } from '../services/sessaoDetalheService'
+import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
+import { badgeAtivaVerde } from '../styles/badges'
+import { metricaBox, metricaValor, metricaLabel } from '../styles/cards'
 
 interface Props {
   open: boolean
@@ -24,6 +30,7 @@ function formatarDataHora(dataIso: string) {
   return new Date(dataIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+// Paleta de cores das linhas do gráfico — uma cor por campo extra selecionado, em ordem
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
 
 export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: Props) {
@@ -44,6 +51,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
         setCamposSelecionados(new Set())
       } catch (e: unknown) {
         const mensagem = e instanceof Error ? e.message : ''
+        // 404 = máquina sem sessão registrada ainda — trata como "sem dados", não como erro real
         if (mensagem.includes('404')) {
           setErro(null)
         } else {
@@ -67,6 +75,8 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
 
   if (!open) return null
 
+  // Combina produção + campos extras num único array de pontos por horário,
+  // para o recharts desenhar barra e linhas juntas no mesmo eixo X
   const dadosGrafico = (() => {
     if (!dados) return []
     const horarios = new Set<string>()
@@ -90,21 +100,17 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
   })()
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-[900px] max-h-[90vh] flex flex-col">
+    <div className={modalOverlayDark}>
+      <div className={`${modalPanel} w-[900px] max-h-[90vh]`}>
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div className={`${modalHeader} flex items-center justify-between`}>
           <div>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {dados?.maquinaNome ?? 'Detalhes da máquina'}
-            </p>
+            <p className={modalTitle}>{dados?.maquinaNome ?? 'Detalhes da máquina'}</p>
             {dados && (
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className={modalSubtitle}>
                 {formatarDataHora(dados.inicio)} {dados.fim ? `— ${formatarDataHora(dados.fim)}` : '— em andamento'}
-                {dados.status === 'EmAndamento' && (
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">ativa</span>
-                )}
+                {dados.status === 'EmAndamento' && <span className={`ml-2 ${badgeAtivaVerde}`}>ativa</span>}
               </p>
             )}
           </div>
@@ -185,7 +191,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
                 </ResponsiveContainer>
               </div>
 
-              {/* Timeline de eventos */}
+              {/* Timeline de eventos (log vertical cronológico de Marcha/Parada) */}
               <div>
                 <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Linha do tempo</p>
                 <div className="flex flex-col">
@@ -220,11 +226,11 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
 
 function MetricaCard({ label, valor, destaque }: { label: string; valor: string; destaque?: boolean }) {
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-800 p-2.5 text-center">
-      <p className={`text-sm font-medium ${destaque ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
+    <div className={metricaBox}>
+      <p className={`${metricaValor} ${destaque ? 'text-blue-600 dark:text-blue-400' : ''}`}>
         {valor}
       </p>
-      <p className="text-[9px] text-zinc-400 mt-0.5">{label}</p>
+      <p className={metricaLabel}>{label}</p>
     </div>
   )
 }

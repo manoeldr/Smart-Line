@@ -1,5 +1,11 @@
+// Modal exibido ao clicar em "Pausar medição" — seleciona um motivo planejado (almoço, setup, etc.).
+// Motivos planejados são compartilhados entre todas as máquinas da mesma linha.
+// Permite cadastrar um novo motivo planejado inline, sem sair da tela de Medição.
 import { useState } from 'react'
 import type { MotivoParadaDto } from '../services/maquinaService'
+import { btnPrimary, btnSecondarySm } from '../styles/buttons'
+import { inputBase, label } from '../styles/inputs'
+import { modalOverlay, modalContainerMd, modalTitle, modalSubtitle } from '../styles/modals'
 
 interface Props {
   open: boolean
@@ -42,13 +48,13 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-lg w-80 p-5">
+    <div className={modalOverlay}>
+      <div className={`${modalContainerMd} w-80`}>
 
         {/* Header */}
         <div className="mb-4">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Pausar medição</p>
-          <p className="text-xs text-zinc-400 mt-0.5">Selecione o motivo da pausa planejada</p>
+          <p className={modalTitle}>Pausar medição</p>
+          <p className={modalSubtitle}>Selecione o motivo da pausa planejada</p>
         </div>
 
         {!cadastrando ? (
@@ -92,19 +98,8 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
 
             {/* Botões */}
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={onCancelar}
-                className="h-9 rounded border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmar}
-                disabled={!selecionado}
-                className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-              >
-                Pausar
-              </button>
+              <button onClick={onCancelar} className={btnSecondarySm}>Cancelar</button>
+              <button onClick={handleConfirmar} disabled={!selecionado} className={btnPrimary}>Pausar</button>
             </div>
           </>
         ) : (
@@ -112,14 +107,14 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
             {/* Formulário novo motivo planejado */}
             <div className="flex flex-col gap-3 mb-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-zinc-500">Descrição do motivo</label>
+                <label className={label}>Descrição do motivo</label>
                 <input
                   type="text"
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
                   placeholder="Ex: Almoço, Setup, Reunião..."
                   autoFocus
-                  className="h-9 px-3 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputBase.replace('h-8', 'h-9')}
                 />
               </div>
               <div className="bg-zinc-50 dark:bg-zinc-800 rounded px-3 py-2 text-xs text-zinc-400">
@@ -128,17 +123,10 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { setCadastrando(false); setNovoNome('') }}
-                className="h-9 rounded border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              >
+              <button onClick={() => { setCadastrando(false); setNovoNome('') }} className={btnSecondarySm}>
                 Cancelar
               </button>
-              <button
-                onClick={handleSalvarNovo}
-                disabled={!novoNome.trim() || salvando}
-                className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-              >
+              <button onClick={handleSalvarNovo} disabled={!novoNome.trim() || salvando} className={btnPrimary}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>

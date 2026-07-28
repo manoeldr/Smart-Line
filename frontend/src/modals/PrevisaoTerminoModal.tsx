@@ -1,4 +1,10 @@
+// Modal global de aviso quando a previsão de término da medição é atingida.
+// Renderizado pelo Watcher (components/SessaoGlobal), fica visível em qualquer tela do sistema.
+// Contador regressivo de 5 minutos: se ninguém responder, finaliza a sessão automaticamente.
 import { useState, useEffect } from 'react'
+import { btnPrimary, btnSecondary } from '../styles/buttons'
+import { inputMdFull, label } from '../styles/inputs'
+import { modalOverlayDark } from '../styles/modals'
 
 interface Props {
   open: boolean
@@ -36,10 +42,8 @@ export default function PrevisaoTerminoModal({ open, onEstender, onFinalizar }: 
   const minutos = String(Math.floor(segundosRestantes / 60)).padStart(2, '0')
   const segundos = String(segundosRestantes % 60).padStart(2, '0')
 
-  const inputCls = 'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500'
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className={modalOverlayDark}>
       <div className="bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-700 w-96 p-6">
 
         <div className="text-center mb-4">
@@ -60,27 +64,20 @@ export default function PrevisaoTerminoModal({ open, onEstender, onFinalizar }: 
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-zinc-500 mb-1 block">Novo horário de término (para estender)</label>
+          <label className={label}>Novo horário de término (para estender)</label>
           <input
             type="time"
             value={novaHora}
             onChange={e => setNovaHora(e.target.value)}
-            className={inputCls}
+            className={inputMdFull}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={onFinalizar}
-            className="h-9 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          >
+          <button onClick={onFinalizar} className={btnSecondary}>
             Finalizar agora
           </button>
-          <button
-            onClick={() => novaHora && onEstender(novaHora)}
-            disabled={!novaHora}
-            className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium"
-          >
+          <button onClick={() => novaHora && onEstender(novaHora)} disabled={!novaHora} className={btnPrimary}>
             Estender
           </button>
         </div>

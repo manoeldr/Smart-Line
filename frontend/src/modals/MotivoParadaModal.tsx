@@ -1,5 +1,10 @@
+// Modal exibido ao clicar em "Marcha" durante uma parada, para selecionar o motivo.
+// Permite cadastrar um novo motivo (Interno/Externo) inline, sem sair da tela de Medição.
 import { useState } from 'react'
 import type { MotivoParadaDto } from '../services/maquinaService'
+import { btnPrimary, btnSecondarySm, btnToggle } from '../styles/buttons'
+import { inputBase, label } from '../styles/inputs'
+import { modalOverlay, modalContainerMd, modalTitle, modalSubtitle } from '../styles/modals'
 
 interface Props {
   open: boolean
@@ -19,6 +24,7 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
 
   if (!open) return null
 
+  // Motivos planejados não aparecem aqui — são exclusivos do fluxo de Pausar medição
   const filtrados = motivos.filter(m =>
     m.tipo !== 'Planejada' && (filtro === 'todos' || m.tipo === filtro)
   )
@@ -55,13 +61,13 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-lg w-80 p-5">
+    <div className={modalOverlay}>
+      <div className={`${modalContainerMd} w-80`}>
 
         {/* Header */}
         <div className="mb-4">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Motivo da parada</p>
-          <p className="text-xs text-zinc-400 mt-0.5">Selecione o motivo que causou a parada</p>
+          <p className={modalTitle}>Motivo da parada</p>
+          <p className={modalSubtitle}>Selecione o motivo que causou a parada</p>
         </div>
 
         {!cadastrando ? (
@@ -121,11 +127,7 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
             </button>
 
             {/* Confirmar */}
-            <button
-              onClick={handleConfirmar}
-              disabled={!selecionado}
-              className="w-full h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded transition-colors"
-            >
+            <button onClick={handleConfirmar} disabled={!selecionado} className={`w-full h-9 ${btnPrimary}`}>
               Confirmar
             </button>
           </>
@@ -134,38 +136,24 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
             {/* Formulário novo motivo */}
             <div className="flex flex-col gap-3 mb-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-zinc-500">Descrição do motivo</label>
+                <label className={label}>Descrição do motivo</label>
                 <input
                   type="text"
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
                   placeholder="Ex: Falta de matéria-prima"
                   autoFocus
-                  className="h-9 px-3 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputBase.replace('h-8', 'h-9')}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-zinc-500">Tipo</label>
+                <label className={label}>Tipo</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setNovoTipo('Interna')}
-                    className={`h-9 rounded border text-xs font-medium transition-colors ${
-                      novoTipo === 'Interna'
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                    }`}
-                  >
+                  <button onClick={() => setNovoTipo('Interna')} className={btnToggle(novoTipo === 'Interna', 'blue')}>
                     Interna
                   </button>
-                  <button
-                    onClick={() => setNovoTipo('Externa')}
-                    className={`h-9 rounded border text-xs font-medium transition-colors ${
-                      novoTipo === 'Externa'
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                    }`}
-                  >
+                  <button onClick={() => setNovoTipo('Externa')} className={btnToggle(novoTipo === 'Externa', 'amber')}>
                     Externa
                   </button>
                 </div>
@@ -173,17 +161,10 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { setCadastrando(false); setNovoNome('') }}
-                className="h-9 rounded border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              >
+              <button onClick={() => { setCadastrando(false); setNovoNome('') }} className={btnSecondarySm}>
                 Cancelar
               </button>
-              <button
-                onClick={handleSalvarNovo}
-                disabled={!novoNome.trim() || salvando}
-                className="h-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-              >
+              <button onClick={handleSalvarNovo} disabled={!novoNome.trim() || salvando} className={`${btnPrimary} h-9`}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
