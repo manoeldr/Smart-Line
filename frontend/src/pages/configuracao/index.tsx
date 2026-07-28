@@ -5,9 +5,10 @@ import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
 import AbaClientes from './AbaClientes'
 import AbaMaquinas from './AbaMaquinas'
+import AbaExportImport from './AbaExportImport'
 import { tabButton } from '../../styles/tables'
 
-type Aba = 'usuarios' | 'clientes' | 'maquinas'
+type Aba = 'usuarios' | 'clientes' | 'maquinas' | 'exportimport'
 
 export default function Configuracao() {
   const { usuario } = useAuth()
@@ -22,6 +23,7 @@ export default function Configuracao() {
     { id: 'usuarios', label: 'Usuários', niveis: ['SuperAdmin'] },
     { id: 'clientes', label: 'Clientes', niveis: ['SuperAdmin', 'Auditor'] },
     { id: 'maquinas', label: 'Máquinas', niveis: ['SuperAdmin', 'Auditor'] },
+    { id: 'exportimport', label: 'Exportar/Importar', niveis: ['SuperAdmin'] },
   ]
 
   const abasVisiveis = abas.filter(a => a.niveis.includes(nivel))
@@ -47,6 +49,7 @@ export default function Configuracao() {
         {abaAtiva === 'usuarios' && <AbaUsuarios />}
         {abaAtiva === 'clientes' && <AbaClientes />}
         {abaAtiva === 'maquinas' && <AbaMaquinas />}
+        {abaAtiva === 'exportimport' && <AbaExportImport />}
       </div>
     </div>
   )
