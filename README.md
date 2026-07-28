@@ -13,11 +13,13 @@ SmartLine suporta três modos de coleta de dados, adaptáveis à realidade de ca
 ### Manual ✅ Completo
 O auditor acompanha a linha presencialmente e registra as informações diretamente no sistema. Não requer nenhum hardware adicional.
 
-- Configuração da medição antes de iniciar: forma de coleta, velocidade nominal, sobre velocidade (herdadas da configuração da linha, mas ajustáveis), previsão de término e seleção de campos extras a coletar
-- Leituras de produção inseridas a cada hora pelo auditor, com campos extras dinâmicos por máquina
+- Configuração da medição antes de iniciar: forma de coleta, velocidade nominal, sobre velocidade (herdadas da configuração da linha, mas ajustáveis), produção até então, seleção de campos extras a coletar (com switches) e previsão de término
+- Leituras de produção inseridas a cada hora pelo auditor, com campos extras dinâmicos por máquina, sem scroll lateral mesmo com muitos campos
 - Registro de paradas com motivo (interna, externa ou planejada)
+- Captura de foto da parada direto pela câmera do dispositivo (ou upload de arquivo), organizada automaticamente por Cliente/Linha/Máquina
 - Cadastro de novos motivos de parada diretamente no modal
 - Motivos de pausa planejada compartilhados entre todas as máquinas da linha
+- "Total Parado" acumula o tempo de todas as paradas da sessão
 - Contador regressivo de 5 minutos ao atingir a previsão de término, com opção de estender ou finalizar — funciona globalmente, em qualquer tela do sistema
 - Leitura final obrigatória (produção + campos extras) ao encerrar a medição manualmente
 - Estado da medição persistido — ao sair e retornar, a sessão continua de onde parou
@@ -57,7 +59,7 @@ Integração direta com o protocolo de comunicação da máquina.
 - Cards por máquina com OEE agregado, Disponibilidade, Performance, Qualidade, Produção, Refugo, tempo rodando/parado e número de sessões no período
 - Modal de detalhes ao clicar numa máquina: métricas da última sessão (ativa ou finalizada) incluindo OEE, Eficiência, Disponibilidade, Qualidade, MTTR e MTBF
 - Gráfico dinâmico por hora, combinando barra de Produção com linhas de campos extras selecionáveis
-- Linha do tempo (log cronológico) dos eventos de Marcha e Parada da sessão
+- Linha do tempo (log cronológico) dos eventos de Marcha e Parada da sessão, com ícone para visualizar a foto da parada quando registrada
 
 ### Cálculo de OEE
 - Disponibilidade, Performance e Qualidade calculados no backend
@@ -80,7 +82,14 @@ Integração direta com o protocolo de comunicação da máquina.
 - Importação com prévia — mostra a contagem de registros de cada categoria antes de confirmar
 - Upsert por ID: dados existentes são atualizados, novos são criados, nada é duplicado
 - Pensado para um fluxo de PC central + estações satélite: a configuração (clientes, linhas, máquinas) é definida uma vez e distribuída, garantindo nomes consistentes entre todos os computadores; os dados de medição de cada estação podem ser consolidados de volta no PC central
-- Estrutura de pastas de fotos já preparada (`ImagesStopReason/{Cliente}_{Estado}_{Linha}/`), com campo `FotoPath` no banco — aguardando a implementação da captura de foto na tela de Medição
+- Fotos de parada exportadas junto com as sessões, mantendo a estrutura de pastas por Cliente/Linha
+
+### Fotos de parada
+- Botão "Tirar foto" na tela de Medição, disponível enquanto a máquina está parada
+- Abre a câmera do dispositivo (mobile) ou seletor de arquivo (desktop)
+- Armazenamento organizado em `ImagesStopReason/{Cliente}_{Estado}_{Linha}/{Cliente}_{Estado}_{Linha}_{Máquina}_{DataHora}.jpg`
+- Banco guarda apenas o caminho relativo (`FotoPath`), nunca o binário da imagem
+- Visualização da foto disponível no Dashboard, na linha do tempo de eventos de cada sessão
 
 ---
 
@@ -214,6 +223,7 @@ No Windows, use `dotnet build` diretamente.
 
 ### ✅ Concluído
 - Modo Manual completo (medição, paradas, leituras, contador de término)
+- Captura e visualização de foto de parada
 - Dashboard com métricas agregadas, gráfico dinâmico e linha do tempo
 - Sistema de estilos Tailwind centralizado
 - Exportação/Importação de dados via `.zip`
@@ -221,7 +231,7 @@ No Windows, use `dotnet build` diretamente.
 ### Em aberto
 - [ ] Migração PostgreSQL → SQLite + empacotamento self-contained .NET com WebView2, gerando um único `.exe` instalável
 - [ ] Reformular níveis de usuário: renomear SuperAdmin → Administrador e Visualizador → Cliente; adicionar nível Desenvolvedor
-- [ ] Captura e upload de foto em paradas (estrutura de armazenamento e banco já preparadas)
+- [ ] Migração de estilos Tailwind pendente em: `Topbar.tsx`, `DateFilterModal.tsx`, `ClienteSelectorModal.tsx`
 - [ ] Modo Semi Automático (IoT)
 - [ ] Modo Automático (integração direta com máquina)
 
