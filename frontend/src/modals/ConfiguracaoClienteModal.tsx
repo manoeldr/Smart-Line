@@ -1,4 +1,8 @@
-﻿import { useState, useEffect } from 'react'
+﻿// Modal de edição de cliente — dados básicos + gestão de Linhas de produção.
+// Cada linha pode ter várias máquinas associadas, reordenáveis via drag and drop.
+// Auditor usa esse mesmo modal em modo "somenteLinhas" (sem editar nome/estado do cliente).
+// Segue o padrão "staged changes": linhas e máquinas só são persistidas no banco ao clicar em Salvar.
+import { useState, useEffect } from 'react'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent
@@ -9,6 +13,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { configuracaoService, type ClienteConfDto, type LinhaConfDto, type MaquinaConfDto } from '../services/configuracaoService'
 import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
+import { btnPrimary, btnPrimaryXs, btnSecondary, btnSecondarySm, btnIconDanger } from '../styles/buttons'
+import { inputBase, label, checkbox } from '../styles/inputs'
+import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
+import { modalOverlay, modalOverlayNested, modalContainerSm, modalPanel, modalHeader, modalTitle, modalFooter } from '../styles/modals'
 
 interface Props {
   open: boolean
@@ -20,8 +28,7 @@ interface Props {
 
 const ESTADOS_BR = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
 
-const inputCls = 'w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500'
-
+// Gera um ID temporário para itens ainda não salvos no banco (staged changes)
 function tempId() {
   return `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
@@ -36,6 +43,7 @@ interface MaquinaLinhaStaged extends MaquinaLinhaConfDto {
   isDeleted: boolean
 }
 
+// Item arrastável de máquina dentro de uma linha (drag and drop via @dnd-kit)
 function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; onRemover: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = {
@@ -57,16 +65,14 @@ function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; on
       </button>
       <div className="flex-1">
         <p className="text-xs text-zinc-900 dark:text-zinc-100">
-          {item.maquinaNome} {item.isNew && <span className="text-[9px] text-blue-500">(novo)</span>}
+          {item.maquinaNome} {item.isNew && <span className={badgeNovo}>(novo)</span>}
         </p>
         <p className="text-[10px] text-zinc-400">
           {item.velocidadeNominal} un/h {item.sobreVelocidade > 0 && `+ ${item.sobreVelocidade}%`}
         </p>
       </div>
-      {item.critica && (
-        <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">crítica</span>
-      )}
-      <button onClick={onRemover} className="text-zinc-400 hover:text-red-500">
+      {item.critica && <span className={badgeCritica}>crítica</span>}
+      <button onClick={onRemover} className={btnIconDanger}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       </button>
     </div>
@@ -77,6 +83,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   const [form, setForm] = useState({ nome: cliente?.nome ?? '', estado: cliente?.estado ?? '' })
   const [salvando, setSalvando] = useState(false)
 
+  // Linhas de produção (staged) — key é linha.id, guarda também as máquinas expandidas
   const [linhas, setLinhas] = useState<LinhaStaged[]>([])
   const [loadingLinhas, setLoadingLinhas] = useState(false)
   const [linhaExpandida, setLinhaExpandida] = useState<string | null>(null)
@@ -93,6 +100,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
+  // Ao abrir o modal (ou trocar de cliente), reseta form e recarrega linhas
   useEffect(() => {
     if (!open || !cliente) return
     setForm({ nome: cliente.nome, estado: cliente.estado ?? '' })
@@ -113,6 +121,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     }
   }
 
+  // Expande/recolhe uma linha; carrega as máquinas dela sob demanda (lazy load)
   async function toggleExpandirLinha(linha: LinhaStaged) {
     if (linhaExpandida === linha.id) {
       setLinhaExpandida(null)
@@ -137,6 +146,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     }
   }
 
+  // ── Linhas — staged: nova linha só existe em memória até Salvar ──
   function adicionarLinhaLocal() {
     if (!novaLinhaNome.trim() || !cliente) return
     const id = tempId()
@@ -160,6 +170,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     if (linhaExpandida === linha.id) setLinhaExpandida(null)
   }
 
+  // ── Máquinas dentro de uma linha — mesmo padrão staged ──
   async function abrirAdicionarMaquina(linhaId: string) {
     setLinhaAlvo(linhaId)
     setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0' })
@@ -203,6 +214,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     })
   }
 
+  // Reordena localmente ao soltar o item arrastado — persiste só ao Salvar
   function handleDragEnd(linhaId: string, event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -216,16 +228,17 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     })
   }
 
+  // Aplica todas as mudanças pendentes no banco, na ordem correta:
+  // 1) dados do cliente, 2) linhas (criar/excluir), 3) máquinas de cada linha (criar/editar/excluir)
   async function salvarTudo() {
     if (!cliente) return
     setSalvando(true)
     try {
-      // 1. Dados do cliente
       if (!somenteLinhas) {
         await configuracaoService.editarCliente(cliente.id, { nome: form.nome, estado: form.estado || null, ativo: cliente.ativo })
       }
 
-      // 2. Linhas: remove deletadas existentes, cria novas
+      // Mapeia IDs temporários de linhas novas para os IDs reais retornados pelo backend
       const mapaIdLinha: Record<string, string> = {}
       for (const linha of linhas) {
         if (linha.isDeleted && !linha.isNew) {
@@ -236,7 +249,6 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
         }
       }
 
-      // 3. Máquinas por linha
       for (const linha of linhas) {
         if (linha.isDeleted) continue
         const linhaRealId = linha.isNew ? mapaIdLinha[linha.id] : linha.id
@@ -267,25 +279,26 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-[560px] max-h-[90vh] flex flex-col">
+      <div className={modalOverlay}>
+        <div className={`${modalPanel} w-[560px] max-h-[90vh]`}>
 
-          <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <div className={modalHeader}>
+            <p className={modalTitle}>
               {somenteLinhas ? cliente.nome : 'Editar cliente'}
             </p>
           </div>
 
+          {/* Dados básicos — ocultos no modo Auditor (somenteLinhas) */}
           {!somenteLinhas && (
             <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
-                  <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className={inputCls} />
+                  <label className={label}>Nome</label>
+                  <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className={inputBase} />
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Estado</label>
-                  <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} className={inputCls}>
+                  <label className={label}>Estado</label>
+                  <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} className={inputBase}>
                     <option value="">Selecione</option>
                     {ESTADOS_BR.map(e => <option key={e} value={e}>{e}</option>)}
                   </select>
@@ -297,7 +310,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Linhas de produção</p>
-              <button onClick={() => setModalNovaLinhaOpen(true)} className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] flex items-center gap-1">
+              <button onClick={() => setModalNovaLinhaOpen(true)} className={`${btnPrimaryXs} flex items-center gap-1`}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Nova linha
               </button>
@@ -321,13 +334,13 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                           <polyline points="9 18 15 12 9 6"/>
                         </svg>
                         {linha.nome}
-                        {linha.isNew && <span className="text-[9px] text-blue-500">(novo)</span>}
+                        {linha.isNew && <span className={badgeNovo}>(novo)</span>}
                       </button>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-1.5 py-0.5 ${linha.ativo ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}`}>
+                        <span className={badgeStatus(linha.ativo)}>
                           {linha.ativo ? 'ativa' : 'inativa'}
                         </span>
-                        <button onClick={() => removerLinhaLocal(linha)} className="text-zinc-400 hover:text-red-500">
+                        <button onClick={() => removerLinhaLocal(linha)} className={btnIconDanger}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                         </button>
                       </div>
@@ -378,37 +391,37 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
             )}
           </div>
 
-          <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-2">
-            <button onClick={onFechar} disabled={salvando} className="h-8 px-4 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">
+          <div className={modalFooter}>
+            <button onClick={onFechar} disabled={salvando} className={btnSecondarySm}>
               Cancelar
             </button>
-            <button onClick={salvarTudo} disabled={(!somenteLinhas && !form.nome) || salvando} className="h-8 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
+            <button onClick={salvarTudo} disabled={(!somenteLinhas && !form.nome) || salvando} className={btnPrimary}>
               {salvando ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Modal nova linha */}
+      {/* Modal — nova linha */}
       {modalNovaLinhaOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-72 p-5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Nova linha</p>
+        <div className={modalOverlayNested}>
+          <div className={modalContainerSm}>
+            <p className={`${modalTitle} mb-4`}>Nova linha</p>
             <div className="mb-4">
-              <label className="text-xs text-zinc-500 mb-1 block">Nome da linha</label>
+              <label className={label}>Nome da linha</label>
               <input
                 value={novaLinhaNome}
                 onChange={e => setNovaLinhaNome(e.target.value)}
                 placeholder="Ex: Linha 1, Linha 504..."
                 autoFocus
-                className={inputCls}
+                className={inputBase}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setModalNovaLinhaOpen(false); setNovaLinhaNome('') }} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+              <button onClick={() => { setModalNovaLinhaOpen(false); setNovaLinhaNome('') }} className={btnSecondarySm}>
                 Cancelar
               </button>
-              <button onClick={adicionarLinhaLocal} disabled={!novaLinhaNome.trim()} className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
+              <button onClick={adicionarLinhaLocal} disabled={!novaLinhaNome.trim()} className={btnPrimary}>
                 Adicionar
               </button>
             </div>
@@ -416,40 +429,40 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
         </div>
       )}
 
-      {/* Modal adicionar máquina */}
+      {/* Modal — adicionar máquina a uma linha */}
       {modalAdicionarMaquinaOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-80 p-5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Adicionar máquina</p>
+        <div className={modalOverlayNested}>
+          <div className={modalContainerSm.replace('w-72', 'w-80')}>
+            <p className={`${modalTitle} mb-4`}>Adicionar máquina</p>
             <div className="flex flex-col gap-3 mb-4">
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Máquina</label>
+                <label className={label}>Máquina</label>
                 <select
                   value={formMaquina.maquinaId}
                   onChange={e => setFormMaquina(f => ({ ...f, maquinaId: e.target.value }))}
-                  className={inputCls}
+                  className={inputBase}
                 >
                   <option value="">Selecione...</option>
                   {todasMaquinas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Velocidade nominal (prod/h)</label>
+                <label className={label}>Velocidade nominal (prod/h)</label>
                 <input
                   type="number" min="0"
                   value={formMaquina.velocidadeNominal}
                   onChange={e => setFormMaquina(f => ({ ...f, velocidadeNominal: e.target.value }))}
                   placeholder="Ex: 1200"
-                  className={inputCls}
+                  className={inputBase}
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Sobre velocidade (%)</label>
+                <label className={label}>Sobre velocidade (%)</label>
                 <input
                   type="number" min="0" max="100"
                   value={formMaquina.sobreVelocidade}
                   onChange={e => setFormMaquina(f => ({ ...f, sobreVelocidade: e.target.value }))}
-                  className={inputCls}
+                  className={inputBase}
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -457,19 +470,19 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   type="checkbox"
                   checked={formMaquina.critica}
                   onChange={e => setFormMaquina(f => ({ ...f, critica: e.target.checked }))}
-                  className="accent-blue-600"
+                  className={checkbox}
                 />
                 <span className="text-xs text-zinc-900 dark:text-zinc-100">Máquina crítica</span>
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalAdicionarMaquinaOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+              <button onClick={() => setModalAdicionarMaquinaOpen(false)} className={btnSecondarySm}>
                 Cancelar
               </button>
               <button
                 onClick={adicionarMaquinaLocal}
                 disabled={!formMaquina.maquinaId || !formMaquina.velocidadeNominal}
-                className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium"
+                className={btnPrimary}
               >
                 Adicionar
               </button>

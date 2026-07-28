@@ -1,7 +1,15 @@
-﻿import { useEffect, useState } from 'react'
+﻿// Aba "Clientes" da tela de Configurações.
+// SuperAdmin: CRUD completo de clientes.
+// Auditor: visão restrita, só pode gerenciar as Linhas dentro do modal (não edita nome/estado nem cria/exclui clientes).
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { configuracaoService, type ClienteConfDto } from '../../services/configuracaoService'
 import ConfiguracaoClienteModal from '../../modals/ConfiguracaoClienteModal'
+import { btnPrimarySm, btnSecondarySm, btnPrimary, btnIcon, btnIconDanger } from '../../styles/buttons'
+import { inputBase, label } from '../../styles/inputs'
+import { badgeStatus } from '../../styles/badges'
+import { modalOverlay, modalContainerMd } from '../../styles/modals'
+import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableBodyCellMuted, tableActionsCell } from '../../styles/tables'
 
 const ESTADOS_BR = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
 
@@ -12,11 +20,15 @@ export default function AbaClientes() {
 
   const [clientes, setClientes] = useState<ClienteConfDto[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Modal simples de criação (só nome + estado — usado apenas pelo SuperAdmin)
   const [modalNovoOpen, setModalNovoOpen] = useState(false)
-  const [modalEditarOpen, setModalEditarOpen] = useState(false)
-  const [editando, setEditando] = useState<ClienteConfDto | null>(null)
   const [form, setForm] = useState({ nome: '', estado: '' })
   const [salvando, setSalvando] = useState(false)
+
+  // Modal completo de edição (dados + linhas + máquinas) — ConfiguracaoClienteModal
+  const [modalEditarOpen, setModalEditarOpen] = useState(false)
+  const [editando, setEditando] = useState<ClienteConfDto | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -58,7 +70,7 @@ export default function AbaClientes() {
           {somenteLinhas ? 'Clientes — Linhas de produção' : 'Clientes'}
         </p>
         {!somenteLinhas && (
-          <button onClick={abrirNovo} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1.5">
+          <button onClick={abrirNovo} className={`${btnPrimarySm} flex items-center gap-1.5`}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Novo cliente
           </button>
@@ -68,27 +80,28 @@ export default function AbaClientes() {
       {loading ? (
         <p className="text-xs text-zinc-400">Carregando...</p>
       ) : (
-        <table className="w-full text-xs">
+        <table className={table}>
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800">
-              <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Nome</th>
-              <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Estado</th>
-              <th className="text-left py-2 pr-4 text-zinc-400 font-medium">Status</th>
+            <tr className={tableHeadRow}>
+              <th className={tableHeadCell}>Nome</th>
+              <th className={tableHeadCell}>Estado</th>
+              <th className={tableHeadCell}>Status</th>
               <th className="py-2" />
             </tr>
           </thead>
           <tbody>
             {clientes.map(c => (
-              <tr key={c.id} className="border-b border-zinc-100 dark:border-zinc-800">
-                <td className="py-2.5 pr-4 text-zinc-900 dark:text-zinc-100">{c.nome}</td>
-                <td className="py-2.5 pr-4 text-zinc-500">{c.estado ?? '—'}</td>
+              <tr key={c.id} className={tableBodyRow}>
+                <td className={tableBodyCell}>{c.nome}</td>
+                <td className={tableBodyCellMuted}>{c.estado ?? '—'}</td>
                 <td className="py-2.5 pr-4">
-                  <span className={`px-1.5 py-0.5 text-[10px] ${c.ativo ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}`}>
+                  <span className={badgeStatus(c.ativo)}>
                     {c.ativo ? 'ativo' : 'inativo'}
                   </span>
                 </td>
-                <td className="py-2.5 flex items-center justify-end gap-2">
-                  <button onClick={() => abrirEditar(c)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+                <td className={tableActionsCell}>
+                  {/* Auditor vê um ícone de "olho" (visualizar/gerenciar linhas), SuperAdmin vê o lápis de edição completa */}
+                  <button onClick={() => abrirEditar(c)} className={btnIcon}>
                     {somenteLinhas ? (
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
                     ) : (
@@ -96,7 +109,7 @@ export default function AbaClientes() {
                     )}
                   </button>
                   {!somenteLinhas && (
-                    <button onClick={() => deletar(c.id)} className="text-zinc-400 hover:text-red-500">
+                    <button onClick={() => deletar(c.id)} className={btnIconDanger}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                     </button>
                   )}
@@ -107,28 +120,27 @@ export default function AbaClientes() {
         </table>
       )}
 
+      {/* Modal de criação — só existe para SuperAdmin */}
       {!somenteLinhas && modalNovoOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-80 p-5">
+        <div className={modalOverlay}>
+          <div className={modalContainerMd}>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Novo cliente</p>
             <div className="flex flex-col gap-3 mb-4">
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Nome</label>
-                <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                <label className={label}>Nome</label>
+                <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className={inputBase} />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Estado</label>
-                <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}
-                  className="w-full h-8 px-2 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <label className={label}>Estado</label>
+                <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} className={inputBase}>
                   <option value="">Selecione</option>
                   {ESTADOS_BR.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalNovoOpen(false)} className="h-8 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancelar</button>
-              <button onClick={salvarNovo} disabled={!form.nome || salvando} className="h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium">
+              <button onClick={() => setModalNovoOpen(false)} className={btnSecondarySm}>Cancelar</button>
+              <button onClick={salvarNovo} disabled={!form.nome || salvando} className={btnPrimary}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
@@ -136,6 +148,7 @@ export default function AbaClientes() {
         </div>
       )}
 
+      {/* Modal de edição — mostra dados básicos (se não for Auditor) + gestão de linhas/máquinas (sempre) */}
       <ConfiguracaoClienteModal
         open={modalEditarOpen}
         cliente={editando}
