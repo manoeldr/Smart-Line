@@ -1,13 +1,14 @@
 // Tela inicial da Medição: seleciona linha e máquina, depois abre o modal de configuração
 // da sessão (forma de coleta, velocidade nominal/sobrevelocidade herdadas da linha,
-// produção até então, previsão de término e campos extras a coletar).
+// produção até então, campos extras a coletar, valores iniciais e previsão de término).
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import type { Linha, MaquinaLinha } from '../../types'
+import Switch from '../../components/Switch'
 import { btnPrimary, btnSecondarySm, btnToggle } from '../../styles/buttons'
-import { inputMdFull, label, checkbox } from '../../styles/inputs'
+import { inputMdFull, label } from '../../styles/inputs'
 import { modalOverlay, modalPanel, modalHeader, modalTitle, modalSubtitle, modalBody, modalFooter } from '../../styles/modals'
 import { cardPadded } from '../../styles/cards'
 
@@ -279,7 +280,35 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 />
               </div>
 
-              {/* Leituras iniciais dos campos extras selecionados */}
+              {/* Campos a coletar — escolha primeiro o quê medir */}
+              <div>
+                <label className="text-xs text-zinc-500 mb-2 block">Campos a coletar</label>
+
+                {/* Produção fixo */}
+                <div className="flex items-center justify-between gap-2 py-1.5">
+                  <span className="text-xs text-zinc-900 dark:text-zinc-100">
+                    Produção <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
+                  </span>
+                  <Switch checked disabled />
+                </div>
+
+                {loadingCampos ? (
+                  <p className="text-xs text-zinc-400 mt-1">Carregando campos...</p>
+                ) : camposDisponiveis.length === 0 ? (
+                  <p className="text-xs text-zinc-400 mt-1">Nenhum campo extra cadastrado para esta máquina</p>
+                ) : (
+                  camposDisponiveis.map(c => (
+                    <div key={c.id} className="flex items-center justify-between gap-2 py-1.5">
+                      <span className="text-xs text-zinc-900 dark:text-zinc-100">
+                        {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
+                      </span>
+                      <Switch checked={camposSelecionados.has(c.id)} onChange={() => toggleCampo(c.id)} />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Leituras iniciais dos campos extras selecionados — só depois de escolher o quê medir */}
               {camposDisponiveis
                 .filter(c => camposSelecionados.has(c.id))
                 .map(c => (
@@ -309,38 +338,6 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 <p className="text-[10px] text-zinc-400 mt-1">
                   Ao atingir este horário, a medição será finalizada automaticamente após 5 minutos
                 </p>
-              </div>
-
-              {/* Campos a coletar */}
-              <div>
-                <label className="text-xs text-zinc-500 mb-2 block">Campos a coletar</label>
-
-                {/* Produção fixo */}
-                <div className="flex items-center gap-2 py-1.5">
-                  <input type="checkbox" checked disabled className={checkbox} />
-                  <span className="text-xs text-zinc-900 dark:text-zinc-100">Produção</span>
-                  <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
-                </div>
-
-                {loadingCampos ? (
-                  <p className="text-xs text-zinc-400 mt-1">Carregando campos...</p>
-                ) : camposDisponiveis.length === 0 ? (
-                  <p className="text-xs text-zinc-400 mt-1">Nenhum campo extra cadastrado para esta máquina</p>
-                ) : (
-                  camposDisponiveis.map(c => (
-                    <label key={c.id} className="flex items-center gap-2 py-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={camposSelecionados.has(c.id)}
-                        onChange={() => toggleCampo(c.id)}
-                        className={checkbox}
-                      />
-                      <span className="text-xs text-zinc-900 dark:text-zinc-100">
-                        {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
-                      </span>
-                    </label>
-                  ))
-                )}
               </div>
             </div>
 
