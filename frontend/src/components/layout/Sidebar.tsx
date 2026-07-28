@@ -1,5 +1,15 @@
+// Menu lateral de navegação. Item "Configurações" só aparece para SuperAdmin e Auditor.
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+
+// Item de navegação padrão — reutiliza a mesma lógica de estilo ativo/inativo em todos os links
+function navLinkClass({ isActive }: { isActive: boolean }) {
+  return `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+    isActive
+      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+      : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+  }`
+}
 
 export default function Sidebar() {
   const { usuario } = useAuth()
@@ -29,46 +39,19 @@ export default function Sidebar() {
           <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-zinc-400">
             Monitoramento
           </p>
-          <NavLink
-            to="/medicao"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-              }`
-            }
-          >
+          <NavLink to="/medicao" className={navLinkClass}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 12h3l3-9 4 18 3-9h3"/>
             </svg>
             Medição
           </NavLink>
-          <NavLink
-            to="/overview"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-              }`
-            }
-          >
+          <NavLink to="/overview" className={navLinkClass}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
             </svg>
             Overview
           </NavLink>
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-              }`
-            }
-          >
+          <NavLink to="/dashboard" className={navLinkClass}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
@@ -82,16 +65,7 @@ export default function Sidebar() {
             <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-zinc-400">
               Sistema
             </p>
-            <NavLink
-              to="/configuracao"
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                    : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-                }`
-              }
-            >
+            <NavLink to="/configuracao" className={navLinkClass}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
