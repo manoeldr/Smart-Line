@@ -15,6 +15,7 @@ public class SmartLineDbContext : DbContext
     public DbSet<Maquina> Maquinas => Set<Maquina>();
     public DbSet<MotivoParada> MotivosParada => Set<MotivoParada>();
     public DbSet<TipoMedicao> TiposMedicao => Set<TipoMedicao>();
+    public DbSet<Licenca> Licencas => Set<Licenca>();
 
     // Tenant
     public DbSet<Cliente> Clientes => Set<Cliente>();

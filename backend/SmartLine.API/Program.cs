@@ -2,6 +2,7 @@ using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SmartLine.API.Middleware;
 using SmartLine.Core.Interfaces;
 using SmartLine.Core.Services;
 using SmartLine.Infrastructure.Data;
@@ -15,7 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Banco de dados
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
                        ?? throw new InvalidOperationException("DATABASE_URL não configurada.");
-
 builder.Services.AddDbContext<SmartLineDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -31,6 +31,7 @@ builder.Services.AddScoped<ILinhaMaquinaService, LinhaMaquinaService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISessaoDetalheService, SessaoDetalheService>();
 builder.Services.AddScoped<IExportImportService, ExportImportService>();
+builder.Services.AddScoped<ILicencaService, LicencaService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
@@ -38,7 +39,6 @@ builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
                 ?? throw new InvalidOperationException("JWT_SECRET não configurada.");
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -50,7 +50,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
         };
     });
-
 builder.Services.AddAuthorization();
 
 // Controllers
@@ -75,6 +74,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<LicencaMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
