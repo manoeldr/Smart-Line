@@ -2,7 +2,8 @@ namespace SmartLine.Core.Enums;
 
 public enum NivelUsuario
 {
-    SuperAdmin,
+    Administrador,
     Auditor,
-    Visualizador
+    Cliente,
+    Desenvolvedor
 }

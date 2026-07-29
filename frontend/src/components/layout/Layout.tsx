@@ -21,7 +21,7 @@ export default function Layout() {
   const datasComSessao: string[] = []
 
   useEffect(() => {
-    if (usuario?.nivel === 'SuperAdmin') {
+    if (usuario?.nivel === 'Administrador' || usuario?.nivel === 'Desenvolvedor') {
       clienteService.getAll().then(data => {
         setClientes(data)
         const atual = data.find(c => c.id === clienteId) ?? data[0] ?? null
@@ -52,7 +52,7 @@ export default function Layout() {
           titulo="Overview"
           dataFiltro={dataFiltro}
           clienteNome={clienteAtual?.nome ?? null}
-          isSuperAdmin={usuario?.nivel === 'SuperAdmin'}
+          isSuperAdmin={usuario?.nivel === 'Administrador' || usuario?.nivel === 'Desenvolvedor'}
           seletorAnchorRef={seletorAnchorRef}
           onOpenFiltro={handleOpenFiltro}
           onOpenSeletor={() => setSeletorOpen(prev => !prev)}

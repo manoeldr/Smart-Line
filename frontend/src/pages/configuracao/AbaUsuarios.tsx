@@ -1,4 +1,4 @@
-// Aba "Usuários" da tela de Configurações — acesso exclusivo do SuperAdmin.
+// Aba "Usuários" da tela de Configurações — acesso exclusivo do Administrador/Desenvolvedor.
 // CRUD completo: nome, login, senha, nível de acesso e cliente vinculado (opcional).
 import { useEffect, useState } from 'react'
 import { configuracaoService, type UsuarioConfDto } from '../../services/configuracaoService'
@@ -9,7 +9,7 @@ import { badgeStatus } from '../../styles/badges'
 import { modalOverlay, modalContainerMd } from '../../styles/modals'
 import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableBodyCellMuted, tableActionsCell } from '../../styles/tables'
 
-const NIVEIS = ['SuperAdmin', 'Auditor', 'Visualizador']
+const NIVEIS = ['Administrador', 'Auditor', 'Cliente', 'Desenvolvedor']
 
 export default function AbaUsuarios() {
   const [usuarios, setUsuarios] = useState<UsuarioConfDto[]>([])

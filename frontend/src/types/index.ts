@@ -1,4 +1,4 @@
-export type NivelUsuario = 'SuperAdmin' | 'Auditor' | 'Visualizador'
+export type NivelUsuario = 'Administrador' | 'Auditor' | 'Cliente' | 'Desenvolvedor'
 export type TipoColeta = 'Manual' | 'SemiAutomatico'
 export type TipoParada = 'Interna' | 'Externa' | 'Planejada'
 export type StatusSessao = 'EmAndamento' | 'Finalizada'

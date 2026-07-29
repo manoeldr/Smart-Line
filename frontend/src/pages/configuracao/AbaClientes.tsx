@@ -1,5 +1,5 @@
 ﻿// Aba "Clientes" da tela de Configurações.
-// SuperAdmin: CRUD completo de clientes.
+// Administrador/Desenvolvedor: CRUD completo de clientes.
 // Auditor: visão restrita, só pode gerenciar as Linhas dentro do modal (não edita nome/estado nem cria/exclui clientes).
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -21,7 +21,7 @@ export default function AbaClientes() {
   const [clientes, setClientes] = useState<ClienteConfDto[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Modal simples de criação (só nome + estado — usado apenas pelo SuperAdmin)
+  // Modal simples de criação (só nome + estado — usado apenas pelo Administrador/Desenvolvedor)
   const [modalNovoOpen, setModalNovoOpen] = useState(false)
   const [form, setForm] = useState({ nome: '', estado: '' })
   const [salvando, setSalvando] = useState(false)
@@ -100,7 +100,7 @@ export default function AbaClientes() {
                   </span>
                 </td>
                 <td className={tableActionsCell}>
-                  {/* Auditor vê um ícone de "olho" (visualizar/gerenciar linhas), SuperAdmin vê o lápis de edição completa */}
+                  {/* Auditor vê um ícone de "olho" (visualizar/gerenciar linhas), Administrador/Desenvolvedor vê o lápis de edição completa */}
                   <button onClick={() => abrirEditar(c)} className={btnIcon}>
                     {somenteLinhas ? (
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -120,7 +120,7 @@ export default function AbaClientes() {
         </table>
       )}
 
-      {/* Modal de criação — só existe para SuperAdmin */}
+      {/* Modal de criação — só existe para Administrador/Desenvolvedor */}
       {!somenteLinhas && modalNovoOpen && (
         <div className={modalOverlay}>
           <div className={modalContainerMd}>

@@ -1,5 +1,5 @@
 // Tela de Configurações — navegação por abas.
-// Visibilidade das abas por nível: SuperAdmin vê tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
+// Visibilidade das abas por nível: Administrador e Desenvolvedor veem tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
@@ -20,10 +20,10 @@ export default function Configuracao() {
   })
 
   const abas: { id: Aba; label: string; niveis: string[] }[] = [
-    { id: 'usuarios', label: 'Usuários', niveis: ['SuperAdmin'] },
-    { id: 'clientes', label: 'Clientes', niveis: ['SuperAdmin', 'Auditor'] },
-    { id: 'maquinas', label: 'Máquinas', niveis: ['SuperAdmin', 'Auditor'] },
-    { id: 'exportimport', label: 'Exportar/Importar', niveis: ['SuperAdmin'] },
+    { id: 'usuarios', label: 'Usuários', niveis: ['Administrador', 'Desenvolvedor'] },
+    { id: 'clientes', label: 'Clientes', niveis: ['Administrador', 'Desenvolvedor', 'Auditor'] },
+    { id: 'maquinas', label: 'Máquinas', niveis: ['Administrador', 'Desenvolvedor', 'Auditor'] },
+    { id: 'exportimport', label: 'Exportar/Importar', niveis: ['Administrador', 'Desenvolvedor'] },
   ]
 
   const abasVisiveis = abas.filter(a => a.niveis.includes(nivel))

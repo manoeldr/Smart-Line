@@ -27,9 +27,10 @@ export default function Topbar({
   const filtroRef = useRef<HTMLButtonElement>(null)
 
   const nivelLabel: Record<string, string> = {
-    SuperAdmin: 'Super Admin',
+    Administrador: 'Administrador',
     Auditor: 'Auditor',
-    Visualizador: 'Visualizador',
+    Cliente: 'Cliente',
+    Desenvolvedor: 'Desenvolvedor',
   }
 
   return (

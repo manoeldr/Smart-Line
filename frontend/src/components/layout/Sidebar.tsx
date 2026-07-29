@@ -1,4 +1,4 @@
-// Menu lateral de navegação. Item "Configurações" só aparece para SuperAdmin e Auditor.
+// Menu lateral de navegação. Item "Configurações" só aparece para Administrador, Desenvolvedor e Auditor.
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -15,7 +15,7 @@ export default function Sidebar() {
   const { usuario, logout } = useAuth()
   const navigate = useNavigate()
   const nivel = usuario?.nivel ?? ''
-  const temConfiguracao = ['SuperAdmin', 'Auditor'].includes(nivel)
+  const temConfiguracao = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(nivel)
 
   function handleLogout() {
     logout()

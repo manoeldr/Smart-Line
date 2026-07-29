@@ -1,0 +1,1 @@
+SELECT "Nivel" FROM "Usuarios" LIMIT 3;
