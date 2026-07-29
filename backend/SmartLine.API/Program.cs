@@ -81,4 +81,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// Serve o frontend buildado (React) a partir de wwwroot, quando presente.
+// Em desenvolvimento, o frontend roda separado via `npm run dev` (porta 5173) e não usa isso.
+// Na versão empacotada (.exe), o frontend já vem buildado dentro de wwwroot, servido pelo mesmo processo.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapFallbackToFile("index.html");
+
 app.Run();

@@ -28,3 +28,6 @@ dist/
 
 # Docker
 *.log
+
+# Frontend buildado (gerado via npm run build, copiado para o backend)
+backend/SmartLine.API/wwwroot/

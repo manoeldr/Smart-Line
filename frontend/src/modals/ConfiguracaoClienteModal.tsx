@@ -13,7 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { configuracaoService, type ClienteConfDto, type LinhaConfDto, type MaquinaConfDto } from '../services/configuracaoService'
 import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
-import { btnPrimary, btnPrimaryXs, btnSecondary, btnSecondarySm, btnIconDanger } from '../styles/buttons'
+import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
 import { inputBase, label, checkbox } from '../styles/inputs'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
 import { modalOverlay, modalOverlayNested, modalContainerSm, modalPanel, modalHeader, modalTitle, modalFooter } from '../styles/modals'

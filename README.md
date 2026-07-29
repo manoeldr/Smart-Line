@@ -27,15 +27,8 @@ O auditor acompanha a linha presencialmente e registra as informações diretame
 ### Semi Automático 🚧 Planejado
 Integração com dispositivos IoT instalados nas máquinas para coleta parcialmente automatizada.
 
-- Coleta via dispositivos IoT (ex: WISE-4051) com envio a cada 5 segundos
-- Agregação em memória com persistência horária no banco
-- Atualização do overview em tempo real via WebSocket
-
 ### Automático 🚧 Planejado
 Integração direta com o protocolo de comunicação da máquina.
-
-- Conexão direta com o CLP/controlador da máquina
-- Coleta contínua sem necessidade de auditor presente
 
 ---
 
@@ -46,13 +39,6 @@ Integração direta com o protocolo de comunicação da máquina.
 - Quando não há sessão ativa, mostra automaticamente os dados da última sessão finalizada (com indicação visual diferenciada)
 - Atualização automática a cada 30 segundos
 - Indicador de OEE por máquina
-
-### Medição de produção
-- Cronômetro de medição com controles de Marcha, Parada e Pausa
-- Cronômetro congela corretamente durante pausas planejadas
-- Layout de duas colunas: controles à esquerda, leituras à direita
-- Campos de coleta dinâmicos por máquina (temperatura, pressão, refugo, etc.), configuráveis em Configurações → Máquinas
-- Sessão registra o histórico de velocidade nominal, sobre velocidade e campos coletados
 
 ### Dashboard
 - Tela dedicada de indicadores, com seleção de linha e período de datas
@@ -71,25 +57,27 @@ Integração direta com o protocolo de comunicação da máquina.
 - CRUD completo de Clientes, Usuários e Máquinas
 - Gestão de Linhas movida para dentro do modal de edição do Cliente — cadastro de linhas com nome e máquinas associadas
 - Reordenação de máquinas dentro de uma linha via drag and drop
-- Padrão de "alterações pendentes": todas as ações dentro de um modal (criar linha, adicionar/remover máquina, reordenar, criar campo, criar motivo) só são persistidas ao clicar em Salvar
+- Padrão de "alterações pendentes": todas as ações dentro de um modal só são persistidas ao clicar em Salvar
 - Velocidade nominal e sobre velocidade configuradas pelo Administrador por máquina/linha
 - Gestão de campos de coleta e motivos de parada por máquina
-- Controle de acesso por nível: SuperAdmin, Auditor e Visualizador
-  - Auditor tem uma visão restrita de Clientes, focada apenas na gestão de Linhas
+- Controle de acesso por nível: Administrador, Auditor, Cliente e Desenvolvedor
+
+### Licenciamento
+- Cada instalação é ativada por uma chave amarrada ao MAC address da máquina
+- Validação offline — não depende de internet
+- Sistema totalmente bloqueado (inclusive login) até a ativação
+- Ferramenta separada (`SmartLine.LicenseGenerator`) para gerar chaves a partir do MAC address do cliente
 
 ### Exportação e Importação de dados
 - Gera um pacote `.zip` (dados.json + fotos) com as categorias selecionadas: Clientes+Linhas, Máquinas, Sessões/Medições e Usuários
 - Importação com prévia — mostra a contagem de registros de cada categoria antes de confirmar
 - Upsert por ID: dados existentes são atualizados, novos são criados, nada é duplicado
-- Pensado para um fluxo de PC central + estações satélite: a configuração (clientes, linhas, máquinas) é definida uma vez e distribuída, garantindo nomes consistentes entre todos os computadores; os dados de medição de cada estação podem ser consolidados de volta no PC central
-- Fotos de parada exportadas junto com as sessões, mantendo a estrutura de pastas por Cliente/Linha
+- Pensado para um fluxo de PC central + estações satélite: a configuração é definida uma vez e distribuída, garantindo nomes consistentes entre todos os computadores
 
 ### Fotos de parada
 - Botão "Tirar foto" na tela de Medição, disponível enquanto a máquina está parada
-- Abre a câmera do dispositivo (mobile) ou seletor de arquivo (desktop)
 - Armazenamento organizado em `ImagesStopReason/{Cliente}_{Estado}_{Linha}/{Cliente}_{Estado}_{Linha}_{Máquina}_{DataHora}.jpg`
 - Banco guarda apenas o caminho relativo (`FotoPath`), nunca o binário da imagem
-- Visualização da foto disponível no Dashboard, na linha do tempo de eventos de cada sessão
 
 ---
 
@@ -98,11 +86,12 @@ Integração direta com o protocolo de comunicação da máquina.
 | Camada | Tecnologia |
 |--------|-----------|
 | Backend | ASP.NET Core 10 + EF Core 10 |
-| Banco de dados | PostgreSQL 16 (Docker) |
+| Banco de dados | SQLite (arquivo local, sem servidor) |
 | Frontend | React 19 + Vite + TypeScript + Tailwind CSS v4 |
 | Gráficos | Recharts |
 | Drag and drop | @dnd-kit |
 | Autenticação | JWT |
+| Licenciamento | HMAC-SHA256 amarrado ao MAC address |
 | IDE Backend | JetBrains Rider |
 | IDE Frontend | VS Code |
 
@@ -111,13 +100,13 @@ Integração direta com o protocolo de comunicação da máquina.
 ## Requisitos
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- Ferramenta `dotnet-ef` instalada globalmente: `dotnet tool install --global dotnet-ef`
+- [Node.js 20+](https://nodejs.org/) — apenas para desenvolvimento do frontend
+
+> Não é mais necessário Docker/PostgreSQL — o banco é um arquivo SQLite local, criado automaticamente.
 
 ---
 
-## Instalação e execução
+## Instalação e execução (desenvolvimento)
 
 ### 1. Clone o repositório
 
@@ -131,53 +120,94 @@ cd Smart-Line
 Crie um arquivo `.env` na raiz do projeto:
 
 ```env
-DATABASE_URL=Host=localhost;Port=5432;Database=smartline;Username=smartline;Password=smartline123
-JWT_SECRET=sua_chave_secreta_aqui
+JWT_SECRET=sua_chave_secreta_aqui_com_pelo_menos_32_caracteres
 ```
 
-### 3. Suba o banco de dados
-
-```bash
-docker compose up -d
-```
-
-### 4. Execute as migrations
+### 3. Aplique as migrations
 
 ```bash
 cd backend
 dotnet ef database update --project SmartLine.Infrastructure/SmartLine.Infrastructure.csproj --startup-project SmartLine.API/SmartLine.API.csproj
 ```
 
+Isso cria o arquivo `smartline.db` automaticamente na pasta de saída do build da API.
+
+### 4. (Opcional) Popule dados de teste
+
+O projeto `backend/Seed` insere um cliente, máquinas, linha e usuário admin de exemplo:
+
+```bash
+cd backend/Seed
+dotnet run
+```
+
 ### 5. Inicie o backend
 
 ```bash
+cd backend
 dotnet run --project SmartLine.API/SmartLine.API.csproj
 ```
 
 O backend estará disponível em `http://localhost:5278`.
 
-### 6. Inicie o frontend
+### 6. Inicie o frontend (modo desenvolvimento, com hot reload)
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-O frontend estará disponível em `http://localhost:5173`.
+O frontend estará disponível em `http://localhost:5173`, com proxy automático para a API.
+
+### 7. Ativação da licença
+
+No primeiro acesso, o sistema pede uma chave de ativação amarrada ao MAC address da máquina. Gere a chave com:
+
+```bash
+cd backend/SmartLine.LicenseGenerator
+dotnet run -- <MAC_ADDRESS>
+```
+
+---
+
+## Build de produção (frontend servido pelo backend)
+
+Para gerar uma versão onde o backend serve tudo num único processo/porta (necessário para o empacotamento final em `.exe`):
+
+```bash
+cd frontend
+npm run build
+```
+
+Depois copie o resultado para dentro do backend:
+
+```bash
+# Windows PowerShell
+Remove-Item "backend\SmartLine.API\wwwroot" -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item "frontend\dist" "backend\SmartLine.API\wwwroot" -Recurse
+```
+
+Suba só o backend — a aplicação completa fica disponível em `http://localhost:5278`, sem precisar do frontend rodando separadamente:
+
+```bash
+cd backend
+dotnet run --project SmartLine.API/SmartLine.API.csproj
+```
 
 > **Nota (Windows):** se o `global.json` exigir uma versão específica do SDK que você não tem instalada, ajuste o campo `version` para a versão disponível e adicione `"rollForward": "latestMinor"`.
 
 ---
 
 ## Estrutura do projeto
-
-```
+```bash
 SmartLine/
 ├── backend/
-│ ├── SmartLine.API/ # Controllers, Program.cs
+│ ├── SmartLine.API/ # Controllers, Program.cs, wwwroot (frontend buildado)
 │ ├── SmartLine.Core/ # Entidades, Interfaces, Serviços, Enums
 │ ├── SmartLine.Infrastructure/ # EF Core, Migrations, Repositórios
+│ ├── SmartLine.LicenseGenerator/ # Ferramenta CLI para gerar chaves de licença
+│ ├── Seed/ # Popula dados de teste no banco
 │ └── SmartLine.Tests/ # Testes
 ├── frontend/
 │ └── src/
@@ -186,11 +216,10 @@ SmartLine/
 │ │ └── SessaoGlobal/ # Watcher — monitora sessão ativa em qualquer tela
 │ ├── contexts/ # AuthContext, ThemeContext
 │ ├── modals/ # Modais de parada, pausa, configuração, detalhes
-│ ├── pages/ # Overview, Medição, Dashboard, Configurações, Login
+│ ├── pages/ # Overview, Medição, Dashboard, Configurações, Login, Ativação
 │ ├── services/ # Clientes HTTP por domínio
-│ ├── styles/ # Classes Tailwind centralizadas (buttons, inputs, badges, modals, cards, tables)
+│ ├── styles/ # Classes Tailwind centralizadas
 │ └── types/ # Tipos TypeScript
-├── docker-compose.yml
 ├── .env
 ├── build.sh
 └── clean.sh
@@ -202,20 +231,10 @@ SmartLine/
 
 | Nível | Overview | Medição | Dashboard | Configurações |
 |-------|----------|---------|-----------|---------------|
-| SuperAdmin | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Exportar/Importar |
+| Administrador | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Exportar/Importar |
+| Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador (+ telas de debug futuras) |
 | Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas |
-| Visualizador | ✅ | ❌ | ❌ | ❌ |
-
----
-
-## Scripts utilitários
-
-```bash
-./clean.sh    # Remove arquivos ._ gerados pelo macOS antes de commits (Mac apenas)
-./build.sh    # Limpa ._ e executa dotnet build (Mac apenas)
-```
-
-No Windows, use `dotnet build` diretamente.
+| Cliente | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -227,11 +246,14 @@ No Windows, use `dotnet build` diretamente.
 - Dashboard com métricas agregadas, gráfico dinâmico e linha do tempo
 - Sistema de estilos Tailwind centralizado
 - Exportação/Importação de dados via `.zip`
+- Sistema de licença amarrado ao MAC address
+- Reformulação de níveis de usuário
+- Migração de PostgreSQL para SQLite
+- Backend servindo o frontend buildado (processo único)
 
 ### Em aberto
-- [ ] Migração PostgreSQL → SQLite + empacotamento self-contained .NET com WebView2, gerando um único `.exe` instalável
-- [ ] Reformular níveis de usuário: renomear SuperAdmin → Administrador e Visualizador → Cliente; adicionar nível Desenvolvedor
-- [ ] Migração de estilos Tailwind pendente em: `Topbar.tsx`, `DateFilterModal.tsx`, `ClienteSelectorModal.tsx`
+- [ ] Empacotamento self-contained (`.exe` único via `dotnet publish`)
+- [ ] Janela nativa com WebView2 (experiência de app desktop, sem abrir navegador)
 - [ ] Modo Semi Automático (IoT)
 - [ ] Modo Automático (integração direta com máquina)
 

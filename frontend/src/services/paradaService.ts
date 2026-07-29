@@ -9,7 +9,7 @@ export interface ParadaDto {
   fotoPath: string | null
 }
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
