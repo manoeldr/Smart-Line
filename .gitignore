@@ -13,6 +13,9 @@ obj/
 # Ambiente
 .env
 *.env.local
+*.db
+*.db-shm
+*.db-wal
 
 # macOS
 .DS_Store
