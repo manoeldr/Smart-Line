@@ -13,11 +13,13 @@ Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Banco de dados
+// Banco de dados — SQLite, arquivo local ao lado do executável.
+// Pode ser sobrescrito via DATABASE_URL (ex: "Data Source=/caminho/customizado.db"),
+// mas por padrão usa um arquivo "smartline.db" na pasta da aplicação.
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                       ?? throw new InvalidOperationException("DATABASE_URL não configurada.");
+                       ?? $"Data Source={Path.Combine(AppContext.BaseDirectory, "smartline.db")}";
 builder.Services.AddDbContext<SmartLineDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseSqlite(connectionString));
 
 // Serviços
 builder.Services.AddScoped<IAuthService, AuthService>();

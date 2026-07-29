@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SmartLine.Infrastructure.Data;
 
 #nullable disable
@@ -12,40 +11,87 @@ using SmartLine.Infrastructure.Data;
 namespace SmartLine.Infrastructure.Migrations
 {
     [DbContext(typeof(SmartLineDbContext))]
-    [Migration("20260606000230_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260729185002_InitialCreateSqlite")]
+    partial class InitialCreateSqlite
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
 
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            modelBuilder.Entity("SmartLine.Core.Entities.Global.CampoMaquina", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("MaquinaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Unidade")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaquinaId");
+
+                    b.ToTable("CamposMaquina");
+                });
+
+            modelBuilder.Entity("SmartLine.Core.Entities.Global.Licenca", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("AtivadaEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MacAddress")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Licencas");
+                });
 
             modelBuilder.Entity("SmartLine.Core.Entities.Global.Maquina", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Fabricante")
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -56,20 +102,20 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("MaquinaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -82,21 +128,21 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("MaquinaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Unidade")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -109,44 +155,71 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Estado")
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.ToTable("Clientes");
                 });
 
+            modelBuilder.Entity("SmartLine.Core.Entities.Tenant.LeituraExtra", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CampoMaquinaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Hora")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SessaoId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Valor")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampoMaquinaId");
+
+                    b.HasIndex("SessaoId");
+
+                    b.ToTable("LeiturasExtra");
+                });
+
             modelBuilder.Entity("SmartLine.Core.Entities.Tenant.Linha", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClienteId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -159,28 +232,31 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Critica")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("LinhaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("MaquinaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SobreVelocidade")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("TipoColeta")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("VelocidadeNominal")
-                        .HasColumnType("numeric");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -195,19 +271,19 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Hora")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("SessaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("TipoMedicaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Valor")
-                        .HasColumnType("numeric");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -222,19 +298,22 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("Fim")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FotoPath")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Inicio")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
-                    b.Property<Guid>("MotivoId")
-                        .HasColumnType("uuid");
+                    b.Property<Guid?>("MotivoId")
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("SessaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -249,19 +328,19 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Hora")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Quantidade")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Refugo")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("SessaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -274,25 +353,37 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("Fim")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Inicio")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("MaquinaLinhaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PrevisaoTermino")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SobreVelocidade")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TipoColeta")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("VelocidadeNominal")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -303,41 +394,73 @@ namespace SmartLine.Infrastructure.Migrations
                     b.ToTable("Sessoes");
                 });
 
+            modelBuilder.Entity("SmartLine.Core.Entities.Tenant.SessaoCampo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CampoMaquinaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SessaoId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampoMaquinaId");
+
+                    b.HasIndex("SessaoId");
+
+                    b.ToTable("SessoesCampo");
+                });
+
             modelBuilder.Entity("SmartLine.Core.Entities.Tenant.Usuario", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ClienteId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Login")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Nivel")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("SenhaHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
 
                     b.ToTable("Usuarios");
+                });
+
+            modelBuilder.Entity("SmartLine.Core.Entities.Global.CampoMaquina", b =>
+                {
+                    b.HasOne("SmartLine.Core.Entities.Global.Maquina", "Maquina")
+                        .WithMany("CamposMaquina")
+                        .HasForeignKey("MaquinaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Maquina");
                 });
 
             modelBuilder.Entity("SmartLine.Core.Entities.Global.MotivoParada", b =>
@@ -360,6 +483,25 @@ namespace SmartLine.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Maquina");
+                });
+
+            modelBuilder.Entity("SmartLine.Core.Entities.Tenant.LeituraExtra", b =>
+                {
+                    b.HasOne("SmartLine.Core.Entities.Global.CampoMaquina", "CampoMaquina")
+                        .WithMany("LeiturasExtra")
+                        .HasForeignKey("CampoMaquinaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartLine.Core.Entities.Tenant.Sessao", "Sessao")
+                        .WithMany("LeiturasExtra")
+                        .HasForeignKey("SessaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CampoMaquina");
+
+                    b.Navigation("Sessao");
                 });
 
             modelBuilder.Entity("SmartLine.Core.Entities.Tenant.Linha", b =>
@@ -415,9 +557,7 @@ namespace SmartLine.Infrastructure.Migrations
                 {
                     b.HasOne("SmartLine.Core.Entities.Global.MotivoParada", "Motivo")
                         .WithMany()
-                        .HasForeignKey("MotivoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("MotivoId");
 
                     b.HasOne("SmartLine.Core.Entities.Tenant.Sessao", "Sessao")
                         .WithMany("Paradas")
@@ -460,6 +600,25 @@ namespace SmartLine.Infrastructure.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("SmartLine.Core.Entities.Tenant.SessaoCampo", b =>
+                {
+                    b.HasOne("SmartLine.Core.Entities.Global.CampoMaquina", "CampoMaquina")
+                        .WithMany("SessoesCampo")
+                        .HasForeignKey("CampoMaquinaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartLine.Core.Entities.Tenant.Sessao", "Sessao")
+                        .WithMany("SessoesCampo")
+                        .HasForeignKey("SessaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CampoMaquina");
+
+                    b.Navigation("Sessao");
+                });
+
             modelBuilder.Entity("SmartLine.Core.Entities.Tenant.Usuario", b =>
                 {
                     b.HasOne("SmartLine.Core.Entities.Tenant.Cliente", "Cliente")
@@ -469,8 +628,17 @@ namespace SmartLine.Infrastructure.Migrations
                     b.Navigation("Cliente");
                 });
 
+            modelBuilder.Entity("SmartLine.Core.Entities.Global.CampoMaquina", b =>
+                {
+                    b.Navigation("LeiturasExtra");
+
+                    b.Navigation("SessoesCampo");
+                });
+
             modelBuilder.Entity("SmartLine.Core.Entities.Global.Maquina", b =>
                 {
+                    b.Navigation("CamposMaquina");
+
                     b.Navigation("MotivosParada");
 
                     b.Navigation("TiposMedicao");
@@ -495,11 +663,15 @@ namespace SmartLine.Infrastructure.Migrations
 
             modelBuilder.Entity("SmartLine.Core.Entities.Tenant.Sessao", b =>
                 {
+                    b.Navigation("LeiturasExtra");
+
                     b.Navigation("Medicoes");
 
                     b.Navigation("Paradas");
 
                     b.Navigation("Producoes");
+
+                    b.Navigation("SessoesCampo");
                 });
 #pragma warning restore 612, 618
         }
