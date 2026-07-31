@@ -65,20 +65,36 @@ public class LicencaService : ILicencaService
     }
 
     // Detecta o MAC address da primeira interface de rede física ativa (Ethernet ou Wi-Fi).
-    public string ObterMacAddress()
-    {
-        var interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(ni => ni.OperationalStatus == OperationalStatus.Up
-                && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback
-                && ni.GetPhysicalAddress().GetAddressBytes().Length > 0)
-            .OrderByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
-            .ToList();
+// Palavras que indicam adaptador virtual/software — não usamos essas para a licença,
+// pois podem aparecer/desaparecer entre execuções (VPN, Hyper-V, Docker, Bluetooth, etc.)
+private static readonly string[] PalavrasIgnoradas =
+[
+    "virtual", "vpn", "hyper-v", "vmware", "virtualbox", "bluetooth",
+    "pseudo", "tap-", "tunnel", "docker", "wsl", "loopback"
+];
 
-        var escolhida = interfaces.FirstOrDefault();
-        if (escolhida is null) return "SEM-MAC-DETECTADO";
+// Detecta o MAC address de forma estável — prioriza Ethernet físico, depois Wi-Fi,
+// ignora adaptadores virtuais, e usa o nome como critério de desempate (não a ordem do SO,
+// que pode variar entre execuções e trocar qual placa é "primeira").
+public string ObterMacAddress()
+{
+    var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+        .Where(ni => ni.OperationalStatus == OperationalStatus.Up
+            && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback
+            && ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel
+            && ni.GetPhysicalAddress().GetAddressBytes().Length > 0
+            && !PalavrasIgnoradas.Any(p => ni.Description.Contains(p, StringComparison.OrdinalIgnoreCase)
+                                         || ni.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
+        .OrderByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+        .ThenByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+        .ThenBy(ni => ni.Name, StringComparer.Ordinal)
+        .ToList();
 
-        return escolhida.GetPhysicalAddress().ToString(); // formato: "0011223344AA"
-    }
+    var escolhida = interfaces.FirstOrDefault();
+    if (escolhida is null) return "SEM-MAC-DETECTADO";
+
+    return escolhida.GetPhysicalAddress().ToString(); // formato: "0011223344AA"
+}
 
     // Gera a chave esperada para um MAC address, usando HMAC-SHA256 com o segredo fixo.
     // Formato final: 6 grupos de 4 caracteres hexadecimais separados por hífen.

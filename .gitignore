@@ -31,3 +31,7 @@ dist/
 
 # Frontend buildado (gerado via npm run build, copiado para o backend)
 backend/SmartLine.API/wwwroot/
+
+# Publicação self-contained (.exe)
+backend/publish/
+backend/SmartLine.API/wwwroot/

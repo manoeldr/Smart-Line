@@ -69,6 +69,14 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Aplica migrations pendentes automaticamente ao iniciar — essencial para instalações novas
+// (o cliente nunca vai rodar `dotnet ef` manualmente; o app precisa se preparar sozinho).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SmartLineDbContext>();
+    db.Database.Migrate();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
