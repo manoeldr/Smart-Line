@@ -9,7 +9,16 @@ using SmartLine.Infrastructure.Data;
 using SmartLine.Infrastructure.Repositories;
 using System.Text;
 
-Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+// Procura o .env primeiro ao lado do executável (cenário empacotado/produção),
+// e só então tenta o caminho relativo de desenvolvimento (dois níveis acima, `dotnet run`).
+// Se nenhum existir, segue sem erro — as variáveis podem vir de outro lugar (ex: variáveis de ambiente do SO).
+var envAoLadoDoExe = Path.Combine(AppContext.BaseDirectory, ".env");
+var envDesenvolvimento = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env");
+
+if (File.Exists(envAoLadoDoExe))
+    Env.Load(envAoLadoDoExe);
+else if (File.Exists(envDesenvolvimento))
+    Env.Load(envDesenvolvimento);
 
 var builder = WebApplication.CreateBuilder(args);
 

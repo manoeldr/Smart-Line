@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 
-var caminhoDb = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
+var caminhoDb = @"D:\Smart Line\backend\SmartLine.Desktop\bin\Debug\net10.0-windows\smartline.db";
 var connectionString = $"Data Source={caminhoDb}";
 
 using var connection = new SqliteConnection(connectionString);
