@@ -2,7 +2,7 @@
 // Cada linha pode ter várias máquinas associadas, reordenáveis via drag and drop.
 // Auditor usa esse mesmo modal em modo "somenteLinhas" (sem editar nome/estado do cliente).
 // Segue o padrão "staged changes": linhas e máquinas só são persistidas no banco ao clicar em Salvar.
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent
@@ -82,6 +82,9 @@ function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; on
 export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas, onFechar, onSalvo }: Props) {
   const [form, setForm] = useState({ nome: cliente?.nome ?? '', estado: cliente?.estado ?? '' })
   const [salvando, setSalvando] = useState(false)
+  // Trava síncrona contra clique duplo — o estado `salvando` só reflete no botão após
+  // o próximo render, então dois cliques quase simultâneos podiam disparar salvarTudo() duas vezes.
+  const salvandoRef = useRef(false)
 
   // Linhas de produção (staged) — key é linha.id, guarda também as máquinas expandidas
   const [linhas, setLinhas] = useState<LinhaStaged[]>([])
@@ -231,7 +234,8 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   // Aplica todas as mudanças pendentes no banco, na ordem correta:
   // 1) dados do cliente, 2) linhas (criar/excluir), 3) máquinas de cada linha (criar/editar/excluir)
   async function salvarTudo() {
-    if (!cliente) return
+    if (!cliente || salvandoRef.current) return
+    salvandoRef.current = true
     setSalvando(true)
     try {
       if (!somenteLinhas) {
@@ -269,6 +273,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       onSalvo()
       onFechar()
     } finally {
+      salvandoRef.current = false
       setSalvando(false)
     }
   }
@@ -282,10 +287,13 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       <div className={modalOverlay}>
         <div className={`${modalPanel} w-[560px] max-h-[90vh]`}>
 
-          <div className={modalHeader}>
+          <div className={`${modalHeader} flex items-center justify-between`}>
             <p className={modalTitle}>
               {somenteLinhas ? cliente.nome : 'Editar cliente'}
             </p>
+            <button onClick={onFechar} disabled={salvando} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
 
           {/* Dados básicos — ocultos no modo Auditor (somenteLinhas) */}
