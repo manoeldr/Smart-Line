@@ -52,9 +52,14 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
       <div className={`${modalContainerMd} w-80`}>
 
         {/* Header */}
-        <div className="mb-4">
-          <p className={modalTitle}>Pausar medição</p>
-          <p className={modalSubtitle}>Selecione o motivo da pausa planejada</p>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className={modalTitle}>Pausar medição</p>
+            <p className={modalSubtitle}>Selecione o motivo da pausa planejada</p>
+          </div>
+          <button onClick={onCancelar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         {!cadastrando ? (

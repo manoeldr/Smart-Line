@@ -549,6 +549,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
         open={modalMotivoOpen}
         motivos={motivos}
         loading={loadingMotivos}
+        onCancelar={() => setModalMotivoOpen(false)}
         onConfirmar={async (motivoId) => {
           if (paradaAtiva) {
             try {

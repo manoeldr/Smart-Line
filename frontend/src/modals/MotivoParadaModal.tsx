@@ -12,9 +12,10 @@ interface Props {
   loading: boolean
   onConfirmar: (motivoId: string) => void
   onCadastrarNovo: (nome: string, tipo: 'Interna' | 'Externa') => Promise<string>
+  onCancelar: () => void
 }
 
-export default function MotivoParadaModal({ open, motivos, loading, onConfirmar, onCadastrarNovo }: Props) {
+export default function MotivoParadaModal({ open, motivos, loading, onConfirmar, onCadastrarNovo, onCancelar }: Props) {
   const [selecionado, setSelecionado] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<'todos' | 'Interna' | 'Externa'>('todos')
   const [cadastrando, setCadastrando] = useState(false)
@@ -65,9 +66,14 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
       <div className={`${modalContainerMd} w-80`}>
 
         {/* Header */}
-        <div className="mb-4">
-          <p className={modalTitle}>Motivo da parada</p>
-          <p className={modalSubtitle}>Selecione o motivo que causou a parada</p>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className={modalTitle}>Motivo da parada</p>
+            <p className={modalSubtitle}>Selecione o motivo que causou a parada</p>
+          </div>
+          <button onClick={onCancelar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         {!cadastrando ? (

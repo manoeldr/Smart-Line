@@ -196,11 +196,14 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
       <div className={modalOverlay}>
         <div className={`${modalPanel} w-[600px] max-h-[90vh]`}>
 
-          <div className={modalHeader}>
-            <p className={modalTitle}>
-              {maquina ? 'Editar máquina' : 'Nova máquina'}
-            </p>
-          </div>
+        <div className={`${modalHeader} flex items-center justify-between`}>
+          <p className={modalTitle}>
+            {maquina ? 'Editar máquina' : 'Nova máquina'}
+          </p>
+          <button onClick={onFechar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
 
           {/* Dados básicos */}
           <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">

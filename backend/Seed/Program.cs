@@ -1,30 +1,43 @@
 ﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using SmartLine.Core.Entities.Tenant;
+using SmartLine.Core.Enums;
+using SmartLine.Infrastructure.Data;
 
-// Popula o banco com um usuário administrador padrão. Aponte `caminhoDb` para o smartline.db
-// que você quer inicializar (dev, Desktop ou publish).
 var caminhoDb = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
 var connectionString = $"Data Source={caminhoDb}";
 
-using var connection = new SqliteConnection(connectionString);
-connection.Open();
-
-void Executar(string sql)
+// 1) Remove o admin problemático via SQL bruto, filtrando só por Login
+//    (evita comparar por Id, que é onde o formato incompatível quebra tudo).
+using (var connection = new SqliteConnection(connectionString))
 {
+    connection.Open();
     using var cmd = connection.CreateCommand();
-    cmd.CommandText = sql;
+    cmd.CommandText = "DELETE FROM Usuarios WHERE Login = 'admin';";
     var linhas = cmd.ExecuteNonQuery();
-    Console.WriteLine($"OK ({linhas} linha(s)): {sql.Substring(0, Math.Min(60, sql.Length))}...");
+    Console.WriteLine($"Removidos {linhas} registro(s) de admin antigo.");
 }
 
-var agora = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+// 2) Cria o novo admin inteiramente pelo EF Core — garante que o Id seja salvo
+//    no formato que o próprio EF Core reconhece de forma consistente.
+var optionsBuilder = new DbContextOptionsBuilder<SmartLineDbContext>();
+optionsBuilder.UseSqlite(connectionString);
 
-// Usuário admin (nivel 0 = Administrador), senha "admin123".
-// IMPORTANTE: usamos randomblob(16) para gerar o Id, no formato BLOB nativo do SQLite/EF Core —
-// nunca insira GUIDs como texto puro à mão, o EF Core não reconhece como o mesmo valor.
-Executar($"""
-    INSERT INTO Usuarios (Id, ClienteId, Nome, Login, SenhaHash, Nivel, Ativo, CriadoEm)
-    VALUES (randomblob(16), NULL, 'Admin', 'admin', '$2a$11$e1yxtC50xqp1zJ/OwqrdT.H8ix1HLfsAEPs/pokIKdz72F63X9M..', 0, 1, '{agora}');
-    """);
+using var context = new SmartLineDbContext(optionsBuilder.Options);
 
-Console.WriteLine();
-Console.WriteLine("Seed concluído — só o usuário admin. Crie Clientes/Linhas/Máquinas pela própria interface.");
+var novoAdmin = new Usuario
+{
+    Id = Guid.NewGuid(),
+    ClienteId = null,
+    Nome = "Admin",
+    Login = "admin",
+    SenhaHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+    Nivel = NivelUsuario.Administrador,
+    Ativo = true,
+    CriadoEm = DateTime.UtcNow,
+};
+
+context.Usuarios.Add(novoAdmin);
+context.SaveChanges();
+
+Console.WriteLine($"Admin criado via EF Core com sucesso! Id: {novoAdmin.Id}");

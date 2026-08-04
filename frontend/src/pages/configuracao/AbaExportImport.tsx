@@ -1,4 +1,4 @@
-// Aba "Exportar/Importar" da tela de Configurações — acesso exclusivo do SuperAdmin.
+// Aba "Exportar/Importar" da tela de Configurações — acesso exclusivo do Administrador/Desenvolvedor.
 // Exportar: gera um .zip com as categorias selecionadas, baixado direto pelo navegador.
 // Importar: envia um .zip, mostra uma prévia (contagem por categoria) antes de aplicar no banco.
 import { useState } from 'react'

@@ -42,9 +42,14 @@ export default function LeituraFinalModal({ open, camposExtras, onConfirmar, onC
     <div className={modalOverlayDark}>
       <div className={`${modalPanel} w-96 max-h-[90vh]`}>
 
-        <div className={modalHeader}>
-          <p className={modalTitle}>Leitura final</p>
-          <p className={modalSubtitle}>Informe os valores finais antes de encerrar</p>
+        <div className={`${modalHeader} flex items-start justify-between`}>
+          <div>
+            <p className={modalTitle}>Leitura final</p>
+            <p className={modalSubtitle}>Informe os valores finais antes de encerrar</p>
+          </div>
+          <button onClick={onCancelar} disabled={salvando} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         <div className={modalBody}>
