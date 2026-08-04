@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartLine.Core.Entities.Global;
 using SmartLine.Core.Entities.Tenant;
 
@@ -34,5 +35,33 @@ public class SmartLineDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SmartLineDbContext).Assembly);
+
+        // SQLite não guarda informação de fuso horário nas colunas de data/hora — ao ler de volta,
+        // o EF Core marca o DateTime como "Unspecified", o que faz o JSON ir sem o sufixo "Z" e o
+        // navegador interpretar como horário local, quebrando cronômetros e cálculos de tempo.
+        // Como toda gravação no sistema usa DateTime.UtcNow, forçamos aqui que toda LEITURA
+        // também seja marcada como UTC, em todas as entidades, de uma vez só.
+        var conversorDateTime = new ValueConverter<DateTime, DateTime>(
+            v => v,
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var conversorDateTimeNulo = new ValueConverter<DateTime?, DateTime?>(
+            v => v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(conversorDateTime);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(conversorDateTimeNulo);
+                }
+            }
+        }
     }
 }

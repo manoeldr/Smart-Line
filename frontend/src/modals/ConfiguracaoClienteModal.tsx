@@ -13,6 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { configuracaoService, type ClienteConfDto, type LinhaConfDto, type MaquinaConfDto } from '../services/configuracaoService'
 import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
+import ConfirmModal from '../components/ConfirmModal'
 import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
 import { inputBase, label, checkbox } from '../styles/inputs'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
@@ -79,6 +80,9 @@ function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; on
   )
 }
 
+// Ação pendente de confirmação — genérico o bastante pra remover linha ou máquina
+type AcaoPendente = { tipo: 'linha'; linha: LinhaStaged } | { tipo: 'maquina'; linhaId: string; maquinaLinhaId: string } | null
+
 export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas, onFechar, onSalvo }: Props) {
   const [form, setForm] = useState({ nome: cliente?.nome ?? '', estado: cliente?.estado ?? '' })
   const [salvando, setSalvando] = useState(false)
@@ -101,6 +105,9 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   const [todasMaquinas, setTodasMaquinas] = useState<MaquinaConfDto[]>([])
   const [formMaquina, setFormMaquina] = useState({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0' })
 
+  // Confirmação de remoção (substitui o confirm() nativo do navegador)
+  const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   // Ao abrir o modal (ou trocar de cliente), reseta form e recarrega linhas
@@ -117,7 +124,9 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     setLoadingLinhas(true)
     try {
       const todas = await configuracaoService.getLinhas()
-      const doCliente = todas.filter(l => l.clienteId === cliente.id)
+      // Ignora linhas inativas (excluídas anteriormente) — deletarLinha faz exclusão suave (ativo=false),
+      // não remove de verdade do banco, então precisamos filtrar aqui pra não "reaparecerem".
+      const doCliente = todas.filter(l => l.clienteId === cliente.id && l.ativo)
       setLinhas(doCliente.map(l => ({ ...l, isNew: false, isDeleted: false })))
     } finally {
       setLoadingLinhas(false)
@@ -158,8 +167,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     setNovaLinhaNome('')
   }
 
-  function removerLinhaLocal(linha: LinhaStaged) {
-    if (!confirm('Remover esta linha?')) return
+  function executarRemocaoLinha(linha: LinhaStaged) {
     if (linha.isNew) {
       setLinhas(prev => prev.filter(l => l.id !== linha.id))
       setMaquinasPorLinha(prev => {
@@ -205,8 +213,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     setModalAdicionarMaquinaOpen(false)
   }
 
-  function removerMaquinaLocal(linhaId: string, maquinaLinhaId: string) {
-    if (!confirm('Remover esta máquina da linha?')) return
+  function executarRemocaoMaquina(linhaId: string, maquinaLinhaId: string) {
     setMaquinasPorLinha(prev => {
       const item = (prev[linhaId] ?? []).find(m => m.id === maquinaLinhaId)
       if (!item) return prev
@@ -215,6 +222,17 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       }
       return { ...prev, [linhaId]: prev[linhaId].map(m => m.id === maquinaLinhaId ? { ...m, isDeleted: true } : m) }
     })
+  }
+
+  // Confirma a ação pendente (remoção de linha ou máquina), qualquer que seja
+  function confirmarAcaoPendente() {
+    if (!acaoPendente) return
+    if (acaoPendente.tipo === 'linha') {
+      executarRemocaoLinha(acaoPendente.linha)
+    } else {
+      executarRemocaoMaquina(acaoPendente.linhaId, acaoPendente.maquinaLinhaId)
+    }
+    setAcaoPendente(null)
   }
 
   // Reordena localmente ao soltar o item arrastado — persiste só ao Salvar
@@ -348,7 +366,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                         <span className={badgeStatus(linha.ativo)}>
                           {linha.ativo ? 'ativa' : 'inativa'}
                         </span>
-                        <button onClick={() => removerLinhaLocal(linha)} className={btnIconDanger}>
+                        <button onClick={() => setAcaoPendente({ tipo: 'linha', linha })} className={btnIconDanger}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                         </button>
                       </div>
@@ -376,7 +394,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                                     <SortableMaquinaItem
                                       key={item.id}
                                       item={item}
-                                      onRemover={() => removerMaquinaLocal(linha.id, item.id)}
+                                      onRemover={() => setAcaoPendente({ tipo: 'maquina', linhaId: linha.id, maquinaLinhaId: item.id })}
                                     />
                                   ))}
                                 </SortableContext>
@@ -498,6 +516,19 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação — remover linha ou remover máquina */}
+      <ConfirmModal
+        open={acaoPendente !== null}
+        titulo={acaoPendente?.tipo === 'linha' ? 'Remover linha' : 'Remover máquina'}
+        mensagem={
+          acaoPendente?.tipo === 'linha'
+            ? 'Tem certeza que deseja remover esta linha?'
+            : 'Tem certeza que deseja remover esta máquina da linha?'
+        }
+        onConfirmar={confirmarAcaoPendente}
+        onCancelar={() => setAcaoPendente(null)}
+      />
     </>
   )
 }
