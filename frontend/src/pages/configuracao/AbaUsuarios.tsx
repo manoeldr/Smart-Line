@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { configuracaoService, type UsuarioConfDto } from '../../services/configuracaoService'
 import type { ClienteConfDto } from '../../services/configuracaoService'
+import ConfirmModal from '../../components/ConfirmModal'
 import { btnPrimarySm, btnSecondarySm, btnPrimary, btnIcon, btnIconDanger } from '../../styles/buttons'
 import { inputBase, label } from '../../styles/inputs'
 import { badgeStatus } from '../../styles/badges'
@@ -19,6 +20,9 @@ export default function AbaUsuarios() {
   const [editando, setEditando] = useState<UsuarioConfDto | null>(null)
   const [form, setForm] = useState({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '' })
   const [salvando, setSalvando] = useState(false)
+
+  // Confirmação de desativação (substitui o confirm() nativo do navegador)
+  const [usuarioParaDeletar, setUsuarioParaDeletar] = useState<string | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -67,9 +71,10 @@ export default function AbaUsuarios() {
     } finally { setSalvando(false) }
   }
 
-  async function deletar(id: string) {
-    if (!confirm('Desativar este usuário?')) return
-    await configuracaoService.deletarUsuario(id)
+  async function confirmarDeletar() {
+    if (!usuarioParaDeletar) return
+    await configuracaoService.deletarUsuario(usuarioParaDeletar)
+    setUsuarioParaDeletar(null)
     await carregar()
   }
 
@@ -113,7 +118,7 @@ export default function AbaUsuarios() {
                   <button onClick={() => abrirEditar(u)} className={btnIcon}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button onClick={() => deletar(u.id)} className={btnIconDanger}>
+                  <button onClick={() => setUsuarioParaDeletar(u.id)} className={btnIconDanger}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
                 </td>
@@ -126,9 +131,14 @@ export default function AbaUsuarios() {
       {modalOpen && (
         <div className={modalOverlay}>
           <div className={modalContainerMd}>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">
-              {editando ? 'Editar usuário' : 'Novo usuário'}
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                {editando ? 'Editar usuário' : 'Novo usuário'}
+              </p>
+              <button onClick={() => setModalOpen(false)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
             <div className="flex flex-col gap-3 mb-4">
               <div>
                 <label className={label}>Nome</label>
@@ -165,6 +175,15 @@ export default function AbaUsuarios() {
           </div>
         </div>
       )}
+
+      {/* Confirmação de desativação */}
+      <ConfirmModal
+        open={usuarioParaDeletar !== null}
+        titulo="Desativar usuário"
+        mensagem="Tem certeza que deseja desativar este usuário?"
+        onConfirmar={confirmarDeletar}
+        onCancelar={() => setUsuarioParaDeletar(null)}
+      />
     </div>
   )
 }

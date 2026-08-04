@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { configuracaoService, type MaquinaConfDto, type CampoMaquinaDto } from '../services/configuracaoService'
 import { maquinaService, type MotivoParadaDto } from '../services/maquinaService'
+import ConfirmModal from '../components/ConfirmModal'
 import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
 import { inputBase, label } from '../styles/inputs'
 import { badgeFixo, badgeInterna, badgeExterna, badgeNovo } from '../styles/badges'
@@ -37,6 +38,9 @@ interface MotivoStaged extends MotivoParadaDto {
   isDeleted: boolean
 }
 
+// Ação pendente de confirmação — genérico para remover campo ou motivo
+type AcaoPendente = { tipo: 'campo'; id: string } | { tipo: 'motivo'; id: string } | null
+
 export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSalvo }: Props) {
   const [abaModal, setAbaModal] = useState<AbaModal>('manual')
   const [form, setForm] = useState({
@@ -56,6 +60,9 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   const [loadingMotivos, setLoadingMotivos] = useState(false)
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
   const [formMotivo, setFormMotivo] = useState({ nome: '', tipo: 'Interna' })
+
+  // Confirmação de remoção (substitui o confirm() nativo do navegador)
+  const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
 
   // Ao abrir o modal (ou trocar de máquina), reseta o formulário e carrega dados existentes
   useEffect(() => {
@@ -107,8 +114,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
     setModalCampoOpen(false)
   }
 
-  function removerCampoLocal(id: string) {
-    if (!confirm('Remover este campo?')) return
+  function executarRemocaoCampo(id: string) {
     setCampos(prev => {
       const item = prev.find(c => c.id === id)
       if (!item) return prev
@@ -137,14 +143,24 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
     setModalMotivoOpen(false)
   }
 
-  function removerMotivoLocal(id: string) {
-    if (!confirm('Remover este motivo?')) return
+  function executarRemocaoMotivo(id: string) {
     setMotivos(prev => {
       const item = prev.find(m => m.id === id)
       if (!item) return prev
       if (item.isNew) return prev.filter(m => m.id !== id)
       return prev.map(m => m.id === id ? { ...m, isDeleted: true } : m)
     })
+  }
+
+  // Confirma a ação pendente (remoção de campo ou motivo), qualquer que seja
+  function confirmarAcaoPendente() {
+    if (!acaoPendente) return
+    if (acaoPendente.tipo === 'campo') {
+      executarRemocaoCampo(acaoPendente.id)
+    } else {
+      executarRemocaoMotivo(acaoPendente.id)
+    }
+    setAcaoPendente(null)
   }
 
   // Persiste tudo de uma vez: dados da máquina, campos e motivos pendentes
@@ -264,7 +280,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                             </p>
                             <p className="text-[10px] text-zinc-400">ordem {c.ordem}</p>
                           </div>
-                          <button onClick={() => removerCampoLocal(c.id)} className={btnIconDanger}>
+                          <button onClick={() => setAcaoPendente({ tipo: 'campo', id: c.id })} className={btnIconDanger}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                           </button>
                         </div>
@@ -295,7 +311,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                               {m.tipo === 'Interna' ? 'interna' : 'externa'}
                             </span>
                           </div>
-                          <button onClick={() => removerMotivoLocal(m.id)} className={btnIconDanger}>
+                          <button onClick={() => setAcaoPendente({ tipo: 'motivo', id: m.id })} className={btnIconDanger}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                           </button>
                         </div>
@@ -399,6 +415,19 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação — remover campo ou motivo */}
+      <ConfirmModal
+        open={acaoPendente !== null}
+        titulo={acaoPendente?.tipo === 'campo' ? 'Remover campo' : 'Remover motivo'}
+        mensagem={
+          acaoPendente?.tipo === 'campo'
+            ? 'Tem certeza que deseja remover este campo de coleta?'
+            : 'Tem certeza que deseja remover este motivo de parada?'
+        }
+        onConfirmar={confirmarAcaoPendente}
+        onCancelar={() => setAcaoPendente(null)}
+      />
     </>
   )
 }

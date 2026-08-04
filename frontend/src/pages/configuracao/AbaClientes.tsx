@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { configuracaoService, type ClienteConfDto } from '../../services/configuracaoService'
 import ConfiguracaoClienteModal from '../../modals/ConfiguracaoClienteModal'
+import ConfirmModal from '../../components/ConfirmModal'
 import { btnPrimarySm, btnSecondarySm, btnPrimary, btnIcon, btnIconDanger } from '../../styles/buttons'
 import { inputBase, label } from '../../styles/inputs'
 import { badgeStatus } from '../../styles/badges'
@@ -29,6 +30,9 @@ export default function AbaClientes() {
   // Modal completo de edição (dados + linhas + máquinas) — ConfiguracaoClienteModal
   const [modalEditarOpen, setModalEditarOpen] = useState(false)
   const [editando, setEditando] = useState<ClienteConfDto | null>(null)
+
+  // Confirmação de desativação (substitui o confirm() nativo do navegador)
+  const [clienteParaDeletar, setClienteParaDeletar] = useState<string | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -57,9 +61,10 @@ export default function AbaClientes() {
     } finally { setSalvando(false) }
   }
 
-  async function deletar(id: string) {
-    if (!confirm('Desativar este cliente?')) return
-    await configuracaoService.deletarCliente(id)
+  async function confirmarDeletar() {
+    if (!clienteParaDeletar) return
+    await configuracaoService.deletarCliente(clienteParaDeletar)
+    setClienteParaDeletar(null)
     await carregar()
   }
 
@@ -109,7 +114,7 @@ export default function AbaClientes() {
                     )}
                   </button>
                   {!somenteLinhas && (
-                    <button onClick={() => deletar(c.id)} className={btnIconDanger}>
+                    <button onClick={() => setClienteParaDeletar(c.id)} className={btnIconDanger}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                     </button>
                   )}
@@ -124,7 +129,12 @@ export default function AbaClientes() {
       {!somenteLinhas && modalNovoOpen && (
         <div className={modalOverlay}>
           <div className={modalContainerMd}>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Novo cliente</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Novo cliente</p>
+              <button onClick={() => setModalNovoOpen(false)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
             <div className="flex flex-col gap-3 mb-4">
               <div>
                 <label className={label}>Nome</label>
@@ -155,6 +165,15 @@ export default function AbaClientes() {
         somenteLinhas={somenteLinhas}
         onFechar={() => setModalEditarOpen(false)}
         onSalvo={carregar}
+      />
+
+      {/* Confirmação de desativação */}
+      <ConfirmModal
+        open={clienteParaDeletar !== null}
+        titulo="Desativar cliente"
+        mensagem="Tem certeza que deseja desativar este cliente?"
+        onConfirmar={confirmarDeletar}
+        onCancelar={() => setClienteParaDeletar(null)}
       />
     </div>
   )
