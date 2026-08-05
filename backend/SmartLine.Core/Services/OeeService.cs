@@ -11,7 +11,7 @@ public class OeeService : IOeeService
         var fim = sessao.Fim ?? DateTime.UtcNow;
         var tempoTotalMs = (fim - sessao.Inicio).TotalMilliseconds;
 
-        // ── Separar paradas por tipo ──────────────────────────
+        // ── Separar paradas por tipo ──────────────────────────────
         var paradasFinalizadas = sessao.Paradas
             .Where(p => p.Fim.HasValue && p.Motivo is not null)
             .ToList();
@@ -51,36 +51,52 @@ public class OeeService : IOeeService
             }
         }
 
-        // ── Tempos derivados ──────────────────────────────────
+        // ── Tempos derivados ───────────────────────────────────────
         var tempoDisponivelMs = Math.Max(0, tempoTotalMs - tempoPlanejadoMs);
         var tempoRodandoMs = Math.Max(0, tempoDisponivelMs - tempoInternoMs);
 
-        // ── Disponibilidade ───────────────────────────────────
+        // ── Disponibilidade ────────────────────────────────────────
         var disponibilidade = tempoDisponivelMs > 0
             ? tempoRodandoMs / tempoDisponivelMs * 100
             : 0.0;
 
-        // ── Produção e refugo ─────────────────────────────────
-        var producao = sessao.Producoes.Sum(p => p.Quantidade);
-        var refugo = sessao.Producoes.Sum(p => p.Refugo);
+        // ── Produção e refugo ───────────────────────────────────────
+        // Produção/Refugo é sempre a leitura do ÚLTIMO apontamento — mesmo padrão usado pelos
+        // campos de coleta extras (temperatura, etc.), que também mostram o valor mais recente,
+        // nunca uma soma de todos os apontamentos (cada leitura é o valor bruto do contador,
+        // não um incremento desde a leitura anterior).
+        var leituraInicial = sessao.Producoes.OrderBy(p => p.Hora).FirstOrDefault();
+        var leituraFinal = sessao.Producoes.OrderByDescending(p => p.Hora).FirstOrDefault();
 
-        // ── Performance ───────────────────────────────────────
+        var producao = leituraFinal?.Quantidade ?? 0;
+        var refugo = leituraFinal?.Refugo ?? 0;
+
+        // Produção/refugo REAL do turno (última leitura menos a inicial) — usado só internamente
+        // para Performance e Qualidade, que precisam da quantidade produzida DURANTE a sessão,
+        // não do valor absoluto do contador da máquina (que pode já vir de um total acumulado).
+        var producaoReal = leituraInicial is not null && leituraFinal is not null
+            ? Math.Max(0, leituraFinal.Quantidade - leituraInicial.Quantidade)
+            : 0;
+        var refugoReal = leituraInicial is not null && leituraFinal is not null
+            ? Math.Max(0, leituraFinal.Refugo - leituraInicial.Refugo)
+            : 0;
+
+        // ── Performance ─────────────────────────────────────────────
         var tempoRodandoHoras = tempoRodandoMs / 3_600_000;
         var producaoEsperada = tempoRodandoHoras * (double)velocidadeNominal;
         var performance = producaoEsperada > 0
-            ? Math.Min(producao / producaoEsperada * 100, 100)
+            ? Math.Min(producaoReal / producaoEsperada * 100, 100)
             : 0.0;
 
-        // ── Qualidade ─────────────────────────────────────────
-        var totalProduzido = producao + refugo;
-        var qualidade = totalProduzido > 0 && refugo > 0
-            ? Math.Max(0, (double)(producao - refugo) / producao * 100)
+        // ── Qualidade ───────────────────────────────────────────────
+        var qualidade = producaoReal > 0 && refugoReal > 0
+            ? Math.Max(0, (double)(producaoReal - refugoReal) / producaoReal * 100)
             : 100.0;
 
-        // ── OEE ──────────────────────────────────────────────
+        // ── OEE ─────────────────────────────────────────────────────
         var oee = disponibilidade / 100 * (performance / 100) * (qualidade / 100) * 100;
 
-        // ── Contagens ─────────────────────────────────────────
+        // ── Contagens ───────────────────────────────────────────────
         var numInternas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Interna);
         var numExternas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Externa);
         var numPlanejadas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Planejada);

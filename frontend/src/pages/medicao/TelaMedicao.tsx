@@ -39,6 +39,8 @@ interface EstadoSalvo {
   status: StatusMaquina
   leituras: LeituraHoraria[]
   segundosTotalParado?: number
+  paradaAtiva?: ParadaDto | null
+  leiturasSalvas?: string[]
 }
 
 export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, onFinalizar }: Props) {
@@ -61,7 +63,14 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [segundos, setSegundos] = useState(() =>
     Math.floor((Date.now() - new Date(sessao.inicio).getTime()) / 1000)
   )
-  const [segundosParada, setSegundosParada] = useState(0)
+  // Tempo da parada ATUAL — recalculado a partir do horário real de início (paradaAtiva.inicio),
+  // não um contador simples, pra sobreviver a sair/voltar da tela sem zerar.
+  const [segundosParada, setSegundosParada] = useState(() => {
+    if (estadoSalvo?.status === 'Parada' && estadoSalvo.paradaAtiva) {
+      return Math.floor((Date.now() - new Date(estadoSalvo.paradaAtiva.inicio).getTime()) / 1000)
+    }
+    return 0
+  })
   // Acumula o tempo de TODAS as paradas da sessão (não reseta a cada nova parada, diferente de segundosParada)
   const [segundosTotalParado, setSegundosTotalParado] = useState(estadoSalvo?.segundosTotalParado ?? 0)
   const [finalizando, setFinalizando] = useState(false)
@@ -73,10 +82,10 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [motivos, setMotivos] = useState<MotivoParadaDto[]>([])
   const [loadingMotivos, setLoadingMotivos] = useState(false)
   const [loadingPausa, setLoadingPausa] = useState(false)
-  const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(null)
+  const [paradaAtiva, setParadaAtiva] = useState<ParadaDto | null>(estadoSalvo?.paradaAtiva ?? null)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const [fotoEnviada, setFotoEnviada] = useState(false)
-  const [leiturasSalvas, setLeiturasSalvas] = useState<Set<string>>(new Set())
+  const [leiturasSalvas, setLeiturasSalvas] = useState<Set<string>>(new Set(estadoSalvo?.leiturasSalvas ?? []))
 
   // Campos extras selecionados nesta sessão
   const [camposExtras, setCamposExtras] = useState<CampoMaquinaDto[]>([])
@@ -102,6 +111,18 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       : 0
   )
 
+  // Horário real de início da parada atual (timestamp em ms) — usado pra recalcular
+  // segundosParada a cada tick do cronômetro, em vez de um contador que zera ao remontar.
+  const paradaInicioRef = useRef<number | null>(
+    estadoSalvo?.status === 'Parada' && estadoSalvo.paradaAtiva
+      ? new Date(estadoSalvo.paradaAtiva.inicio).getTime()
+      : null
+  )
+
+  useEffect(() => {
+    paradaInicioRef.current = paradaAtiva ? new Date(paradaAtiva.inicio).getTime() : null
+  }, [paradaAtiva])
+
   // Busca detalhes dos campos extras selecionados na sessão (para montar as colunas dinâmicas)
   useEffect(() => {
     if (!sessao.camposSelecionados || sessao.camposSelecionados.length === 0) return
@@ -119,9 +140,16 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
   // Persiste o estado da medição a cada mudança — permite retomar ao sair e voltar da tela
   useEffect(() => {
-    const estado: EstadoSalvo = { sessaoId: sessao.id, status, leituras, segundosTotalParado }
+    const estado: EstadoSalvo = {
+      sessaoId: sessao.id,
+      status,
+      leituras,
+      segundosTotalParado,
+      paradaAtiva,
+      leiturasSalvas: Array.from(leiturasSalvas),
+    }
     localStorage.setItem(ESTADO_KEY, JSON.stringify(estado))
-  }, [sessao.id, status, leituras, segundosTotalParado])
+  }, [sessao.id, status, leituras, segundosTotalParado, paradaAtiva, leiturasSalvas])
 
   useEffect(() => {
     paradaAtivaRef.current = status === 'Parada'
@@ -145,7 +173,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       }
       setSegundos(Math.floor((Date.now() - inicio - totalPausadoMs) / 1000))
       if (paradaAtivaRef.current) {
-        setSegundosParada(s => s + 1)
+        if (paradaInicioRef.current !== null) {
+          setSegundosParada(Math.floor((Date.now() - paradaInicioRef.current) / 1000))
+        }
         setSegundosTotalParado(s => s + 1)
       }
     }, 1000)
@@ -222,10 +252,14 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     }
   }
 
+  // Só faz sentido abrir o seletor de motivo quando está DE FATO saindo de uma parada —
+  // clicar em Marcha com a máquina já rodando não deve fazer nada.
   async function handleMarcha() {
+    if (status !== 'Parada') return
     setStatus('Rodando')
     paradaAtivaRef.current = false
     setSegundosParada(0)
+    paradaInicioRef.current = null
     setLoadingMotivos(true)
     setModalMotivoOpen(true)
     try {
@@ -357,6 +391,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             </button>
             <button
               onClick={async () => {
+                if (status === 'Parada') return
                 setStatus('Parada')
                 paradaAtivaRef.current = true
                 setSegundosParada(0)
@@ -364,6 +399,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                 try {
                   const p = await paradaService.abrir(sessao.id, new Date())
                   setParadaAtiva(p)
+                  paradaInicioRef.current = new Date(p.inicio).getTime()
                 } catch {
                   console.error('Erro ao registrar parada')
                 }

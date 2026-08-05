@@ -124,8 +124,6 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
     setLoadingLinhas(true)
     try {
       const todas = await configuracaoService.getLinhas()
-      // Ignora linhas inativas (excluídas anteriormente) — deletarLinha faz exclusão suave (ativo=false),
-      // não remove de verdade do banco, então precisamos filtrar aqui pra não "reaparecerem".
       const doCliente = todas.filter(l => l.clienteId === cliente.id && l.ativo)
       setLinhas(doCliente.map(l => ({ ...l, isNew: false, isDeleted: false })))
     } finally {
@@ -250,7 +248,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   }
 
   // Aplica todas as mudanças pendentes no banco, na ordem correta:
-  // 1) dados do cliente, 2) linhas (criar/excluir), 3) máquinas de cada linha (criar/editar/excluir)
+  // 1) dados do cliente, 2) linhas (criar/excluir), 3) máquinas de cada linha (criar/editar/excluir/reordenar)
   async function salvarTudo() {
     if (!cliente || salvandoRef.current) return
     salvandoRef.current = true
@@ -277,14 +275,33 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
         if (!linhaRealId) continue
 
         const itens = maquinasPorLinha[linha.id] ?? []
+        // Mapeia IDs temporários de máquinas novas para os IDs reais retornados pelo backend —
+        // necessário para poder incluí-las corretamente na chamada de reordenar logo abaixo.
+        const mapaIdMaquinaLinha: Record<string, string> = {}
+
         for (const item of itens) {
           if (item.isDeleted && !item.isNew) {
             await linhaMaquinaService.remover(linhaRealId, item.id)
           } else if (item.isNew && !item.isDeleted) {
-            await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade)
+            const criada = await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade)
+            mapaIdMaquinaLinha[item.id] = criada.id
           } else if (!item.isNew && !item.isDeleted) {
             await linhaMaquinaService.atualizar(linhaRealId, item.id, item.critica, item.velocidadeNominal, item.sobreVelocidade)
           }
+        }
+
+        // Persiste a ordem atual (incluindo reordenações feitas por drag and drop) —
+        // sem isso, o arrasta-e-solta só muda a ordem visualmente nesta sessão, nunca no banco.
+        const itensParaReordenar = itens
+          .filter(item => !item.isDeleted)
+          .map(item => ({
+            maquinaLinhaId: item.isNew ? mapaIdMaquinaLinha[item.id] : item.id,
+            ordem: item.ordem,
+          }))
+          .filter(item => !!item.maquinaLinhaId)
+
+        if (itensParaReordenar.length > 0) {
+          await linhaMaquinaService.reordenar(linhaRealId, itensParaReordenar)
         }
       }
 

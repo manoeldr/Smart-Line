@@ -1,6 +1,7 @@
 // Modal de detalhes de uma máquina, aberto ao clicar num card do Dashboard.
 // Mostra métricas da última sessão (ativa ou finalizada), gráfico dinâmico por hora
 // (produção em barra + campos extras selecionáveis em linha) e linha do tempo de eventos Marcha/Parada.
+// Só a linha do tempo tem scroll próprio — o resto (métricas, gráfico) fica fixo.
 import { useEffect, useState } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -30,7 +31,6 @@ function formatarDataHora(dataIso: string) {
   return new Date(dataIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-// Paleta de cores das linhas do gráfico — uma cor por campo extra selecionado, em ordem
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
 
 export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: Props) {
@@ -51,7 +51,6 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
         setCamposSelecionados(new Set())
       } catch (e: unknown) {
         const mensagem = e instanceof Error ? e.message : ''
-        // 404 = máquina sem sessão registrada ainda — trata como "sem dados", não como erro real
         if (mensagem.includes('404')) {
           setErro(null)
         } else {
@@ -73,8 +72,6 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
     })
   }
 
-  // Busca a foto autenticada (JWT) como blob e abre numa nova aba —
-  // não dá para usar a URL direto porque o endpoint exige Authorization header
   async function abrirFoto(fotoPath: string) {
     try {
       const token = localStorage.getItem('token')
@@ -118,8 +115,8 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
     <div className={modalOverlayDark}>
       <div className={`${modalPanel} w-[900px] max-h-[90vh]`}>
 
-        {/* Header */}
-        <div className={`${modalHeader} flex items-center justify-between`}>
+        {/* Header — fixo */}
+        <div className={`${modalHeader} flex items-center justify-between flex-shrink-0`}>
           <div>
             <p className={modalTitle}>{dados?.maquinaNome ?? 'Detalhes da máquina'}</p>
             {dados && (
@@ -134,15 +131,16 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {loading ? (
-            <p className="text-xs text-zinc-400 text-center py-8">Carregando...</p>
-          ) : erro ? (
-            <p className="text-xs text-red-400 text-center py-8">{erro}</p>
-          ) : !dados ? (
-            <p className="text-xs text-zinc-400 text-center py-8">Nenhuma sessão registrada para esta máquina</p>
-          ) : (
-            <>
+        {loading ? (
+          <p className="text-xs text-zinc-400 text-center py-8">Carregando...</p>
+        ) : erro ? (
+          <p className="text-xs text-red-400 text-center py-8">{erro}</p>
+        ) : !dados ? (
+          <p className="text-xs text-zinc-400 text-center py-8">Nenhuma sessão registrada para esta máquina</p>
+        ) : (
+          <>
+            {/* Conteúdo fixo — métricas, gráfico e seletor */}
+            <div className="px-5 py-4 flex-shrink-0">
               {/* Grid de métricas */}
               <div className="grid grid-cols-5 gap-2 mb-6">
                 <MetricaCard label="OEE" valor={`${dados.oee}%`} destaque />
@@ -180,7 +178,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
               </div>
 
               {/* Gráfico */}
-              <div className="h-64 mb-6">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={dadosGrafico}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
@@ -205,48 +203,48 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar }: 
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+            </div>
 
-              {/* Timeline de eventos (log vertical cronológico de Marcha/Parada) */}
-              <div>
-                <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Linha do tempo</p>
-                <div className="flex flex-col">
-                  {dados.eventos.map((evento, i) => (
-                    <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-                      <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${evento.tipo === 'Marcha' ? 'bg-green-600' : 'bg-red-500'}`} />
-                      <div className="flex-1 flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${evento.tipo === 'Marcha' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                              {evento.tipo}
-                            </span>
-                            <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
-                          </div>
-                          {evento.motivoNome && (
-                            <p className="text-[11px] text-zinc-500 mt-0.5">
-                              {evento.motivoNome}
-                              {evento.duracaoMs !== null && ` — ${formatarHoras(evento.duracaoMs!)}`}
-                            </p>
-                          )}
+            {/* Timeline de eventos — única parte com scroll */}
+            <div className="flex-1 overflow-y-auto px-5 pb-4 min-h-0">
+              <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2 sticky top-0 bg-white dark:bg-zinc-900 py-1">Linha do tempo</p>
+              <div className="flex flex-col">
+                {dados.eventos.map((evento, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                    <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${evento.tipo === 'Marcha' ? 'bg-green-600' : 'bg-red-500'}`} />
+                    <div className="flex-1 flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium ${evento.tipo === 'Marcha' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                            {evento.tipo}
+                          </span>
+                          <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
                         </div>
-                        {evento.fotoPath && (
-                          <button
-                            onClick={() => abrirFoto(evento.fotoPath!)}
-                            title="Ver foto da parada"
-                            className="flex-shrink-0 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
-                            </svg>
-                          </button>
+                        {evento.motivoNome && (
+                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                            {evento.motivoNome}
+                            {evento.duracaoMs !== null && ` — ${formatarHoras(evento.duracaoMs!)}`}
+                          </p>
                         )}
                       </div>
+                      {evento.fotoPath && (
+                        <button
+                          onClick={() => abrirFoto(evento.fotoPath!)}
+                          title="Ver foto da parada"
+                          className="flex-shrink-0 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
