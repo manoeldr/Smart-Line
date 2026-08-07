@@ -4,7 +4,9 @@ namespace SmartLine.Core.Interfaces;
 
 public interface IOeeService
 {
-    OeeResultado Calcular(Sessao sessao, decimal velocidadeNominal);
+    // medeProducao: quando false, a máquina não coleta leitura de produção — Performance e OEE
+    // ficam nulos (indisponíveis pra calcular), em vez de um valor enganoso.
+    OeeResultado Calcular(Sessao sessao, decimal velocidadeNominal, bool medeProducao = true);
 }
 
 public record OeeResultado(
@@ -15,9 +17,9 @@ public record OeeResultado(
     double TempoExternoMs,
     double TempoRodandoMs,
     double Disponibilidade,
-    double Performance,
+    double? Performance,
     double Qualidade,
-    double Oee,
+    double? Oee,
     int Producao,
     int Refugo,
     int NumParadas,

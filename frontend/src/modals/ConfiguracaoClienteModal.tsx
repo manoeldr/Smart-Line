@@ -70,6 +70,7 @@ function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; on
         </p>
         <p className="text-[10px] text-zinc-400">
           {item.velocidadeNominal} un/h {item.sobreVelocidade > 0 && `+ ${item.sobreVelocidade}%`}
+          {!item.medeProducao && <span className="ml-1.5 text-amber-600 dark:text-amber-400">sem contagem de produção</span>}
         </p>
       </div>
       {item.critica && <span className={badgeCritica}>crítica</span>}
@@ -103,7 +104,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   const [modalAdicionarMaquinaOpen, setModalAdicionarMaquinaOpen] = useState(false)
   const [linhaAlvo, setLinhaAlvo] = useState<string | null>(null)
   const [todasMaquinas, setTodasMaquinas] = useState<MaquinaConfDto[]>([])
-  const [formMaquina, setFormMaquina] = useState({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0' })
+  const [formMaquina, setFormMaquina] = useState({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true })
 
   // Confirmação de remoção (substitui o confirm() nativo do navegador)
   const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
@@ -182,7 +183,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   // ── Máquinas dentro de uma linha — mesmo padrão staged ──
   async function abrirAdicionarMaquina(linhaId: string) {
     setLinhaAlvo(linhaId)
-    setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0' })
+    setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true })
     if (todasMaquinas.length === 0) {
       const maquinas = await configuracaoService.getMaquinas()
       setTodasMaquinas(maquinas.filter(m => m.ativo))
@@ -203,6 +204,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       critica: formMaquina.critica,
       velocidadeNominal: Number(formMaquina.velocidadeNominal) || 0,
       sobreVelocidade: Number(formMaquina.sobreVelocidade) || 0,
+      medeProducao: formMaquina.medeProducao,
       ativo: true,
       isNew: true,
       isDeleted: false,
@@ -283,10 +285,10 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
           if (item.isDeleted && !item.isNew) {
             await linhaMaquinaService.remover(linhaRealId, item.id)
           } else if (item.isNew && !item.isDeleted) {
-            const criada = await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade)
+            const criada = await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade, item.medeProducao)
             mapaIdMaquinaLinha[item.id] = criada.id
           } else if (!item.isNew && !item.isDeleted) {
-            await linhaMaquinaService.atualizar(linhaRealId, item.id, item.critica, item.velocidadeNominal, item.sobreVelocidade)
+            await linhaMaquinaService.atualizar(linhaRealId, item.id, item.critica, item.velocidadeNominal, item.sobreVelocidade, item.medeProducao)
           }
         }
 
@@ -496,7 +498,8 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   value={formMaquina.velocidadeNominal}
                   onChange={e => setFormMaquina(f => ({ ...f, velocidadeNominal: e.target.value }))}
                   placeholder="Ex: 1200"
-                  className={inputBase}
+                  disabled={!formMaquina.medeProducao}
+                  className={`${inputBase} ${!formMaquina.medeProducao ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
               <div>
@@ -505,7 +508,8 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   type="number" min="0" max="100"
                   value={formMaquina.sobreVelocidade}
                   onChange={e => setFormMaquina(f => ({ ...f, sobreVelocidade: e.target.value }))}
-                  className={inputBase}
+                  disabled={!formMaquina.medeProducao}
+                  className={`${inputBase} ${!formMaquina.medeProducao ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -517,6 +521,15 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                 />
                 <span className="text-xs text-zinc-900 dark:text-zinc-100">Máquina crítica</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formMaquina.medeProducao}
+                  onChange={e => setFormMaquina(f => ({ ...f, medeProducao: e.target.checked }))}
+                  className={checkbox}
+                />
+                <span className="text-xs text-zinc-900 dark:text-zinc-100">Mede produção</span>
+              </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setModalAdicionarMaquinaOpen(false)} className={btnSecondarySm}>
@@ -524,7 +537,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
               </button>
               <button
                 onClick={adicionarMaquinaLocal}
-                disabled={!formMaquina.maquinaId || !formMaquina.velocidadeNominal}
+                disabled={!formMaquina.maquinaId || (formMaquina.medeProducao && !formMaquina.velocidadeNominal)}
                 className={btnPrimary}
               >
                 Adicionar

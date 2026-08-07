@@ -9,6 +9,7 @@ export interface MaquinaLinhaConfDto {
   critica: boolean
   velocidadeNominal: number
   sobreVelocidade: number
+  medeProducao: boolean
   ativo: boolean
 }
 
@@ -16,19 +17,21 @@ export const linhaMaquinaService = {
   getMaquinas: (linhaId: string) =>
     api.get<MaquinaLinhaConfDto[]>(`/configuracao/linhas/${linhaId}/maquinas`),
 
-  adicionar: (linhaId: string, maquinaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number) =>
+  adicionar: (linhaId: string, maquinaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number, medeProducao: boolean) =>
     api.post<MaquinaLinhaConfDto>(`/configuracao/linhas/${linhaId}/maquinas`, {
       maquinaId,
       critica,
       velocidadeNominal,
       sobreVelocidade,
+      medeProducao,
     }),
 
-  atualizar: (linhaId: string, maquinaLinhaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number) =>
+  atualizar: (linhaId: string, maquinaLinhaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number, medeProducao: boolean) =>
     api.put<MaquinaLinhaConfDto>(`/configuracao/linhas/${linhaId}/maquinas/${maquinaLinhaId}`, {
       critica,
       velocidadeNominal,
       sobreVelocidade,
+      medeProducao,
     }),
 
   remover: (linhaId: string, maquinaLinhaId: string) =>

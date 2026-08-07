@@ -31,7 +31,8 @@ public class LinhaMaquinaController : ControllerBase
             request.MaquinaId,
             request.Critica,
             request.VelocidadeNominal,
-            request.SobreVelocidade
+            request.SobreVelocidade,
+            request.MedeProducao
         );
         return Ok(resultado);
     }
@@ -43,7 +44,8 @@ public class LinhaMaquinaController : ControllerBase
             maquinaLinhaId,
             request.Critica,
             request.VelocidadeNominal,
-            request.SobreVelocidade
+            request.SobreVelocidade,
+            request.MedeProducao
         );
         if (resultado is null) return NotFound();
         return Ok(resultado);
@@ -65,6 +67,6 @@ public class LinhaMaquinaController : ControllerBase
     }
 }
 
-public record AdicionarMaquinaLinhaRequest(Guid MaquinaId, bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade);
-public record AtualizarMaquinaLinhaRequest(bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade);
+public record AdicionarMaquinaLinhaRequest(Guid MaquinaId, bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true);
+public record AtualizarMaquinaLinhaRequest(bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true);
 public record ReordenarMaquinasRequest(IList<ReordenarItem> Itens);

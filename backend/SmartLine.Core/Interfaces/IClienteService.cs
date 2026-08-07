@@ -30,6 +30,7 @@ public record MaquinaLinhaOverviewDto(
     string TipoColeta,
     decimal VelocidadeNominal,
     bool Critica,
+    bool MedeProducao,
     int Ordem,
     bool Ativo,
     string Status,

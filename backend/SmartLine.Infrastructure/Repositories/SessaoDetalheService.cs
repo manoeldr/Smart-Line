@@ -38,7 +38,7 @@ public class SessaoDetalheService : ISessaoDetalheService
 
         if (sessao is null) return null;
 
-        var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal);
+        var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao);
 
         // MTTR / MTBF — considera apenas paradas não planejadas (Interna/Externa)
         var paradasFalha = sessao.Paradas

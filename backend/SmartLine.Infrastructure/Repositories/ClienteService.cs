@@ -79,7 +79,7 @@ public class ClienteService : IClienteService
 
                 if (sessaoParaOee is not null)
                 {
-                    var resultadoOee = _oeeService.Calcular(sessaoParaOee, ml.VelocidadeNominal);
+                    var resultadoOee = _oeeService.Calcular(sessaoParaOee, ml.VelocidadeNominal, ml.MedeProducao);
                     oee = resultadoOee.Oee;
                 }
 
@@ -91,6 +91,7 @@ public class ClienteService : IClienteService
                     TipoColeta: ml.TipoColeta.ToString(),
                     VelocidadeNominal: ml.VelocidadeNominal,
                     Critica: ml.Critica,
+                    MedeProducao: ml.MedeProducao,
                     Ordem: ml.Ordem,
                     Ativo: ml.Ativo,
                     Status: status,

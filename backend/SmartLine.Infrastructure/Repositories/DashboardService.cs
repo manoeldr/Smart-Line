@@ -44,9 +44,9 @@ public class DashboardService : IDashboardService
                     MaquinaLinhaId: ml.Id.ToString(),
                     MaquinaNome: ml.Maquina.Nome,
                     Critica: ml.Critica,
-                    Oee: 0,
+                    Oee: ml.MedeProducao ? 0 : null,
                     Disponibilidade: 0,
-                    Performance: 0,
+                    Performance: ml.MedeProducao ? 0 : null,
                     Qualidade: 0,
                     Producao: 0,
                     Refugo: 0,
@@ -68,7 +68,7 @@ public class DashboardService : IDashboardService
 
             foreach (var sessao in sessoes)
             {
-                var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal);
+                var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao);
 
                 somaTempoDisponivel += oee.TempoDisponivelMs;
                 somaTempoRodando += oee.TempoRodandoMs;
@@ -78,22 +78,34 @@ public class DashboardService : IDashboardService
 
                 // Pondera pelo tempo disponível de cada sessão
                 somaDisponibilidadePonderada += oee.Disponibilidade * oee.TempoDisponivelMs;
-                somaPerformancePonderada += oee.Performance * oee.TempoDisponivelMs;
+                // Performance só existe quando a máquina mede produção — nesse caso, oee.Performance
+                // nunca vem nulo (garantido pelo OeeService quando medeProducao=true).
+                if (ml.MedeProducao)
+                {
+                    somaPerformancePonderada += (oee.Performance ?? 0) * oee.TempoDisponivelMs;
+                }
                 somaQualidadePonderada += oee.Qualidade * oee.TempoDisponivelMs;
             }
 
             var disponibilidadeMedia = somaTempoDisponivel > 0 ? somaDisponibilidadePonderada / somaTempoDisponivel : 0;
-            var performanceMedia = somaTempoDisponivel > 0 ? somaPerformancePonderada / somaTempoDisponivel : 0;
             var qualidadeMedia = somaTempoDisponivel > 0 ? somaQualidadePonderada / somaTempoDisponivel : 0;
-            var oeeMedio = (disponibilidadeMedia / 100) * (performanceMedia / 100) * (qualidadeMedia / 100) * 100;
+
+            double? performanceMedia = null;
+            double? oeeMedio = null;
+
+            if (ml.MedeProducao)
+            {
+                performanceMedia = somaTempoDisponivel > 0 ? somaPerformancePonderada / somaTempoDisponivel : 0;
+                oeeMedio = (disponibilidadeMedia / 100) * (performanceMedia.Value / 100) * (qualidadeMedia / 100) * 100;
+            }
 
             resultado.Add(new MaquinaDashboardDto(
                 MaquinaLinhaId: ml.Id.ToString(),
                 MaquinaNome: ml.Maquina.Nome,
                 Critica: ml.Critica,
-                Oee: Math.Round(oeeMedio, 1),
+                Oee: oeeMedio.HasValue ? Math.Round(oeeMedio.Value, 1) : null,
                 Disponibilidade: Math.Round(disponibilidadeMedia, 1),
-                Performance: Math.Round(performanceMedia, 1),
+                Performance: performanceMedia.HasValue ? Math.Round(performanceMedia.Value, 1) : null,
                 Qualidade: Math.Round(qualidadeMedia, 1),
                 Producao: producaoTotal,
                 Refugo: refugoTotal,

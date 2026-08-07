@@ -2,7 +2,6 @@ export type NivelUsuario = 'Administrador' | 'Auditor' | 'Cliente' | 'Desenvolve
 export type TipoColeta = 'Manual' | 'SemiAutomatico'
 export type TipoParada = 'Interna' | 'Externa' | 'Planejada'
 export type StatusSessao = 'EmAndamento' | 'Finalizada'
-
 export type StatusMaquina = 'Rodando' | 'ParadaInterna' | 'ParadaExterna' | 'ParadaPlanejada' | 'SemSessao'
 
 export interface Cliente {
@@ -37,6 +36,7 @@ export interface MaquinaLinha {
   tipoColeta: TipoColeta
   velocidadeNominal: number
   critica: boolean
+  medeProducao: boolean
   ordem: number
   ativo: boolean
   status: StatusMaquina
@@ -70,9 +70,9 @@ export interface OeeResultado {
   tempoExternoMs: number
   tempoRodandoMs: number
   disponibilidade: number
-  performance: number
+  performance: number | null
   qualidade: number
-  oee: number
+  oee: number | null
   producao: number
   refugo: number
   numParadas: number

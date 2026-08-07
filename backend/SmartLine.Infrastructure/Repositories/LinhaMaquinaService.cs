@@ -30,12 +30,13 @@ public class LinhaMaquinaService : ILinhaMaquinaService
                 ml.Critica,
                 ml.VelocidadeNominal,
                 ml.SobreVelocidade,
+                ml.MedeProducao,
                 ml.Ativo
             ))
             .ToListAsync();
     }
 
-    public async Task<MaquinaLinhaConfDto> AdicionarMaquinaAsync(Guid linhaId, Guid maquinaId, bool critica, decimal velocidadeNominal, decimal sobreVelocidade)
+    public async Task<MaquinaLinhaConfDto> AdicionarMaquinaAsync(Guid linhaId, Guid maquinaId, bool critica, decimal velocidadeNominal, decimal sobreVelocidade, bool medeProducao)
     {
         var maiorOrdem = await _context.MaquinasLinha
             .Where(ml => ml.LinhaId == linhaId)
@@ -51,6 +52,7 @@ public class LinhaMaquinaService : ILinhaMaquinaService
             VelocidadeNominal = velocidadeNominal,
             SobreVelocidade = sobreVelocidade,
             Critica = critica,
+            MedeProducao = medeProducao,
             Ordem = maiorOrdem + 1,
             Ativo = true,
         };
@@ -69,11 +71,12 @@ public class LinhaMaquinaService : ILinhaMaquinaService
             maquinaLinha.Critica,
             maquinaLinha.VelocidadeNominal,
             maquinaLinha.SobreVelocidade,
+            maquinaLinha.MedeProducao,
             maquinaLinha.Ativo
         );
     }
 
-    public async Task<MaquinaLinhaConfDto?> AtualizarAsync(Guid maquinaLinhaId, bool critica, decimal velocidadeNominal, decimal sobreVelocidade)
+    public async Task<MaquinaLinhaConfDto?> AtualizarAsync(Guid maquinaLinhaId, bool critica, decimal velocidadeNominal, decimal sobreVelocidade, bool medeProducao)
     {
         var maquinaLinha = await _context.MaquinasLinha
             .Include(ml => ml.Maquina)
@@ -84,6 +87,7 @@ public class LinhaMaquinaService : ILinhaMaquinaService
         maquinaLinha.Critica = critica;
         maquinaLinha.VelocidadeNominal = velocidadeNominal;
         maquinaLinha.SobreVelocidade = sobreVelocidade;
+        maquinaLinha.MedeProducao = medeProducao;
 
         await _context.SaveChangesAsync();
 
@@ -96,6 +100,7 @@ public class LinhaMaquinaService : ILinhaMaquinaService
             maquinaLinha.Critica,
             maquinaLinha.VelocidadeNominal,
             maquinaLinha.SobreVelocidade,
+            maquinaLinha.MedeProducao,
             maquinaLinha.Ativo
         );
     }

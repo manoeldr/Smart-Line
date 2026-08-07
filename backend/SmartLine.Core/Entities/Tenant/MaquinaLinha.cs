@@ -12,9 +12,12 @@ public class MaquinaLinha
     public decimal VelocidadeNominal { get; set; }
     public decimal SobreVelocidade { get; set; } = 0;
     public bool Critica { get; set; } = false;
+    // Nem toda máquina conta unidades produzidas (ex: algumas etapas do processo não têm
+    // contador físico). Quando false, a medição não pede/coleta leitura de Produção,
+    // e Performance/OEE ficam indisponíveis (não dá pra calcular sem dado de produção).
+    public bool MedeProducao { get; set; } = true;
     public int Ordem { get; set; }
     public bool Ativo { get; set; } = true;
-
     // Navegação
     public Linha Linha { get; set; } = null!;
     public Maquina Maquina { get; set; } = null!;

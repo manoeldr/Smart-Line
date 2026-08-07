@@ -1,5 +1,6 @@
 // Tela principal de medição — cronômetro, controles Marcha/Parada/Pausa,
 // tabela de leituras horárias (produção + campos extras dinâmicos) e finalização.
+// Máquinas com medeProducao=false não mostram a coluna de Produção — só os campos extras.
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { Linha, MaquinaLinha } from '../../types'
 import type { SessaoDto } from '../../services/sessaoService'
@@ -64,7 +65,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     Math.floor((Date.now() - new Date(sessao.inicio).getTime()) / 1000)
   )
   // Tempo da parada ATUAL — recalculado a partir do horário real de início (paradaAtiva.inicio),
-  // não um contador simples, pra sobreviver a sair/voltar da tela sem zerar.
+  // não um contador simples, pra sobreviver a sair/voltar da tela.
   const [segundosParada, setSegundosParada] = useState(() => {
     if (estadoSalvo?.status === 'Parada' && estadoSalvo.paradaAtiva) {
       return Math.floor((Date.now() - new Date(estadoSalvo.paradaAtiva.inicio).getTime()) / 1000)
@@ -213,14 +214,17 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   }
 
   async function handleSalvarLeitura(hora: string, valor: string) {
-    const quantidade = parseInt(valor)
-    if (isNaN(quantidade) || quantidade < 0) return
-
     const leitura = leituras.find(l => l.hora === hora)
     const agora = new Date()
 
     try {
-      await producaoService.registrar(sessao.id, quantidade, 0, agora)
+      // Só registra produção se a máquina de fato mede — caso contrário, "valor" fica
+      // sempre vazio (não existe input pra ele na tela) e não deve virar uma chamada à API.
+      if (maquina.medeProducao) {
+        const quantidade = parseInt(valor)
+        if (isNaN(quantidade) || quantidade < 0) return
+        await producaoService.registrar(sessao.id, quantidade, 0, agora)
+      }
 
       // Salva os campos extras preenchidos nesta mesma leitura
       if (leitura && camposExtras.length > 0) {
@@ -317,8 +321,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     Pausada: 'bg-amber-500',
   }
 
-  // Grid dinâmico: Horário | Produção | [campo extra]... | check
-  const gridTemplate = `80px 1fr ${camposExtras.map(() => '1fr').join(' ')} 40px`.trim()
+  // Grid dinâmico: Horário | [Produção, só se medeProducao] | [campo extra]... | check
+  const gridTemplate = `80px ${maquina.medeProducao ? '1fr ' : ''}${camposExtras.map(() => '1fr').join(' ')} 40px`.trim()
 
   return (
     <div className="flex flex-col h-full">
@@ -494,7 +498,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1961c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
-            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Produção</span>
+            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+              {maquina.medeProducao ? 'Produção' : 'Coleta'}
+            </span>
           </div>
 
           {/* Header tabela */}
@@ -503,7 +509,9 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             style={{ gridTemplateColumns: gridTemplate }}
           >
             <span className="min-w-0 text-[10px] font-medium text-zinc-400">Horário</span>
-            <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">Produção</span>
+            {maquina.medeProducao && (
+              <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">Produção</span>
+            )}
             {camposExtras.map(c => (
               <span key={c.id} className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">
                 {c.nome}{c.unidade ? ` (${c.unidade})` : ''}
@@ -525,22 +533,24 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   {l.hora}
                 </span>
 
-                {/* Produção */}
-                <input
-                  type="number"
-                  min="0"
-                  value={l.valor}
-                  onChange={e => handleLeitura(l.hora, e.target.value)}
-                  disabled={l.inicial || leiturasSalvas.has(l.hora)}
-                  placeholder={l === ultimaLeitura && !l.inicial ? 'agora' : '—'}
-                  className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
-                    l.inicial || leiturasSalvas.has(l.hora)
-                      ? inputDisabled
-                      : l === ultimaLeitura
-                        ? 'bg-zinc-50 dark:bg-zinc-800 border-green-300 dark:border-green-700 text-zinc-900 dark:text-zinc-100'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
-                  }`}
-                />
+                {/* Produção — só aparece se a máquina mede produção */}
+                {maquina.medeProducao && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={l.valor}
+                    onChange={e => handleLeitura(l.hora, e.target.value)}
+                    disabled={l.inicial || leiturasSalvas.has(l.hora)}
+                    placeholder={l === ultimaLeitura && !l.inicial ? 'agora' : '—'}
+                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                      l.inicial || leiturasSalvas.has(l.hora)
+                        ? inputDisabled
+                        : l === ultimaLeitura
+                          ? 'bg-zinc-50 dark:bg-zinc-800 border-green-300 dark:border-green-700 text-zinc-900 dark:text-zinc-100'
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
+                    }`}
+                  />
+                )}
 
                 {/* Campos extras */}
                 {camposExtras.map(c => (
@@ -560,7 +570,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                 ))}
 
                 <div className="flex items-center justify-center">
-                  {!l.inicial && !leiturasSalvas.has(l.hora) && l.valor && (
+                  {!l.inicial && !leiturasSalvas.has(l.hora) && (maquina.medeProducao ? l.valor : true) && (
                     <button
                       onClick={() => handleSalvarLeitura(l.hora, l.valor)}
                       className="h-7 w-7 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 text-[10px]"
@@ -635,6 +645,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
       <LeituraFinalModal
         open={modalFinalOpen}
         camposExtras={camposExtras}
+        medeProducao={maquina.medeProducao}
         salvando={finalizando}
         onConfirmar={handleConfirmarFinalizar}
         onCancelar={() => setModalFinalOpen(false)}

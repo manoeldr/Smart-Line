@@ -1,5 +1,6 @@
 // Modal de leitura final — obrigatório ao clicar em "Finalizar medição".
-// Pede a produção final e o valor final de cada campo extra que estava sendo coletado na sessão.
+// Pede a produção final (só se a máquina medir produção) e o valor final de cada campo extra
+// que estava sendo coletado na sessão.
 import { useState } from 'react'
 import type { CampoMaquinaDto } from '../services/configuracaoService'
 import { btnPrimary, btnSecondarySm } from '../styles/buttons'
@@ -9,12 +10,13 @@ import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle, m
 interface Props {
   open: boolean
   camposExtras: CampoMaquinaDto[]
+  medeProducao?: boolean
   onConfirmar: (producaoFinal: number, extras: { campoMaquinaId: string; valor: number }[]) => void
   onCancelar: () => void
   salvando?: boolean
 }
 
-export default function LeituraFinalModal({ open, camposExtras, onConfirmar, onCancelar, salvando }: Props) {
+export default function LeituraFinalModal({ open, camposExtras, medeProducao = true, onConfirmar, onCancelar, salvando }: Props) {
   const [producaoFinal, setProducaoFinal] = useState('')
   const [valoresExtras, setValoresExtras] = useState<Record<string, string>>({})
 
@@ -25,8 +27,8 @@ export default function LeituraFinalModal({ open, camposExtras, onConfirmar, onC
   }
 
   function handleConfirmar() {
-    const producao = Number(producaoFinal)
-    if (isNaN(producao) || producaoFinal === '') return
+    const producao = medeProducao ? Number(producaoFinal) : 0
+    if (medeProducao && (isNaN(producao) || producaoFinal === '')) return
 
     const extras = camposExtras.map(c => ({
       campoMaquinaId: c.id,
@@ -36,7 +38,9 @@ export default function LeituraFinalModal({ open, camposExtras, onConfirmar, onC
     onConfirmar(producao, extras)
   }
 
-  const podeConfirmar = producaoFinal !== '' && !isNaN(Number(producaoFinal))
+  const podeConfirmar = medeProducao
+    ? producaoFinal !== '' && !isNaN(Number(producaoFinal))
+    : true
 
   return (
     <div className={modalOverlayDark}>
@@ -53,16 +57,18 @@ export default function LeituraFinalModal({ open, camposExtras, onConfirmar, onC
         </div>
 
         <div className={modalBody}>
-          <div>
-            <label className={label}>Produção final</label>
-            <input
-              type="number" min="0" autoFocus
-              value={producaoFinal}
-              onChange={e => setProducaoFinal(e.target.value)}
-              placeholder="Leitura final do contador"
-              className={inputMdFull}
-            />
-          </div>
+          {medeProducao && (
+            <div>
+              <label className={label}>Produção final</label>
+              <input
+                type="number" min="0" autoFocus
+                value={producaoFinal}
+                onChange={e => setProducaoFinal(e.target.value)}
+                placeholder="Leitura final do contador"
+                className={inputMdFull}
+              />
+            </div>
+          )}
 
           {camposExtras.map(c => (
             <div key={c.id}>

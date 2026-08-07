@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartLine.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using SmartLine.Infrastructure.Data;
 namespace SmartLine.Infrastructure.Migrations
 {
     [DbContext(typeof(SmartLineDbContext))]
-    partial class SmartLineDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807143707_AdicionaMedeProducao")]
+    partial class AdicionaMedeProducao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");

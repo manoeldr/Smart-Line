@@ -1,6 +1,8 @@
 // Tela inicial da Medição: seleciona linha e máquina, depois abre o modal de configuração
 // da sessão (forma de coleta, velocidade nominal/sobrevelocidade herdadas da linha,
 // produção até então, campos extras a coletar, valores iniciais e previsão de término).
+// Máquinas com medeProducao=false pulam velocidade/sobrevelocidade/produção inicial —
+// não faz sentido pedir esses dados de uma máquina sem contador de produção.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
@@ -132,8 +134,9 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       previsaoISO = dt.toISOString()
     }
 
-    const leiturasIniciais: Record<string, number> = {
-      producao: Number(producaoInicial) || 0,
+    const leiturasIniciais: Record<string, number> = {}
+    if (maquinaSelecionada.medeProducao) {
+      leiturasIniciais.producao = Number(producaoInicial) || 0
     }
     for (const campoId of camposSelecionados) {
       leiturasIniciais[campoId] = Number(valoresIniciaisExtras[campoId]) || 0
@@ -155,7 +158,10 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   }
 
   const podeAbrirModal = !!maquinaSelecionada && !maquinaSelecionada.sessaoAtiva && !loadingExterno
-  const podeConfirmar = !!velocidadeNominal && Number(velocidadeNominal) > 0
+  // Sem contador de produção, não há velocidade nominal pra validar — só precisa ter máquina selecionada
+  const podeConfirmar = maquinaSelecionada?.medeProducao
+    ? !!velocidadeNominal && Number(velocidadeNominal) > 0
+    : true
 
   return (
     <>
@@ -244,53 +250,59 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 )}
               </div>
 
-              {/* Velocidade */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Velocidade — só faz sentido se a máquina mede produção */}
+              {maquinaSelecionada.medeProducao && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={label}>Velocidade nominal (prod/h)</label>
+                    <input
+                      type="number" min="0"
+                      value={velocidadeNominal}
+                      onChange={e => setVelocidadeNominal(e.target.value)}
+                      placeholder="Ex: 1200"
+                      className={inputMdFull}
+                    />
+                  </div>
+                  <div>
+                    <label className={label}>Sobre velocidade (%)</label>
+                    <input
+                      type="number" min="0" max="100"
+                      value={sobreVelocidade}
+                      onChange={e => setSobreVelocidade(e.target.value)}
+                      placeholder="Ex: 10"
+                      className={inputMdFull}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Produção inicial — só faz sentido se a máquina mede produção */}
+              {maquinaSelecionada.medeProducao && (
                 <div>
-                  <label className={label}>Velocidade nominal (prod/h)</label>
+                  <label className={label}>Produção até então</label>
                   <input
                     type="number" min="0"
-                    value={velocidadeNominal}
-                    onChange={e => setVelocidadeNominal(e.target.value)}
-                    placeholder="Ex: 1200"
+                    value={producaoInicial}
+                    onChange={e => setProducaoInicial(e.target.value)}
+                    placeholder="Leitura atual do contador"
                     className={inputMdFull}
                   />
                 </div>
-                <div>
-                  <label className={label}>Sobre velocidade (%)</label>
-                  <input
-                    type="number" min="0" max="100"
-                    value={sobreVelocidade}
-                    onChange={e => setSobreVelocidade(e.target.value)}
-                    placeholder="Ex: 10"
-                    className={inputMdFull}
-                  />
-                </div>
-              </div>
-
-              {/* Produção inicial */}
-              <div>
-                <label className={label}>Produção até então</label>
-                <input
-                  type="number" min="0"
-                  value={producaoInicial}
-                  onChange={e => setProducaoInicial(e.target.value)}
-                  placeholder="Leitura atual do contador"
-                  className={inputMdFull}
-                />
-              </div>
+              )}
 
               {/* Campos a coletar — escolha primeiro o quê medir */}
               <div>
                 <label className="text-xs text-zinc-500 mb-2 block">Campos a coletar</label>
 
-                {/* Produção fixo */}
-                <div className="flex items-center justify-between gap-2 py-1.5">
-                  <span className="text-xs text-zinc-900 dark:text-zinc-100">
-                    Produção <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
-                  </span>
-                  <Switch checked disabled />
-                </div>
+                {/* Produção fixo — só aparece se a máquina mede produção */}
+                {maquinaSelecionada.medeProducao && (
+                  <div className="flex items-center justify-between gap-2 py-1.5">
+                    <span className="text-xs text-zinc-900 dark:text-zinc-100">
+                      Produção <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
+                    </span>
+                    <Switch checked disabled />
+                  </div>
+                )}
 
                 {loadingCampos ? (
                   <p className="text-xs text-zinc-400 mt-1">Carregando campos...</p>
