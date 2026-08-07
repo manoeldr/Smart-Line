@@ -55,27 +55,41 @@ public class SessaoDetalheService : ISessaoDetalheService
             mtbfMs = oeeResultado.TempoRodandoMs / paradasFalha.Count;
         }
 
-        // Campos extras para o gráfico
+        // Campos extras para o gráfico — cada apontamento é sempre o valor ACUMULADO
+        // (leitura bruta do contador), não um incremento desde a leitura anterior.
+        // Pra virar "quanto foi produzido/registrado NAQUELA hora", calculamos a diferença
+        // entre um apontamento e o anterior. O primeiro apontamento (leitura inicial) não
+        // tem "hora anterior" pra comparar, então não entra no gráfico.
         var camposExtras = sessao.SessoesCampo
             .Select(sc => sc.CampoMaquina)
             .Distinct()
-            .Select(campo => new CampoGraficoDto(
-                campo.Id.ToString(),
-                campo.Nome,
-                campo.Unidade,
-                sessao.LeiturasExtra
+            .Select(campo =>
+            {
+                var leiturasOrdenadas = sessao.LeiturasExtra
                     .Where(le => le.CampoMaquinaId == campo.Id)
                     .OrderBy(le => le.Hora)
-                    .Select(le => new PontoExtraDto(le.Hora, le.Valor))
-                    .ToList()
-            ))
+                    .ToList();
+
+                var pontos = new List<PontoExtraDto>();
+                for (var i = 1; i < leiturasOrdenadas.Count; i++)
+                {
+                    var diferenca = leiturasOrdenadas[i].Valor - leiturasOrdenadas[i - 1].Valor;
+                    pontos.Add(new PontoExtraDto(leiturasOrdenadas[i].Hora, Math.Max(0, diferenca)));
+                }
+
+                return new CampoGraficoDto(campo.Id.ToString(), campo.Nome, campo.Unidade, pontos);
+            })
             .ToList();
 
-        // Pontos de produção
-        var pontosProducao = sessao.Producoes
-            .OrderBy(p => p.Hora)
-            .Select(p => new PontoProducaoDto(p.Hora, p.Quantidade))
-            .ToList();
+        // Pontos de produção — mesmo raciocínio: diferença entre apontamentos consecutivos,
+        // primeiro apontamento (leitura inicial) não entra no gráfico.
+        var producaoOrdenada = sessao.Producoes.OrderBy(p => p.Hora).ToList();
+        var pontosProducao = new List<PontoProducaoDto>();
+        for (var i = 1; i < producaoOrdenada.Count; i++)
+        {
+            var diferenca = producaoOrdenada[i].Quantidade - producaoOrdenada[i - 1].Quantidade;
+            pontosProducao.Add(new PontoProducaoDto(producaoOrdenada[i].Hora, Math.Max(0, diferenca)));
+        }
 
         // Timeline de eventos (Marcha/Parada)
         var eventos = new List<EventoTimelineDto>();

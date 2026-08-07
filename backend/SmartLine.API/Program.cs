@@ -93,6 +93,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Permite conexões de outros dispositivos na mesma rede (não só localhost) — necessário
+// pra outros PCs/tablets acessarem esse backend como "servidor central". Em modo local
+// (um PC sozinho), isso não muda nada visível, só amplia quem PODE se conectar.
+app.Urls.Clear();
+app.Urls.Add("http://0.0.0.0:5278");
+
 app.UseMiddleware<LicencaMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
