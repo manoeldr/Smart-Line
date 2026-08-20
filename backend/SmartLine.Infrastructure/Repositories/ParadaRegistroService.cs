@@ -16,6 +16,17 @@ public class ParadaRegistroService : IParadaRegistroService
 
     public async Task<ParadaDto> AbrirAsync(Guid sessaoId, DateTime inicio)
     {
+        // Proteção contra duplicidade: se já existe uma parada em aberto pra essa sessão
+        // (ex: clique duplo no botão Parada, corrida entre requisições), reaproveita ela em
+        // vez de criar outra — evita duas paradas "em aberto" ao mesmo tempo pra mesma sessão.
+        var paradaExistente = await _context.Paradas
+            .FirstOrDefaultAsync(p => p.SessaoId == sessaoId && p.Fim == null);
+
+        if (paradaExistente is not null)
+        {
+            return ToDto(paradaExistente);
+        }
+
         var parada = new Parada
         {
             Id = Guid.NewGuid(),
@@ -52,7 +63,6 @@ public class ParadaRegistroService : IParadaRegistroService
                 .ThenInclude(s => s.MaquinaLinha)
                     .ThenInclude(ml => ml.Maquina)
             .FirstOrDefaultAsync(p => p.Id == paradaId);
-
         if (parada is null) return null;
 
         var cliente = parada.Sessao.MaquinaLinha.Linha.Cliente;
@@ -74,7 +84,6 @@ public class ParadaRegistroService : IParadaRegistroService
 
         parada.FotoPath = $"{nomePasta}/{nomeArquivo}";
         await _context.SaveChangesAsync();
-
         return ToDto(parada);
     }
 

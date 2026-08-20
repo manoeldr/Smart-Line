@@ -52,7 +52,16 @@ public class SessaoController : ControllerBase
         if (sessao is null) return NotFound();
         return Ok(sessao);
     }
-
+    
+    [HttpGet("ativa-do-usuario")]
+    public async Task<IActionResult> GetSessaoAtivaDoUsuario()
+    {
+        var usuarioId = ObterUsuarioId();
+        var sessao = await _sessaoService.GetSessaoAtivaDoUsuarioAsync(usuarioId);
+        if (sessao is null) return NotFound();
+        return Ok(sessao);
+    }
+    
     [HttpPatch("{id}/estender")]
     public async Task<IActionResult> Estender(Guid id, [FromBody] EstenderSessaoRequest request)
     {

@@ -77,6 +77,10 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
   const [finalizando, setFinalizando] = useState(false)
   const paradaAtivaRef = useRef(false)
   const pausadaRef = useRef(false)
+  // Trava síncrona contra clique duplo no botão Parada — mesmo problema que já corrigimos
+  // no Salvar: `status` só reflete na tela depois do próximo render, então dois cliques bem
+  // rápidos podiam abrir duas paradas ao mesmo tempo pra mesma sessão.
+  const abrindoParadaRef = useRef(false)
   const [modalMotivoOpen, setModalMotivoOpen] = useState(false)
   const [modalPausaOpen, setModalPausaOpen] = useState(false)
   const [modalFinalOpen, setModalFinalOpen] = useState(false)
@@ -395,7 +399,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             </button>
             <button
               onClick={async () => {
-                if (status === 'Parada') return
+                if (status === 'Parada' || abrindoParadaRef.current) return
+                abrindoParadaRef.current = true
                 setStatus('Parada')
                 paradaAtivaRef.current = true
                 setSegundosParada(0)
@@ -406,6 +411,8 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   paradaInicioRef.current = new Date(p.inicio).getTime()
                 } catch {
                   console.error('Erro ao registrar parada')
+                } finally {
+                  abrindoParadaRef.current = false
                 }
               }}
               disabled={status === 'Pausada'}

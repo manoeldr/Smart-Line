@@ -1,15 +1,14 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Microsoft.EntityFrameworkCore;
+using SmartLine.Infrastructure.Data;
 
-var origem = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
-var destino = @"D:\Smart Line\backend\SmartLine.Desktop\bin\Debug\net10.0-windows\smartline.db";
+var caminhoDbNovo = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
 
-using var connection = new SqliteConnection($"Data Source={origem}");
-connection.Open();
+var optionsBuilder = new DbContextOptionsBuilder<SmartLineDbContext>();
+optionsBuilder.UseSqlite($"Data Source={caminhoDbNovo}");
+using var context = new SmartLineDbContext(optionsBuilder.Options);
 
-// VACUUM INTO gera uma cópia limpa e consistente do banco — resolve o problema de arquivos
-// -wal/-shm ficarem "soltos" quando copiamos só o arquivo .db bruto (que pode corromper o banco).
-using var cmd = connection.CreateCommand();
-cmd.CommandText = $"VACUUM INTO '{destino.Replace("\\", "/")}'";
-cmd.ExecuteNonQuery();
+var duplicada = context.Paradas.First(p => p.Id == Guid.Parse("c1780341-6a34-4e3b-9690-aac668faaf8a"));
+context.Paradas.Remove(duplicada);
+context.SaveChanges();
 
-Console.WriteLine("Cópia limpa gerada com sucesso!");
+Console.WriteLine("Parada duplicada removida!");
