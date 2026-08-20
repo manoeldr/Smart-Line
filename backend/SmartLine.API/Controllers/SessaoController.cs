@@ -20,12 +20,7 @@ public class SessaoController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Abrir([FromBody] AbrirSessaoHttpRequest request)
     {
-        var usuarioId = Guid.Parse(
-            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? throw new Exception("Usuário não autenticado")
-        );
-
+        var usuarioId = ObterUsuarioId();
         var resultado = await _sessaoService.AbrirAsync(
             request.MaquinaLinhaId,
             usuarioId,
@@ -37,7 +32,6 @@ public class SessaoController : ControllerBase
                 request.CampoMaquinaIds ?? new List<Guid>()
             )
         );
-
         if (resultado is null)
             return Conflict(new { mensagem = "Já existe uma sessão ativa para esta máquina." });
         return Ok(resultado);
@@ -70,6 +64,20 @@ public class SessaoController : ControllerBase
     [HttpPatch("{id}/finalizar")]
     public async Task<IActionResult> Finalizar(Guid id, [FromBody] FinalizarSessaoHttpRequest request)
     {
+        // Só o dono da sessão pode finalizar a própria medição normalmente — mas Administrador
+        // e Desenvolvedor também podem finalizar sessões de qualquer usuário (ex: sessão esquecida
+        // aberta por alguém que já saiu, ou finalização remota via Overview).
+        var sessaoAtual = await _sessaoService.GetByIdAsync(id);
+        if (sessaoAtual is null) return NotFound();
+
+        var usuarioId = ObterUsuarioId();
+        var nivel = User.FindFirst("nivel")?.Value;
+        var ehDonoOuAdmin = sessaoAtual.UsuarioId == usuarioId.ToString()
+            || nivel == "Administrador"
+            || nivel == "Desenvolvedor";
+
+        if (!ehDonoOuAdmin) return Forbid();
+
         var sucesso = await _sessaoService.FinalizarComLeituraAsync(
             id,
             new FinalizarSessaoRequest(
@@ -80,6 +88,15 @@ public class SessaoController : ControllerBase
         );
         if (!sucesso) return NotFound();
         return NoContent();
+    }
+
+    private Guid ObterUsuarioId()
+    {
+        return Guid.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? throw new Exception("Usuário não autenticado")
+        );
     }
 }
 

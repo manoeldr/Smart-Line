@@ -8,12 +8,12 @@ interface Props {
   linha: Linha
   filtroAtivo: boolean
   dataFiltro: string | null
+  onFinalizarMaquina?: (maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) => void
 }
 
-export default function LinhaCard({ linha, filtroAtivo, dataFiltro }: Props) {
+export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina }: Props) {
   const temSessao = linha.maquinas.some(m => m.sessaoAtiva)
   const temDados = filtroAtivo ? linha.maquinas.some(m => m.oee !== null) : temSessao
-
   const badgeText = filtroAtivo
     ? temDados
       ? `sessão em ${dataFiltro}`
@@ -50,7 +50,11 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro }: Props) {
             .sort((a, b) => a.ordem - b.ordem)
             .map((maquina, index) => (
               <div key={maquina.id} className="flex items-center flex-1 min-w-0">
-                <MaquinaCard maquina={maquina} filtroAtivo={filtroAtivo} />
+                <MaquinaCard
+                  maquina={maquina}
+                  filtroAtivo={filtroAtivo}
+                  onFinalizar={onFinalizarMaquina ? () => onFinalizarMaquina(maquina.id, maquina.maquinaNome, maquina.medeProducao) : undefined}
+                />
                 {index < linha.maquinas.length - 1 && (
                   <div className="w-5 flex-shrink-0 flex items-center justify-center text-zinc-300 dark:text-zinc-600">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

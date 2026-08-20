@@ -97,6 +97,7 @@ public class ClienteService : IClienteService
                     Status: status,
                     Oee: oee.HasValue ? Math.Round(oee.Value, 1) : null,
                     SessaoAtiva: sessaoAtiva is not null,
+                    SessaoAtivaId: sessaoAtiva?.Id.ToString(),
                     UltimaSessaoFim: ultimaSessaoFinalizada?.Fim
                 ));
             }

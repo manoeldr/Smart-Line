@@ -1,6 +1,8 @@
 // Card individual de máquina no Overview.
 // Mostra status ao vivo (bolinha colorida) quando há sessão ativa,
 // ou "última sessão: [data]" com bolinha cinza quando a última sessão já foi finalizada.
+// Administrador/Desenvolvedor veem um botão de Finalizar quando há sessão ativa.
+import { useAuth } from '../../contexts/AuthContext'
 import type { MaquinaLinha } from '../../types'
 import { badgeCritica, dotColorByStatus } from '../../styles/badges'
 import { cardPaddedSm, cardCritica } from '../../styles/cards'
@@ -8,6 +10,7 @@ import { cardPaddedSm, cardCritica } from '../../styles/cards'
 interface Props {
   maquina: MaquinaLinha
   filtroAtivo: boolean
+  onFinalizar?: () => void
 }
 
 const statusLabel: Record<string, string> = {
@@ -25,7 +28,10 @@ function formatarUltimaSessao(dataIso: string) {
   return `${dia} ${hora}`
 }
 
-export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
+export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar }: Props) {
+  const { usuario } = useAuth()
+  const podeFinalizar = usuario?.nivel === 'Administrador' || usuario?.nivel === 'Desenvolvedor'
+
   const temHistorico = !maquina.sessaoAtiva && maquina.ultimaSessaoFim
   const dotClass = filtroAtivo
     ? 'bg-blue-600'
@@ -41,12 +47,10 @@ export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         {maquina.critica && <span className={badgeCritica}>crítica</span>}
       </div>
-
       {/* Nome */}
       <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate mb-0.5">
         {maquina.maquinaNome}
       </p>
-
       {/* Status: última sessão (finalizada) prevalece sobre o status ao vivo */}
       {!filtroAtivo && (
         <p className="text-[10px] text-zinc-400 mb-2 truncate">
@@ -56,12 +60,21 @@ export default function MaquinaCard({ maquina, filtroAtivo }: Props) {
         </p>
       )}
       {filtroAtivo && <div className="mb-2" />}
-
       {/* OEE */}
       <p className={`text-base font-medium ${oeeColor}`}>
         {maquina.oee !== null ? `${maquina.oee}%` : '—'}
       </p>
       <p className="text-[10px] text-zinc-400">OEE</p>
+
+      {/* Finalizar — só Admin/Desenvolvedor, só com sessão ativa */}
+      {!filtroAtivo && maquina.sessaoAtiva && podeFinalizar && onFinalizar && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onFinalizar() }}
+          className="mt-2 w-full text-[10px] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+        >
+          Finalizar sessão
+        </button>
+      )}
     </div>
   )
 }

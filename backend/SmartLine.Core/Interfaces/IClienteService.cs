@@ -36,5 +36,6 @@ public record MaquinaLinhaOverviewDto(
     string Status,
     double? Oee,
     bool SessaoAtiva,
+    string? SessaoAtivaId,
     DateTime? UltimaSessaoFim
 );
