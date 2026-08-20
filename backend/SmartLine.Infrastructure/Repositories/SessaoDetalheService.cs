@@ -40,18 +40,30 @@ public class SessaoDetalheService : ISessaoDetalheService
 
         var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao);
 
-        // MTTR / MTBF — considera apenas paradas não planejadas (Interna/Externa)
+        // MTBF — considera todas as paradas não planejadas (Interna/Externa), reflete o tempo
+        // médio rodando entre uma parada e outra, qualquer que seja o motivo.
         var paradasFalha = sessao.Paradas
             .Where(p => p.Fim.HasValue && p.Motivo is not null && p.Motivo.Tipo != TipoParada.Planejada)
+            .ToList();
+
+        // MTTR — considera SÓ paradas Internas (não Externas). Faz sentido: MTTR mede o tempo
+        // médio de "reparo", e uma parada Externa não é um reparo da própria máquina (ex: falta
+        // de produto vindo de outra máquina da linha) — incluí-la no MTTR distorceria a métrica.
+        var paradasInternas = paradasFalha
+            .Where(p => p.Motivo!.Tipo == TipoParada.Interna)
             .ToList();
 
         double? mttrMs = null;
         double? mtbfMs = null;
 
+        if (paradasInternas.Count > 0)
+        {
+            var somaDuracaoInternas = paradasInternas.Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
+            mttrMs = somaDuracaoInternas / paradasInternas.Count;
+        }
+
         if (paradasFalha.Count > 0)
         {
-            var somaDuracaoParadas = paradasFalha.Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
-            mttrMs = somaDuracaoParadas / paradasFalha.Count;
             mtbfMs = oeeResultado.TempoRodandoMs / paradasFalha.Count;
         }
 

@@ -1,25 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SmartLine.Core.Enums;
-using SmartLine.Infrastructure.Data;
+﻿using Microsoft.Data.Sqlite;
 
-var caminhoDbNovo = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
+var origem = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
+var destino = @"D:\Smart Line\backend\SmartLine.Desktop\bin\Debug\net10.0-windows\smartline.db";
 
-var optionsBuilder = new DbContextOptionsBuilder<SmartLineDbContext>();
-optionsBuilder.UseSqlite($"Data Source={caminhoDbNovo}");
-using var context = new SmartLineDbContext(optionsBuilder.Options);
+using var connection = new SqliteConnection($"Data Source={origem}");
+connection.Open();
 
-// "Falta de Produto" também é uma causa EXTERNA à máquina (falta de produto vindo de outra
-// máquina anterior na linha), estava classificada como Interna no backup antigo — corrige aqui.
-var motivo = context.MotivosParada.FirstOrDefault(m => m.Nome == "Falta de Produto");
+// VACUUM INTO gera uma cópia limpa e consistente do banco — resolve o problema de arquivos
+// -wal/-shm ficarem "soltos" quando copiamos só o arquivo .db bruto (que pode corromper o banco).
+using var cmd = connection.CreateCommand();
+cmd.CommandText = $"VACUUM INTO '{destino.Replace("\\", "/")}'";
+cmd.ExecuteNonQuery();
 
-if (motivo is null)
-{
-    Console.WriteLine("Motivo 'Falta de Produto' não encontrado.");
-}
-else
-{
-    Console.WriteLine($"MaquinaId: {motivo.MaquinaId}, Tipo atual: {motivo.Tipo}");
-    motivo.Tipo = TipoParada.Externa;
-    context.SaveChanges();
-    Console.WriteLine("Corrigido para Externa!");
-}
+Console.WriteLine("Cópia limpa gerada com sucesso!");
