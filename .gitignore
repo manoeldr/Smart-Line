@@ -35,3 +35,6 @@ backend/SmartLine.API/wwwroot/
 # Publicação self-contained (.exe)
 backend/publish/
 backend/SmartLine.API/wwwroot/
+
+# Pacote de distribuição (arquivo grande, gerado sob demanda, não faz parte do código-fonte)
+SmartLine-Pacote.zip
