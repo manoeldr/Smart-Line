@@ -105,6 +105,55 @@ public sealed record LeituraPlc
     public required uint TipoProduto { get; init; }
 
     /// <summary>
+    /// Leitura com todos os valores zerados, para ser refinada com <c>with</c>.
+    ///
+    /// As 23 propriedades são <c>required</c>, então sem isto qualquer leitura
+    /// montada na mão precisaria preencher todas — inclusive as irrelevantes
+    /// para o caso. Usada pelo simulador e pelos testes:
+    ///
+    /// <code>
+    /// LeituraPlc.Zerada(agora) with { CodigoEstado = 5, TotalPaletes = 42 }
+    /// </code>
+    /// </summary>
+    /// <param name="timestampUtc">Instante da leitura, em UTC.</param>
+    /// <exception cref="ArgumentException">Timestamp não está em UTC.</exception>
+    public static LeituraPlc Zerada(DateTime timestampUtc)
+    {
+        if (timestampUtc.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException(
+                "Timestamp precisa estar em UTC.", nameof(timestampUtc));
+        }
+
+        return new LeituraPlc
+        {
+            TimestampUtc = timestampUtc,
+            CodigoModo = 0,
+            CodigoPrograma = 0,
+            CodigoEstado = 0,
+            VelocidadeAtual = 0,
+            VelocidadeSetada = 0,
+            VelocidadeProjetada = 0,
+            RazaoProducao = 0,
+            CodigoFalha = 0,
+            TipoPalete = 0,
+            TipoCaixa = 0,
+            TipoGarrafa = 0,
+            TipoBebida = 0,
+            TipoPacote = 0,
+            TotalPaletes = 0,
+            TotalCaixas = 0,
+            TotalGarrafas = 0,
+            TotalPacotes = 0,
+            NumeroReceita = 0,
+            TotalHectolitros = 0,
+            ConsumoEnergia = 0,
+            HorasOperacao = 0,
+            TipoProduto = 0
+        };
+    }
+
+    /// <summary>
     /// Devolve o contador correspondente ao TagId configurado como produção da máquina.
     /// </summary>
     /// <param name="tagIdContador">50001, 50002, 50005 ou 50220.</param>
