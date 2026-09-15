@@ -28,8 +28,35 @@ O auditor acompanha a linha presencialmente e registra as informações diretame
 ### Semi Automático 🚧 Planejado
 Integração com dispositivos IoT instalados nas máquinas para coleta parcialmente automatizada.
 
-### Automático 🚧 Planejado
-Integração direta com o protocolo de comunicação da máquina.
+### Automático 🚧 Em desenvolvimento
+Coleta direta do PLC da máquina, sem operador. A camada de leitura está pronta e testada; falta o serviço de coleta contínua e as telas.
+
+**Como os dados são lidos.** As máquinas da Sanmartin expõem um bloco de dados (DB) seguindo a nomenclatura do padrão **Weihenstephan** — contadores, estado, modo, programa e código de falha, cada um com o TagId do padrão embutido no nome da variável (`WS_Total_Pallet_50001`, `WS_Cur_State_00300`). O DB é populado por uma FC no próprio PLC.
+
+Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não como serviço de rede. A coleta é feita por **leitura direta do DB via protocolo S7 (PUT/GET)**, trazendo os 88 bytes de uma vez — o que garante que estado, alarme e contador venham sempre do mesmo instante.
+
+**O que já existe**
+- Mapa completo do DB (22 pontos, offsets e tipos extraídos do projeto TIA Portal)
+- Parser puro `byte[88]` → `LeituraPlc`, big-endian explícito, com validação de buffer e de timestamp UTC
+- `EstadoWs` com os valores reais do PLC — são **flags** (potências de 2), não códigos sequenciais
+- `IPlcDataSource`: contrato único que desacopla o coletor da forma de comunicação
+- `S7DataSource`: implementação sobre S7netplus
+- Dois simuladores (determinístico e contínuo) que permitem rodar e testar o sistema inteiro sem hardware
+
+**O que falta**
+- Classificação de estado → parada Interna/Externa (depende também do programa em execução)
+- Processamento de leituras consecutivas em produção e paradas
+- Reconexão com backoff
+- `BackgroundService` de coleta contínua, com virada de sessão à meia-noite
+- Entidades, migration, endpoints e telas
+
+**Decisões tomadas**
+- Sessão diária automática por máquina, fechada e reaberta à meia-noite — reutiliza a entidade `Sessao` (com `TipoSessao`) para não duplicar o cálculo de OEE já validado
+- Sem "dono" da sessão: a coleta roda no servidor enquanto a máquina estiver habilitada, independente de haver alguém logado
+- Período sem comunicação **sai do tempo disponível**, em vez de virar parada Interna — falha de rede não pode derrubar a Disponibilidade
+- Velocidade nominal: usa a do PLC quando vier maior que zero, senão cai para a cadastrada no sistema
+- **Qualidade fica indisponível (`null`)** no Modo Automático: as máquinas da Sanmartin não contabilizam refugo. O OEE automático é de dois fatores e não deve ser comparado diretamente com o do Manual
+- Configuração de conexão por máquina gravada como JSON, para suportar outros protocolos sem migration
 
 ---
 
@@ -98,6 +125,8 @@ Integração direta com o protocolo de comunicação da máquina.
 | Gráficos | Recharts |
 | Drag and drop | @dnd-kit |
 | Autenticação | JWT |
+| Comunicação com PLC | S7netplus (protocolo S7 / PUT-GET) |
+| Testes | xUnit + FakeTimeProvider |
 | Licenciamento | HMAC-SHA256 amarrado ao MAC address |
 | Empacotamento | Self-contained `.exe` + janela desktop nativa (WinForms + WebView2) |
 | IDE Backend | JetBrains Rider |
@@ -213,6 +242,7 @@ SmartLine/
 ├── backend/
 │ ├── SmartLine.API/ # Controllers, Program.cs, wwwroot (frontend buildado)
 │ ├── SmartLine.Core/ # Entidades, Interfaces, Serviços, Enums
+│ ├── SmartLine.Plc/ # Comunicação com PLC (parser do DB, S7, simuladores)
 │ ├── SmartLine.Infrastructure/ # EF Core, Migrations, Repositórios
 │ ├── SmartLine.Desktop/ # App desktop (WinForms + WebView2), sobe o backend como processo filho
 │ ├── SmartLine.LicenseGenerator/ # Ferramenta CLI para gerar chaves de licença
@@ -264,12 +294,40 @@ SmartLine/
 - Migração de dados do sistema legado, com fórmulas de OEE/MTBF validadas contra o código original
 - Reordenação de máquinas persistida corretamente em todas as telas
 - Confirmações de exclusão via modal do sistema, não `confirm()` nativo
+- Correção do MTTR — considera apenas paradas Internas, como no sistema legado
+- **Modo Automático — camada de leitura do PLC**: mapa do DB Weihenstephan, parser puro, contrato `IPlcDataSource`, implementação S7 e simuladores, com 53 testes
+
+### Em andamento — Modo Automático
+- [ ] `ClassificadorEstado` — traduz estado + programa em rodando / parada Interna / Externa / fora do tempo disponível
+- [ ] `ProcessadorLeitura` — compara leituras consecutivas e gera produção e eventos de parada (inclui rollover de contador e período sem comunicação)
+- [ ] `ResilientDataSource` — reconexão com backoff exponencial e estados Conectado / Reconectando / Offline
+- [ ] `ColetorService` (`BackgroundService`) — polling contínuo por máquina e virada de sessão à meia-noite no fuso local
+- [ ] Entidades e migration — `TipoSessao`, `UsuarioId` nulo em sessão automática, configuração de coleta por máquina
+- [ ] Endpoints e telas — painel ao vivo de coleta e configuração por máquina (Admin)
 
 ### Em aberto
+- [ ] **Dois testes de OEE falhando** (`Qualidade_ComRefugo` e `Oee_SemParadasSemRefugo`) — anteriores a esta frente, precisam ser investigados: ou o cálculo regrediu, ou os testes ficaram desatualizados
+- [ ] Rede/Multi-usuário — IP fixo no PC central, faixa do roteador e liberação da porta 5278 no firewall
 - [ ] Modo Semi Automático (IoT)
-- [ ] Modo Automático (integração direta com máquina)
 - [ ] Telas de debug/logs/health check para nível Desenvolvedor
-- [ ] Investigar pequena divergência no cálculo de MTTR frente ao sistema legado
+- [ ] Levantar os valores numéricos de `WS_Cur_Mode_00100` e `WS_Cur_Prog_00200` (Networks 26 e 27 da FC)
+
+---
+
+## Testes
+
+```bash
+cd backend
+dotnet test SmartLine.Tests/SmartLine.Tests.csproj
+```
+
+Para rodar só uma frente:
+
+```bash
+dotnet test SmartLine.Tests/SmartLine.Tests.csproj --filter "FullyQualifiedName~Plc"
+```
+
+A camada de PLC é testável sem hardware: o parser é função pura, e os simuladores implementam o mesmo `IPlcDataSource` que a implementação S7. O simulador contínuo usa `FakeTimeProvider`, então horas de produção simulada rodam em milissegundos.
 
 ---
 
