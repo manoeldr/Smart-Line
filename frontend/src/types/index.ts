@@ -1,5 +1,5 @@
 export type NivelUsuario = 'Administrador' | 'Auditor' | 'Cliente' | 'Desenvolvedor'
-export type TipoColeta = 'Manual' | 'SemiAutomatico'
+export type TipoColeta = 'Manual' | 'SemiAutomatico' | 'Automatico'
 export type TipoParada = 'Interna' | 'Externa' | 'Planejada'
 export type StatusSessao = 'EmAndamento' | 'Finalizada'
 export type StatusMaquina = 'Rodando' | 'ParadaInterna' | 'ParadaExterna' | 'ParadaPlanejada' | 'SemSessao'

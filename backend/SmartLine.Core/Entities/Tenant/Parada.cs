@@ -1,6 +1,7 @@
 namespace SmartLine.Core.Entities.Tenant;
 
 using SmartLine.Core.Entities.Global;
+using SmartLine.Core.Enums;
 
 public class Parada
 {
@@ -17,4 +18,21 @@ public class Parada
     // Navegação
     public Sessao Sessao { get; set; } = null!;
     public MotivoParada? Motivo { get; set; }
+
+    /// <summary>
+    /// Tipo usado nos cálculos (OEE, MTTR, MTBF, agrupamentos).
+    ///
+    /// Parada sem motivo é uma parada <b>não classificada</b>: nos modos Semi
+    /// Automático e Automático ela nasce assim quando nenhum sensor explica a
+    /// causa, e pode ficar pendente até alguém classificar. Enquanto isso conta
+    /// como Interna — é a leitura conservadora: penaliza a Disponibilidade em
+    /// vez de sumir do cálculo e inflar o OEE.
+    /// </summary>
+    /// <remarks>
+    /// Depende de <see cref="Motivo"/> carregado (<c>Include(p =&gt; p.Motivo)</c>).
+    /// Com <see cref="MotivoId"/> preenchido e o motivo não carregado, devolveria
+    /// Interna indevidamente. É método, e não propriedade, para o EF não tentar
+    /// mapear como coluna.
+    /// </remarks>
+    public TipoParada TipoEfetivo() => Motivo?.Tipo ?? TipoParada.Interna;
 }

@@ -22,6 +22,20 @@ public class OeeServiceTests
         };
     }
 
+    // A produção do turno é a última leitura menos a inicial (mesmo cálculo do sistema
+    // legado): toda sessão real começa com a leitura de "produção até então". Hora
+    // explícita porque o default (UtcNow) deixaria a ordem das leituras ao acaso.
+    private static List<Producao> Leituras(DateTime inicio, int quantidadeFinal, int refugoFinal) =>
+    [
+        new Producao { Quantidade = 0, Refugo = 0, Hora = inicio },
+        new Producao { Quantidade = quantidadeFinal, Refugo = refugoFinal, Hora = inicio.AddHours(1) }
+    ];
+
+    private static Parada CriarParadaSemMotivo(DateTime inicio, DateTime fim)
+    {
+        return new Parada { Id = Guid.NewGuid(), Inicio = inicio, Fim = fim, Motivo = null };
+    }
+
     private static Parada CriarParada(DateTime inicio, DateTime fim, TipoParada tipo)
     {
         return new Parada
@@ -122,9 +136,7 @@ public class OeeServiceTests
         var inicio = new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
         var sessao = CriarSessao(inicio, inicio.AddHours(1));
 
-        sessao.Producoes = [
-            new Producao { Quantidade = 900, Refugo = 100 }
-        ];
+        sessao.Producoes = Leituras(inicio, 900, 100);
 
         // Qualidade = (900 - 100) / 900 * 100 = 88.9%
         var resultado = _sut.Calcular(sessao, 1000);
@@ -142,7 +154,7 @@ public class OeeServiceTests
         var sessao = CriarSessao(inicio, fim);
 
         // 1h rodando, velocidade 1000/h, produção 800
-        sessao.Producoes = [new Producao { Quantidade = 800, Refugo = 0 }];
+        sessao.Producoes = Leituras(inicio, 800, 0);
 
         var resultado = _sut.Calcular(sessao, 1000);
 
@@ -151,5 +163,48 @@ public class OeeServiceTests
         Assert.Equal(80.0, resultado.Performance);
         Assert.Equal(100.0, resultado.Qualidade);
         Assert.Equal(80.0, resultado.Oee);
+    }
+
+    // ── Paradas não classificadas (sem motivo) ────────────────────
+
+    [Fact]
+    public void ParadaSemMotivo_Finalizada_ContaComoInterna()
+    {
+        var inicio = new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+        var fim = inicio.AddHours(2);
+        var sessao = CriarSessao(inicio, fim);
+
+        sessao.Paradas = [CriarParadaSemMotivo(inicio.AddHours(1), fim)];
+
+        var resultado = _sut.Calcular(sessao, 1000);
+
+        // Antes era ignorada e a Disponibilidade saía 100%.
+        Assert.Equal(50.0, resultado.Disponibilidade);
+        Assert.Equal(3_600_000, resultado.TempoInternoMs);
+        Assert.Equal(1, resultado.NumParadasInternas);
+    }
+
+    [Fact]
+    public void ParadaSemMotivo_NaoAfetaTempoExternoNemPlanejado()
+    {
+        var inicio = new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+        var fim = inicio.AddHours(4);
+        var sessao = CriarSessao(inicio, fim);
+
+        sessao.Paradas = [
+            CriarParadaSemMotivo(inicio, inicio.AddHours(1)),
+            CriarParada(inicio.AddHours(1), inicio.AddHours(2), TipoParada.Externa),
+            CriarParada(inicio.AddHours(2), inicio.AddHours(3), TipoParada.Planejada)
+        ];
+
+        var resultado = _sut.Calcular(sessao, 1000);
+
+        // Total 4h, planejada 1h → disponível 3h; interna (sem motivo) 1h → rodando 2h.
+        Assert.Equal(66.7, resultado.Disponibilidade);
+        Assert.Equal(3_600_000, resultado.TempoExternoMs);
+        Assert.Equal(3_600_000, resultado.TempoPlanejadoMs);
+        Assert.Equal(1, resultado.NumParadasInternas);
+        Assert.Equal(1, resultado.NumParadasExternas);
+        Assert.Equal(1, resultado.NumParadasPlanejadas);
     }
 }

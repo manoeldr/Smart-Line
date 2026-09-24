@@ -12,20 +12,21 @@ public class OeeService : IOeeService
         var tempoTotalMs = (fim - sessao.Inicio).TotalMilliseconds;
 
         // ── Separar paradas por tipo ────────────────────────────────
+        // Parada sem motivo (não classificada) conta como Interna — ver Parada.TipoEfetivo.
         var paradasFinalizadas = sessao.Paradas
-            .Where(p => p.Fim.HasValue && p.Motivo is not null)
+            .Where(p => p.Fim.HasValue)
             .ToList();
 
         var tempoPlanejadoMs = paradasFinalizadas
-            .Where(p => p.Motivo!.Tipo == TipoParada.Planejada)
+            .Where(p => p.TipoEfetivo() == TipoParada.Planejada)
             .Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
 
         var tempoInternoMs = paradasFinalizadas
-            .Where(p => p.Motivo!.Tipo == TipoParada.Interna)
+            .Where(p => p.TipoEfetivo() == TipoParada.Interna)
             .Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
 
         var tempoExternoMs = paradasFinalizadas
-            .Where(p => p.Motivo!.Tipo == TipoParada.Externa)
+            .Where(p => p.TipoEfetivo() == TipoParada.Externa)
             .Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
 
         // Parada interna ainda em curso (sessão ativa)
@@ -35,7 +36,7 @@ public class OeeService : IOeeService
             if (paradaAtiva != null)
             {
                 var duracaoAtiva = (DateTime.UtcNow - paradaAtiva.Inicio).TotalMilliseconds;
-                var tipo = paradaAtiva.Motivo?.Tipo ?? TipoParada.Interna;
+                var tipo = paradaAtiva.TipoEfetivo();
                 switch (tipo)
                 {
                     case TipoParada.Interna:
@@ -109,9 +110,9 @@ public class OeeService : IOeeService
         }
 
         // ── Contagens ──────────────────────────────────────────────
-        var numInternas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Interna);
-        var numExternas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Externa);
-        var numPlanejadas = sessao.Paradas.Count(p => p.Motivo?.Tipo == TipoParada.Planejada);
+        var numInternas = sessao.Paradas.Count(p => p.TipoEfetivo() == TipoParada.Interna);
+        var numExternas = sessao.Paradas.Count(p => p.TipoEfetivo() == TipoParada.Externa);
+        var numPlanejadas = sessao.Paradas.Count(p => p.TipoEfetivo() == TipoParada.Planejada);
 
         return new OeeResultado(
             TempoTotalMs: Math.Round(tempoTotalMs),

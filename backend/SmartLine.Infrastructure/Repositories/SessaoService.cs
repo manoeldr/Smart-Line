@@ -140,7 +140,11 @@ public class SessaoService : ISessaoService
             .Include(s => s.LeiturasExtra)
             .Include(s => s.Paradas).ThenInclude(p => p.Motivo)
             .Include(s => s.SessoesCampo)
-            .FirstOrDefaultAsync(s => s.UsuarioId == usuarioId && s.Status == StatusSessao.EmAndamento);
+            // Só Manual: nos modos Semi Automático e Automático o usuário pode ter várias
+            // coletas em andamento ao mesmo tempo, e nenhuma delas deve abrir a tela de Medição.
+            .FirstOrDefaultAsync(s => s.UsuarioId == usuarioId
+                                      && s.Status == StatusSessao.EmAndamento
+                                      && s.TipoColeta == TipoColeta.Manual);
 
         if (sessao is null) return null;
 
