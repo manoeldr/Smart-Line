@@ -354,6 +354,28 @@ public class EstadoMaquinaIotTests
             e => Assert.Equal(Em(600), Assert.IsType<ComunicacaoRestabelecida>(e).InstanteUtc));
     }
 
+    [Fact]
+    public void ComecandoSemComunicacao_PrimeiraAmostraRestabeleceECreditaOIntervalo()
+    {
+        // Backend reiniciado: último contador conhecido 1000, fora do ar desde 60 s.
+        var estado = new EstadoMaquinaIot(Config(), new Dictionary<CanalWise, uint> { [CanalWise.S2] = 1000 }, Em(60));
+        Assert.Equal(SituacaoMaquina.SemComunicacao, estado.Situacao);
+        Assert.Empty(estado.Verificar(Em(3600))); // continua sem comunicação, sem repetir evento
+
+        var eventos = estado.Processar(Amostra(4000, s2: 1800));
+
+        Assert.Collection(eventos,
+            e => Assert.Equal(Em(4000), Assert.IsType<ComunicacaoRestabelecida>(e).InstanteUtc),
+            e => Assert.Equal(800, Assert.IsType<ProducaoApurada>(e).Garrafas));
+        Assert.Equal(SituacaoMaquina.Rodando, estado.Situacao);
+    }
+
+    [Fact]
+    public void ComecandoSemComunicacao_InstanteForaDeUtc_Falha()
+    {
+        Assert.Throws<ArgumentException>(() => new EstadoMaquinaIot(Config(), null, DateTime.Now));
+    }
+
     // ── Encerramento ──────────────────────────────────────────────
 
     [Fact]

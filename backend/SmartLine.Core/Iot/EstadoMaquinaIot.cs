@@ -86,11 +86,26 @@ public sealed class EstadoMaquinaIot
     /// enquanto o backend esteve fora. Sem eles, a primeira amostra só vira
     /// referência.
     /// </param>
+    /// <param name="semComunicacaoDesdeUtc">
+    /// Começa já sem comunicação desde este instante (backend reiniciado: o
+    /// período fora do ar foi registrado como sem comunicação). A primeira
+    /// amostra emite <see cref="ComunicacaoRestabelecida"/>, que fecha esse período.
+    /// </param>
+    /// <exception cref="ArgumentException">Instante não está em UTC.</exception>
     public EstadoMaquinaIot(
         ConfiguracaoColetaIot config,
-        IReadOnlyDictionary<CanalWise, uint>? contadoresRestaurados = null)
+        IReadOnlyDictionary<CanalWise, uint>? contadoresRestaurados = null,
+        DateTime? semComunicacaoDesdeUtc = null)
     {
         _config = config;
+        if (semComunicacaoDesdeUtc is { } desde)
+        {
+            if (desde.Kind != DateTimeKind.Utc)
+                throw new ArgumentException("Instante precisa estar em UTC.", nameof(semComunicacaoDesdeUtc));
+            Situacao = SituacaoMaquina.SemComunicacao;
+            _ultimaAmostraUtc = desde;
+        }
+
         if (contadoresRestaurados is not null)
         {
             foreach (var (canal, valor) in contadoresRestaurados)
