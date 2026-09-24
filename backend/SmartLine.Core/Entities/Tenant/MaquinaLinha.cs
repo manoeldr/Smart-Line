@@ -16,6 +16,10 @@ public class MaquinaLinha
     // contador físico). Quando false, a medição não pede/coleta leitura de Produção,
     // e Performance/OEE ficam indisponíveis (não dá pra calcular sem dado de produção).
     public bool MedeProducao { get; set; } = true;
+    // Semi Automático: segundos sem incremento no contador de produção para considerar
+    // a máquina parada (Z). Precisa ser maior que o filtro de 10 s dos sensores de estado
+    // no WISE, senão a parada nasce sem motivo e é reclassificada segundos depois.
+    public int TempoDeteccaoParadaSegundos { get; set; } = 60;
     public int Ordem { get; set; }
     public bool Ativo { get; set; } = true;
     // Navegação

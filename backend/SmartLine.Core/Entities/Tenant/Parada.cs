@@ -15,9 +15,15 @@ public class Parada
     // Preparado para a futura funcionalidade de captura de foto na parada — ainda não implementada.
     public string? FotoPath { get; set; }
 
+    // Regra que classificou automaticamente (Semi Automático). Nulo quando a parada foi
+    // registrada à mão, ficou não classificada ou foi reclassificada por alguém.
+    public Guid? RegraClassificacaoId { get; set; }
+
     // Navegação
     public Sessao Sessao { get; set; } = null!;
     public MotivoParada? Motivo { get; set; }
+    public RegraClassificacao? RegraClassificacao { get; set; }
+    public ICollection<HistoricoClassificacaoParada> HistoricoClassificacao { get; set; } = [];
 
     /// <summary>
     /// Tipo usado nos cálculos (OEE, MTTR, MTBF, agrupamentos).

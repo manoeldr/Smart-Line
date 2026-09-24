@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SmartLine.Core\SmartLine.Core.csproj" />
     <ProjectReference Include="..\SmartLine.Plc\SmartLine.Plc.csproj" />
+    <ProjectReference Include="..\SmartLine.Infrastructure\SmartLine.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

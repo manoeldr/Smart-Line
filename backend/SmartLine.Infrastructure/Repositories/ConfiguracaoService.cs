@@ -10,10 +10,12 @@ namespace SmartLine.Infrastructure.Repositories;
 public class ConfiguracaoService : IConfiguracaoService
 {
     private readonly SmartLineDbContext _context;
+    private readonly IRegrasPadraoService _regrasPadrao;
 
-    public ConfiguracaoService(SmartLineDbContext context)
+    public ConfiguracaoService(SmartLineDbContext context, IRegrasPadraoService regrasPadrao)
     {
         _context = context;
+        _regrasPadrao = regrasPadrao;
     }
 
     // ── Usuários ──────────────────────────────────────────────
@@ -181,6 +183,8 @@ public class ConfiguracaoService : IConfiguracaoService
         };
         _context.Maquinas.Add(maquina);
         await _context.SaveChangesAsync();
+        // Máquina nova já nasce com as regras padrão do Semi Automático (editáveis depois).
+        await _regrasPadrao.GarantirAsync(maquina.Id);
         return new MaquinaConfDto(maquina.Id.ToString(), maquina.Nome, maquina.Fabricante, maquina.Descricao, maquina.Ativo);
     }
 

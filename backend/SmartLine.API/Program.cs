@@ -46,6 +46,7 @@ builder.Services.AddScoped<ILicencaService, LicencaService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
+builder.Services.AddScoped<IRegrasPadraoService, RegrasPadraoService>();
 
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
@@ -84,6 +85,11 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SmartLineDbContext>();
     db.Database.Migrate();
+
+    // Regras padrão do Semi Automático para toda máquina do catálogo que ainda não tiver
+    // (instalação nova, máquinas vindas de importação). Idempotente: não mexe no que existe.
+    var regrasPadrao = scope.ServiceProvider.GetRequiredService<IRegrasPadraoService>();
+    await regrasPadrao.GarantirParaTodasAsync();
 }
 
 if (app.Environment.IsDevelopment())

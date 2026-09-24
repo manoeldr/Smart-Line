@@ -16,9 +16,17 @@ public class Sessao
     public decimal SobreVelocidade { get; set; } = 0;
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
+    // Coleta automática (Semi Automático/Automático): acompanhamento ao qual a sessão
+    // pertence. Nulo no Manual.
+    public Guid? AcompanhamentoId { get; set; }
+
+    // Nulo em sessões anteriores a este campo e enquanto a sessão está em andamento.
+    public MotivoFechamentoSessao? MotivoFechamento { get; set; }
+
     // Navegação
     public MaquinaLinha MaquinaLinha { get; set; } = null!;
     public Usuario Usuario { get; set; } = null!;
+    public Acompanhamento? Acompanhamento { get; set; }
     public ICollection<Producao> Producoes { get; set; } = [];
     public ICollection<Parada> Paradas { get; set; } = [];
     public ICollection<Medicao> Medicoes { get; set; } = [];

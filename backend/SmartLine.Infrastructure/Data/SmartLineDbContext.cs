@@ -31,6 +31,16 @@ public class SmartLineDbContext : DbContext
     public DbSet<SessaoCampo> SessoesCampo => Set<SessaoCampo>();
     public DbSet<LeituraExtra> LeiturasExtra => Set<LeituraExtra>();
 
+    // Coleta automática — mapeamento em Data/Configurations/ColetaAutomaticaConfiguration.cs
+    public DbSet<ConjuntoRegras> ConjuntosRegras => Set<ConjuntoRegras>();
+    public DbSet<RegraClassificacao> RegrasClassificacao => Set<RegraClassificacao>();
+    public DbSet<CondicaoRegra> CondicoesRegra => Set<CondicaoRegra>();
+    public DbSet<DispositivoIot> DispositivosIot => Set<DispositivoIot>();
+    public DbSet<Acompanhamento> Acompanhamentos => Set<Acompanhamento>();
+    public DbSet<AcompanhamentoCanal> AcompanhamentoCanais => Set<AcompanhamentoCanal>();
+    public DbSet<HistoricoClassificacaoParada> HistoricosClassificacaoParada => Set<HistoricoClassificacaoParada>();
+    public DbSet<PeriodoSemComunicacao> PeriodosSemComunicacao => Set<PeriodoSemComunicacao>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
