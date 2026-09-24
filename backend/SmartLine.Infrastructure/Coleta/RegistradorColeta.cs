@@ -3,14 +3,16 @@ using SmartLine.Core.Coleta;
 using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
+using SmartLine.Core.Iot;
 using SmartLine.Infrastructure.Data;
 
 namespace SmartLine.Infrastructure.Coleta;
 
 /// <summary>
-/// Paradas e comunicação. A produção (<see cref="ProducaoApurada"/>) é
-/// acumulada em memória e consolidada a cada intervalo pelo serviço de coleta,
-/// então aqui é ignorada; <see cref="ContadorReiniciado"/> é só diagnóstico.
+/// Paradas, comunicação, produção consolidada e virada do dia.
+/// Em <see cref="RegistrarAsync"/>, <see cref="ProducaoApurada"/> é ignorada:
+/// o serviço de coleta soma em memória e grava por <see cref="ConsolidarProducaoAsync"/>.
+/// <see cref="ContadorReiniciado"/> é só diagnóstico.
 /// </summary>
 public class RegistradorColeta : IRegistradorColeta
 {
@@ -67,11 +69,162 @@ public class RegistradorColeta : IRegistradorColeta
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    // ── Produção ────────────────────────────────────────────────────
+
+    public async Task ConsolidarProducaoAsync(
+        Guid acompanhamentoId,
+        DateTime instanteUtc,
+        ProducaoPendente pendente,
+        IReadOnlyDictionary<CanalWise, uint>? contadoresBrutos,
+        CancellationToken cancellationToken = default)
+    {
+        var sessao = await SessaoAbertaComProducaoAsync(acompanhamentoId, cancellationToken);
+        if (sessao is null)
+            return;
+
+        GravarLeitura(sessao, instanteUtc, pendente);
+        await GuardarContadoresAsync(acompanhamentoId, instanteUtc, contadoresBrutos, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    // ── Virada do dia ───────────────────────────────────────────────
+
+    public async Task VirarDiaAsync(
+        Guid acompanhamentoId,
+        DateTime viradaUtc,
+        ProducaoPendente pendente,
+        IReadOnlyDictionary<CanalWise, uint>? contadoresBrutos,
+        CancellationToken cancellationToken = default)
+    {
+        var sessao = await SessaoAbertaComProducaoAsync(acompanhamentoId, cancellationToken, comParadas: true);
+        if (sessao is null || sessao.Inicio >= viradaUtc)
+            return; // finalizado, ou esta virada já foi feita
+
+        // 1. O que foi produzido até aqui fica no dia que termina.
+        GravarLeitura(sessao, viradaUtc, pendente);
+        await GuardarContadoresAsync(acompanhamentoId, viradaUtc, contadoresBrutos, cancellationToken);
+
+        // 2. Fecha o dia.
+        var paradaEmCurso = sessao.Paradas.FirstOrDefault(p => p.Fim is null);
+        FecharParadaAberta(sessao, viradaUtc);
+        sessao.Fim = viradaUtc;
+        sessao.Status = StatusSessao.Finalizada;
+        sessao.MotivoFechamento = MotivoFechamentoSessao.ViradaDoDia;
+
+        // 3. Abre o novo dia, com os mesmos dados de quem iniciou a coleta.
+        var nova = new Sessao
+        {
+            Id = Guid.NewGuid(),
+            MaquinaLinhaId = sessao.MaquinaLinhaId,
+            UsuarioId = sessao.UsuarioId,
+            AcompanhamentoId = acompanhamentoId,
+            Inicio = viradaUtc,
+            Status = StatusSessao.EmAndamento,
+            TipoColeta = sessao.TipoColeta,
+            VelocidadeNominal = sessao.VelocidadeNominal,
+            SobreVelocidade = sessao.SobreVelocidade,
+            CriadoEm = viradaUtc
+        };
+        nova.Producoes.Add(new Producao { Id = Guid.NewGuid(), Quantidade = 0, Refugo = 0, Hora = viradaUtc });
+        _context.Sessoes.Add(nova);
+
+        // 4. A parada em curso continua no novo dia, com a mesma classificação — inclusive
+        //    a que alguém já tenha dado à mão, que vale para a parada física inteira.
+        if (paradaEmCurso is not null)
+        {
+            var continuacao = AbrirParada(nova, viradaUtc,
+                new ClassificacaoParada(TipoParada.Interna, paradaEmCurso.MotivoId, paradaEmCurso.RegraClassificacaoId),
+                historicoDoSistema: false);
+
+            // O histórico do novo trecho repete a última classificação, com o mesmo autor
+            // (o sistema ou quem classificou à mão), para cada trecho ter o seu registro.
+            var ultimaClassificacao = await _context.HistoricosClassificacaoParada
+                .Where(h => h.ParadaId == paradaEmCurso.Id)
+                .OrderByDescending(h => h.AlteradoEm)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (ultimaClassificacao is not null)
+            {
+                _context.HistoricosClassificacaoParada.Add(new HistoricoClassificacaoParada
+                {
+                    Id = Guid.NewGuid(),
+                    ParadaId = continuacao.Id,
+                    MotivoAnteriorId = null,
+                    MotivoNovoId = ultimaClassificacao.MotivoNovoId,
+                    UsuarioId = ultimaClassificacao.UsuarioId,
+                    AlteradoEm = viradaUtc
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    // ── Apoio ───────────────────────────────────────────────────────
+
+    private async Task<Sessao?> SessaoAbertaComProducaoAsync(Guid acompanhamentoId, CancellationToken cancellationToken, bool comParadas = false)
+    {
+        IQueryable<Sessao> q = _context.Sessoes.Include(s => s.Producoes);
+        if (comParadas)
+            q = q.Include(s => s.Paradas);
+        return await q.FirstOrDefaultAsync(s => s.AcompanhamentoId == acompanhamentoId
+                                                && s.Status == StatusSessao.EmAndamento, cancellationToken);
+    }
+
+    /// <summary>
+    /// Nova leitura com o total da sessão (última + pendente), como o Manual
+    /// grava o valor do contador. O OEE faz última − inicial.
+    /// </summary>
+    private void GravarLeitura(Sessao sessao, DateTime instante, ProducaoPendente pendente)
+    {
+        if (pendente.Vazia)
+            return;
+
+        var ultima = sessao.Producoes.OrderByDescending(p => p.Hora).FirstOrDefault();
+        var leitura = new Producao
+        {
+            Id = Guid.NewGuid(),
+            SessaoId = sessao.Id,
+            Quantidade = Somar(ultima?.Quantidade ?? 0, pendente.Garrafas),
+            Refugo = Somar(ultima?.Refugo ?? 0, pendente.Rejeito),
+            // Duas gravações no mesmo instante (ex.: consolidação e virada juntas) somariam
+            // leituras com a mesma hora; empurra 1 ms para manter a ordem sem ambiguidade.
+            Hora = ultima is not null && instante <= ultima.Hora ? ultima.Hora.AddMilliseconds(1) : instante
+        };
+        sessao.Producoes.Add(leitura);
+        _context.Producoes.Add(leitura);
+    }
+
+    /// <summary>A coluna é int; um dia de garrafas cabe com folga, mas não deixa estourar em silêncio.</summary>
+    private static int Somar(int atual, long incremento) =>
+        (int)Math.Min(int.MaxValue, atual + Math.Max(0, incremento));
+
+    private async Task GuardarContadoresAsync(
+        Guid acompanhamentoId,
+        DateTime instante,
+        IReadOnlyDictionary<CanalWise, uint>? contadoresBrutos,
+        CancellationToken cancellationToken)
+    {
+        if (contadoresBrutos is null || contadoresBrutos.Count == 0)
+            return;
+
+        var canais = await _context.AcompanhamentoCanais
+            .Where(c => c.AcompanhamentoId == acompanhamentoId)
+            .ToListAsync(cancellationToken);
+        foreach (var canal in canais)
+        {
+            if (contadoresBrutos.TryGetValue(canal.Canal, out var valor))
+            {
+                canal.UltimoValorBruto = valor;
+                canal.UltimoValorEm = instante;
+            }
+        }
+    }
+
     private static bool Relevante(EventoColeta e) =>
         e is ParadaIniciada or ParadaReclassificada or ParadaEncerrada
             or ComunicacaoPerdida or ComunicacaoRestabelecida;
 
-    private void AbrirParada(Sessao sessao, DateTime instante, ClassificacaoParada classificacao)
+    private Parada AbrirParada(Sessao sessao, DateTime instante, ClassificacaoParada classificacao, bool historicoDoSistema = true)
     {
         // Nunca duas abertas: se sobrou uma (evento perdido), fecha antes.
         FecharParadaAberta(sessao, instante);
@@ -93,7 +246,7 @@ public class RegistradorColeta : IRegistradorColeta
 
         // Primeiro registro do histórico = o que o sensor disse (usuário nulo). Parada não
         // classificada não tem o que registrar; o histórico começa quando alguém classificar.
-        if (!classificacao.EhNaoClassificada)
+        if (historicoDoSistema && !classificacao.EhNaoClassificada)
         {
             _context.HistoricosClassificacaoParada.Add(new HistoricoClassificacaoParada
             {
@@ -105,6 +258,8 @@ public class RegistradorColeta : IRegistradorColeta
                 AlteradoEm = inicio
             });
         }
+
+        return parada;
     }
 
     private static void FecharParadaAberta(Sessao sessao, DateTime instante)

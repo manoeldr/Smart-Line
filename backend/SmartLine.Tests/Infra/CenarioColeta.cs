@@ -67,6 +67,30 @@ internal sealed class CenarioColeta : IDisposable
         await new RegistradorColeta(db).RegistrarAsync(Acompanhamento, eventos);
     }
 
+    public async Task Consolidar(DateTime instante, long garrafas, long rejeito = 0, IReadOnlyDictionary<CanalWise, uint>? brutos = null)
+    {
+        await using var db = Banco.NovoContexto();
+        await new RegistradorColeta(db).ConsolidarProducaoAsync(Acompanhamento, instante, new ProducaoPendente(garrafas, rejeito), brutos);
+    }
+
+    public async Task Virar(DateTime virada, long garrafas = 0, long rejeito = 0)
+    {
+        await using var db = Banco.NovoContexto();
+        await new RegistradorColeta(db).VirarDiaAsync(Acompanhamento, virada, new ProducaoPendente(garrafas, rejeito), null);
+    }
+
+    public List<Sessao> Sessoes()
+    {
+        using var db = Banco.NovoContexto();
+        return db.Sessoes
+            .Include(s => s.Producoes)
+            .Include(s => s.Paradas).ThenInclude(p => p.Motivo)
+            .Include(s => s.Paradas).ThenInclude(p => p.HistoricoClassificacao)
+            .Where(s => s.AcompanhamentoId == Acompanhamento)
+            .OrderBy(s => s.Inicio)
+            .ToList();
+    }
+
     public async Task<ConfiguracaoColetaIot> Configuracao()
     {
         await using var db = Banco.NovoContexto();

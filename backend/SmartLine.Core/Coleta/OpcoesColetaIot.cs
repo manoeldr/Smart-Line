@@ -15,4 +15,7 @@ public sealed class OpcoesColetaIot
 
     /// <summary>De quanto em quanto tempo a produção acumulada vira uma leitura no banco.</summary>
     public TimeSpan IntervaloConsolidacao { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Fuso em que a sessão vira o dia (meia-noite local).</summary>
+    public TimeZoneInfo Fuso { get; init; } = CalendarioColeta.FusoPadrao;
 }
