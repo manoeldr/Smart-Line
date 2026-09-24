@@ -48,6 +48,7 @@ builder.Services.AddScoped<IParadaService, ParadaService>();
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
 builder.Services.AddScoped<IRegrasPadraoService, RegrasPadraoService>();
 builder.Services.AddScoped<IAcompanhamentoService, AcompanhamentoService>();
+builder.Services.AddScoped<IRegistradorColeta, SmartLine.Infrastructure.Coleta.RegistradorColeta>();
 
 // Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
 builder.Services.AddSingleton(TimeProvider.System);
