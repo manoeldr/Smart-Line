@@ -47,6 +47,11 @@ builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();
 builder.Services.AddScoped<IConfiguracaoService, ConfiguracaoService>();
 builder.Services.AddScoped<IRegrasPadraoService, RegrasPadraoService>();
+builder.Services.AddScoped<IAcompanhamentoService, AcompanhamentoService>();
+
+// Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(new SmartLine.Core.Coleta.OpcoesColetaIot());
 
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
