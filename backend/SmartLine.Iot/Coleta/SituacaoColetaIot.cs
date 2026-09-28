@@ -21,3 +21,8 @@ public sealed record SituacaoColetaIot(
     ProducaoPendente ProducaoPendente,
     IReadOnlyDictionary<CanalWise, bool> Sensores,
     IReadOnlyDictionary<CanalWise, uint> Contadores);
+
+/// <summary>Um IP publicando no broker sem WISE ativo cadastrado.</summary>
+/// <param name="ClientId">Identificação MQTT configurada no WISE (ajuda a saber qual é).</param>
+/// <param name="Topico">Tópico da última mensagem (no WISE real, traz o MAC).</param>
+public sealed record WiseDesconhecido(string EnderecoIp, string ClientId, string Topico, DateTime UltimaMensagemUtc);

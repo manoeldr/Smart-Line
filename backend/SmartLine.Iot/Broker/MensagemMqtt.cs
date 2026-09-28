@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.Channels;
+using SmartLine.Core.Iot;
 
 namespace SmartLine.Iot.Broker;
 

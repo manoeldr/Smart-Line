@@ -1,7 +1,9 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MQTTnet.Server;
+using SmartLine.Core.Iot;
 
 namespace SmartLine.Iot.Broker;
 
@@ -33,6 +35,9 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
     /// </summary>
     private const string ChaveIpNaSessao = "SmartLine.EnderecoIp";
 
+    /// <summary>Conexões abertas agora: ClientId → IP.</summary>
+    private readonly ConcurrentDictionary<string, string> _conexoes = new();
+
     private MqttServer? _servidor;
 
     public BrokerMqttService(
@@ -49,6 +54,9 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
 
     /// <summary>Broker aberto e aceitando conexões.</summary>
     public bool EmExecucao => _servidor?.IsStarted == true;
+
+    /// <summary>IPs com conexão MQTT aberta agora (tela de dispositivos).</summary>
+    public IReadOnlySet<string> IpsConectados() => _conexoes.Values.ToHashSet();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -69,11 +77,15 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
         {
             var ip = EnderecoRede.Normalizar(e.RemoteEndPoint) ?? string.Empty;
             e.SessionItems[ChaveIpNaSessao] = ip;
+            _conexoes[e.ClientId] = ip;
             _log.LogInformation("Dispositivo conectado ao broker: IP {EnderecoIp} (ClientId {ClientId})", ip, e.ClientId);
             return Task.CompletedTask;
         };
         servidor.ClientDisconnectedAsync += e =>
         {
+            // Takeover: o mesmo ClientId reconectou e a conexão nova já foi anotada.
+            if (e.DisconnectType != MqttClientDisconnectType.Takeover)
+                _conexoes.TryRemove(e.ClientId, out _);
             _log.LogWarning("Dispositivo desconectado do broker: {ClientId}", e.ClientId);
             return Task.CompletedTask;
         };

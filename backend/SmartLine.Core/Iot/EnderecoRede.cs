@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace SmartLine.Iot.Broker;
+namespace SmartLine.Core.Iot;
 
 /// <summary>
 /// Forma única de escrever um IP, usada tanto no broker (IP de quem conectou)
@@ -30,8 +30,16 @@ public static class EnderecoRede
 
     /// <summary>
     /// IPAddress.TryParse aceita formas estranhas ("10" vira 0.0.0.10, "1.2" vira
-    /// 1.0.0.2). No cadastro, IPv4 só com os quatro números; IPv6 com ':'.
+    /// 1.0.0.2, e "192.168.010.021" vira 192.168.8.17, porque zero à esquerda é
+    /// lido como octal). No cadastro, IPv4 só com os quatro números e sem zero à
+    /// esquerda; IPv6 com ':'.
     /// </summary>
-    private static bool TemFormaDeIp(string texto) =>
-        texto.Contains(':') || texto.Split('.').Length == 4;
+    private static bool TemFormaDeIp(string texto)
+    {
+        if (texto.Contains(':'))
+            return true;
+
+        var partes = texto.Split('.');
+        return partes.Length == 4 && partes.All(p => p.Length is >= 1 and <= 3 && (p.Length == 1 || p[0] != '0'));
+    }
 }

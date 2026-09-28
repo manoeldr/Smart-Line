@@ -75,6 +75,7 @@ public sealed class ColetaIotService : BackgroundService
     private readonly Dictionary<string, DateTime> _ultimaMensagemAnotada = new();
 
     private readonly ConcurrentDictionary<Guid, SituacaoColetaIot> _situacoes = new();
+    private readonly ConcurrentDictionary<string, WiseDesconhecido> _desconhecidos = new();
     private readonly TaskCompletionSource _retomadaConcluida = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private long _processadas;
     private long _descartadas;
@@ -108,6 +109,14 @@ public sealed class ColetaIotService : BackgroundService
 
     /// <summary>Estado atual das máquinas em coleta.</summary>
     public IReadOnlyCollection<SituacaoColetaIot> Situacoes() => _situacoes.Values.ToList();
+
+    /// <summary>
+    /// IPs que estão publicando sem WISE ativo cadastrado, com a última
+    /// mensagem de cada um. Ajuda no cadastro: o WISE já aparece aqui antes de
+    /// ser cadastrado. Some da lista quando o IP é cadastrado.
+    /// </summary>
+    public IReadOnlyCollection<WiseDesconhecido> WiseDesconhecidos() =>
+        _desconhecidos.Values.OrderBy(w => w.EnderecoIp).ToList();
 
     /// <summary>Estado atual de uma máquina; nulo se ela não está em coleta.</summary>
     public SituacaoColetaIot? Situacao(Guid maquinaLinhaId) =>
@@ -306,6 +315,8 @@ public sealed class ColetaIotService : BackgroundService
         if (maquina is null)
         {
             Interlocked.Increment(ref _descartadas);
+            _desconhecidos[mensagem.EnderecoIp] =
+                new WiseDesconhecido(mensagem.EnderecoIp, mensagem.ClientId, mensagem.Topico, mensagem.RecebidaEmUtc);
             // Um aviso por IP: um WISE sem cadastro publica a cada poucos segundos.
             if (_ipsDesconhecidosAvisados.Add(mensagem.EnderecoIp))
             {
@@ -317,6 +328,7 @@ public sealed class ColetaIotService : BackgroundService
             return;
         }
 
+        _desconhecidos.TryRemove(mensagem.EnderecoIp, out _);
         if (_ipsDesconhecidosAvisados.Remove(mensagem.EnderecoIp))
             _log.LogInformation("WISE do IP {EnderecoIp} agora está cadastrado.", mensagem.EnderecoIp);
 

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using MQTTnet;
 using MQTTnet.Protocol;
+using SmartLine.Core.Iot;
 using SmartLine.Iot.Broker;
 
 namespace SmartLine.Tests.Iot;
@@ -169,6 +170,8 @@ public class EnderecoRedeTests
     [InlineData("192.168.10")]
     [InlineData("10")]
     [InlineData("192.168.10.300")]
+    [InlineData("192.168.010.21")] // zero à esquerda: o .NET leria 010 como octal (8)
+    [InlineData("192.168..21")]
     public void TextoQueNaoEhIp_Nulo(string? texto)
     {
         Assert.Null(EnderecoRede.Normalizar(texto));

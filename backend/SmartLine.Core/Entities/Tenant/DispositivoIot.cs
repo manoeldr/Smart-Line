@@ -14,8 +14,8 @@ public class DispositivoIot
     /// mensagem chega à máquina certa: o broker anota o IP de cada conexão e a
     /// coleta procura o dispositivo com esse endereço. Por isso o WISE precisa
     /// de IP fixo (não DHCP). Gravado sempre na forma canônica (ver
-    /// <c>EnderecoRede.Normalizar</c>), para "192.168.010.021" e
-    /// "192.168.10.21" não virarem dois cadastros.
+    /// <c>EnderecoRede.Normalizar</c>), a mesma que o broker usa para o IP de
+    /// quem conectou: só assim os dois batem.
     /// </summary>
     public string EnderecoIp { get; set; } = string.Empty;
 
