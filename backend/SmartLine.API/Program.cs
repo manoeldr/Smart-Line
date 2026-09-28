@@ -8,6 +8,7 @@ using SmartLine.Core.Services;
 using SmartLine.Infrastructure.Data;
 using SmartLine.Infrastructure.Repositories;
 using SmartLine.Iot.Broker;
+using SmartLine.Iot.Coleta;
 using System.Text;
 
 // Procura o .env primeiro ao lado do executável (cenário empacotado/produção),
@@ -51,6 +52,7 @@ builder.Services.AddScoped<IRegrasPadraoService, RegrasPadraoService>();
 builder.Services.AddScoped<IAcompanhamentoService, AcompanhamentoService>();
 builder.Services.AddScoped<IRegistradorColeta, SmartLine.Infrastructure.Coleta.RegistradorColeta>();
 builder.Services.AddScoped<IRetomadaColetaService, SmartLine.Infrastructure.Coleta.RetomadaColetaService>();
+builder.Services.AddScoped<ILocalizadorColetaIot, SmartLine.Infrastructure.Coleta.LocalizadorColetaIot>();
 
 // Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -64,6 +66,12 @@ builder.Services.AddSingleton(OpcoesBrokerMqtt.DoAmbiente());
 builder.Services.AddSingleton<CaixaDeEntradaMqtt>();
 builder.Services.AddSingleton<BrokerMqttService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BrokerMqttService>());
+
+// Motor da coleta: consome o que o broker recebeu e grava paradas, comunicação e produção.
+// Registrado depois do broker (sobe depois dele). Singleton para a tela ao vivo (passo 5)
+// consultar o estado de cada máquina.
+builder.Services.AddSingleton<ColetaIotService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ColetaIotService>());
 
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
