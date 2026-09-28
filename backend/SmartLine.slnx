@@ -4,5 +4,6 @@
   <Project Path="SmartLine.Infrastructure/SmartLine.Infrastructure.csproj" />
   <Project Path="SmartLine.Iot/SmartLine.Iot.csproj" />
   <Project Path="SmartLine.Plc/SmartLine.Plc.csproj" />
+  <Project Path="SmartLine.SimuladorWise/SmartLine.SimuladorWise.csproj" />
   <Project Path="SmartLine.Tests/SmartLine.Tests.csproj" />
 </Solution>
