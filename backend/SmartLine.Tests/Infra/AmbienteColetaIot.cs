@@ -30,7 +30,11 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
     private readonly ServiceProvider _servicos;
     private bool _iniciado;
 
-    public AmbienteColetaIot(TimeProvider tempo, int tempoDeteccaoParadaSegundos = 60)
+    /// <param name="relogioAutomatico">
+    /// Falso (padrão): o relógio só roda quando o teste chama
+    /// <see cref="ColetaIotService.VerificarAgoraAsync"/>, o que deixa o teste determinístico.
+    /// </param>
+    public AmbienteColetaIot(TimeProvider tempo, int tempoDeteccaoParadaSegundos = 60, bool relogioAutomatico = false)
     {
         Tempo = tempo;
         using (var db = Banco.NovoContexto())
@@ -61,10 +65,14 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
         servicos.AddScoped<IRetomadaColetaService, RetomadaColetaService>();
         servicos.AddScoped<ILocalizadorColetaIot, LocalizadorColetaIot>();
         servicos.AddSingleton(tempo);
-        servicos.AddSingleton(new OpcoesColetaIot());
+        var opcoes = new OpcoesColetaIot
+        {
+            IntervaloVerificacao = relogioAutomatico ? TimeSpan.FromSeconds(1) : Timeout.InfiniteTimeSpan
+        };
+        servicos.AddSingleton(opcoes);
         _servicos = servicos.BuildServiceProvider();
 
-        Servico = new ColetaIotService(Caixa, _servicos.GetRequiredService<IServiceScopeFactory>(), Log);
+        Servico = new ColetaIotService(Caixa, _servicos.GetRequiredService<IServiceScopeFactory>(), tempo, opcoes, Log);
     }
 
     public BancoEmArquivo Banco { get; } = new();
@@ -86,6 +94,13 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
         _iniciado = true;
         await Servico.StartAsync(CancellationToken.None);
         await Servico.RetomadaConcluida.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    /// <summary>Desliga o motor como no fim do app (grava o pendente).</summary>
+    public async Task PararAsync()
+    {
+        _iniciado = false;
+        await Servico.StopAsync(CancellationToken.None);
     }
 
     public async Task<Guid> IniciarColetaAsync(Guid maquina)
@@ -144,6 +159,25 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
             .Where(p => p.Sessao.AcompanhamentoId == acompanhamento)
             .OrderBy(p => p.Inicio)
             .ToList();
+    }
+
+    public List<Sessao> Sessoes(Guid acompanhamento)
+    {
+        using var db = Banco.NovoContexto();
+        return db.Sessoes
+            .Include(s => s.Producoes)
+            .Where(s => s.AcompanhamentoId == acompanhamento)
+            .OrderBy(s => s.Inicio)
+            .ToList();
+    }
+
+    /// <summary>Última leitura de produção da sessão (a de maior hora).</summary>
+    public static Producao UltimaLeitura(Sessao sessao) => sessao.Producoes.OrderBy(p => p.Hora).Last();
+
+    public DateTime? UltimaMensagemDoWise(string ip)
+    {
+        using var db = Banco.NovoContexto();
+        return db.DispositivosIot.Single(d => d.EnderecoIp == ip).UltimaMensagemEm;
     }
 
     public List<PeriodoSemComunicacao> Periodos(Guid maquina)

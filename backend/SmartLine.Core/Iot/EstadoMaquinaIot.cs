@@ -56,6 +56,7 @@ public sealed class EstadoMaquinaIot
     private DateTime _ultimaAmostraUtc;
     private DateTime _ultimoIncrementoUtc;
     private DateTime _inicioParadaUtc;
+    private readonly DateTime? _inicioColetaUtc;
 
     /// <summary>Situação atual.</summary>
     public SituacaoMaquina Situacao { get; private set; } = SituacaoMaquina.AguardandoPrimeiraAmostra;
@@ -91,13 +92,23 @@ public sealed class EstadoMaquinaIot
     /// período fora do ar foi registrado como sem comunicação). A primeira
     /// amostra emite <see cref="ComunicacaoRestabelecida"/>, que fecha esse período.
     /// </param>
+    /// <param name="inicioColetaUtc">
+    /// Quando a coleta foi iniciada. Com ele, se nenhuma mensagem chegar em
+    /// <see cref="ConfiguracaoColetaIot.TempoSemComunicacao"/>, a comunicação é
+    /// dada como perdida desde o início (WISE desligado, IP errado, rede fora).
+    /// Sem ele, a coleta espera a primeira mensagem indefinidamente.
+    /// </param>
     /// <exception cref="ArgumentException">Instante não está em UTC.</exception>
     public EstadoMaquinaIot(
         ConfiguracaoColetaIot config,
         IReadOnlyDictionary<CanalWise, uint>? contadoresRestaurados = null,
-        DateTime? semComunicacaoDesdeUtc = null)
+        DateTime? semComunicacaoDesdeUtc = null,
+        DateTime? inicioColetaUtc = null)
     {
         _config = config;
+        if (inicioColetaUtc is { Kind: not DateTimeKind.Utc })
+            throw new ArgumentException("Instante precisa estar em UTC.", nameof(inicioColetaUtc));
+        _inicioColetaUtc = inicioColetaUtc;
         if (semComunicacaoDesdeUtc is { } desde)
         {
             if (desde.Kind != DateTimeKind.Utc)
@@ -240,7 +251,19 @@ public sealed class EstadoMaquinaIot
 
     private void VerificarComunicacao(DateTime agora, List<EventoColeta> eventos)
     {
-        if (Situacao is SituacaoMaquina.AguardandoPrimeiraAmostra or SituacaoMaquina.SemComunicacao)
+        if (Situacao == SituacaoMaquina.AguardandoPrimeiraAmostra)
+        {
+            // Nunca chegou nada: sem comunicação desde o início da coleta.
+            if (_inicioColetaUtc is { } inicio && agora - inicio > _config.TempoSemComunicacao)
+            {
+                eventos.Add(new ComunicacaoPerdida(inicio));
+                Situacao = SituacaoMaquina.SemComunicacao;
+                _ultimaAmostraUtc = inicio;
+            }
+            return;
+        }
+
+        if (Situacao == SituacaoMaquina.SemComunicacao)
             return;
 
         if (agora - _ultimaAmostraUtc <= _config.TempoSemComunicacao)

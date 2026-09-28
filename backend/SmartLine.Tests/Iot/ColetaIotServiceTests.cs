@@ -160,8 +160,8 @@ public class ColetaIotServiceTests : IAsyncLifetime
 
         _tempo.Advance(TimeSpan.FromMinutes(1));
         var segunda = await _amb.IniciarColetaAsync(_amb.MaquinaA);
-        Enviar(AmbienteColetaIot.IpA, 60, s2: 300); // referência da nova coleta
-        Enviar(AmbienteColetaIot.IpA, 80, s2: 350);
+        Enviar(AmbienteColetaIot.IpA, 180, s2: 300); // referência da nova coleta
+        Enviar(AmbienteColetaIot.IpA, 200, s2: 350);
         await Aguardar();
 
         var s = _amb.Servico.Situacao(_amb.MaquinaA)!;
