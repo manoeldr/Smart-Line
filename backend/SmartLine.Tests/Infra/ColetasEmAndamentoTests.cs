@@ -33,6 +33,7 @@ public class ColetasEmAndamentoTests : IDisposable
         Assert.Equal((0L, 0L), (r.ProducaoConsolidada, r.RefugoConsolidado));
         Assert.Null(r.ParadaAberta);
         Assert.Null(r.SemComunicacaoDesde);
+        Assert.Equal(0, r.ParadasNaoClassificadas);
     }
 
     [Fact]
@@ -55,7 +56,9 @@ public class ColetasEmAndamentoTests : IDisposable
     {
         await _c.Registrar(new ParadaIniciada(Em(60), ClassificacaoParada.NaoClassificada));
 
-        var parada = Assert.Single(await Listar()).ParadaAberta!;
+        var r = Assert.Single(await Listar());
+        var parada = r.ParadaAberta!;
+        Assert.Equal(1, r.ParadasNaoClassificadas);
 
         Assert.Equal(((Guid?)null, (string?)null, TipoParada.Interna), (parada.MotivoId, parada.Motivo, parada.Tipo));
     }

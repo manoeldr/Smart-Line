@@ -76,6 +76,7 @@ public record AcompanhamentoIniciadoDto(Guid AcompanhamentoId, Guid MaquinaLinha
 /// <param name="ProducaoConsolidada">Garrafas já gravadas na sessão do dia (última leitura).</param>
 /// <param name="UltimaConsolidacao">Hora da última leitura gravada.</param>
 /// <param name="SemComunicacaoDesde">Início do período sem comunicação em aberto, se houver.</param>
+/// <param name="ParadasNaoClassificadas">Paradas sem motivo na sessão do dia (pendentes de classificação).</param>
 public record ColetaIotResumoDto(
     Guid AcompanhamentoId,
     Guid MaquinaLinhaId,
@@ -96,7 +97,8 @@ public record ColetaIotResumoDto(
     long RefugoConsolidado,
     DateTime? UltimaConsolidacao,
     ParadaAbertaDto? ParadaAberta,
-    DateTime? SemComunicacaoDesde);
+    DateTime? SemComunicacaoDesde,
+    int ParadasNaoClassificadas);
 
 /// <param name="Motivo">Nome do motivo; nulo = não classificada (conta como Interna).</param>
 public record ParadaAbertaDto(Guid ParadaId, DateTime Inicio, Guid? MotivoId, string? Motivo, TipoParada Tipo);

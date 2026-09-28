@@ -54,6 +54,7 @@ builder.Services.AddScoped<IRegistradorColeta, SmartLine.Infrastructure.Coleta.R
 builder.Services.AddScoped<IRetomadaColetaService, SmartLine.Infrastructure.Coleta.RetomadaColetaService>();
 builder.Services.AddScoped<ILocalizadorColetaIot, SmartLine.Infrastructure.Coleta.LocalizadorColetaIot>();
 builder.Services.AddScoped<IDispositivoIotService, DispositivoIotService>();
+builder.Services.AddScoped<IClassificacaoParadaService, ClassificacaoParadaService>();
 
 // Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
 builder.Services.AddSingleton(TimeProvider.System);

@@ -221,6 +221,9 @@ public class AcompanhamentoService : IAcompanhamentoService
                 .Select(p => new { p.Id, p.Inicio, p.MotivoId, Motivo = p.Motivo == null ? null : p.Motivo.Nome, Tipo = p.Motivo == null ? (TipoParada?)null : p.Motivo.Tipo })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var naoClassificadas = sessao is null ? 0 : await _context.Paradas
+                .CountAsync(p => p.SessaoId == sessao.Id && p.MotivoId == null, cancellationToken);
+
             var semComunicacaoDesde = await _context.PeriodosSemComunicacao
                 .Where(p => p.MaquinaLinhaId == a.MaquinaLinhaId && p.Fim == null)
                 .OrderBy(p => p.Inicio)
@@ -235,7 +238,8 @@ public class AcompanhamentoService : IAcompanhamentoService
                 sessao?.Id, sessao?.Inicio, sessao?.VelocidadeNominal ?? 0,
                 ultimaLeitura?.Quantidade ?? 0, ultimaLeitura?.Refugo ?? 0, ultimaLeitura?.Hora,
                 parada is null ? null : new ParadaAbertaDto(parada.Id, parada.Inicio, parada.MotivoId, parada.Motivo, parada.Tipo ?? TipoParada.Interna),
-                semComunicacaoDesde));
+                semComunicacaoDesde,
+                naoClassificadas));
         }
 
         return resumos;
