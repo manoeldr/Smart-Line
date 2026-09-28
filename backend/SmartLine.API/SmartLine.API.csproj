@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SmartLine.Core\SmartLine.Core.csproj" />
     <ProjectReference Include="..\SmartLine.Infrastructure\SmartLine.Infrastructure.csproj" />
+    <ProjectReference Include="..\SmartLine.Iot\SmartLine.Iot.csproj" />
   </ItemGroup>
 
 </Project>

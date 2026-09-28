@@ -7,6 +7,7 @@ using SmartLine.Core.Interfaces;
 using SmartLine.Core.Services;
 using SmartLine.Infrastructure.Data;
 using SmartLine.Infrastructure.Repositories;
+using SmartLine.Iot.Broker;
 using System.Text;
 
 // Procura o .env primeiro ao lado do executável (cenário empacotado/produção),
@@ -54,6 +55,15 @@ builder.Services.AddScoped<IRetomadaColetaService, SmartLine.Infrastructure.Cole
 // Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(new SmartLine.Core.Coleta.OpcoesColetaIot());
+
+// Semi Automático: broker MQTT embutido — o WISE publica direto neste PC (porta 1883).
+// Configurável por MQTT_HABILITADO, MQTT_PORTA e MQTT_LOG_BRUTO (ver OpcoesBrokerMqtt).
+// Singleton registrado também como hosted service, para outras partes poderem consultar
+// se ele está de pé (tela de dispositivos, passo 5).
+builder.Services.AddSingleton(OpcoesBrokerMqtt.DoAmbiente());
+builder.Services.AddSingleton<CaixaDeEntradaMqtt>();
+builder.Services.AddSingleton<BrokerMqttService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BrokerMqttService>());
 
 // JWT
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")

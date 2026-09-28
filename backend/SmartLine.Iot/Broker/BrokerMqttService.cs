@@ -1,0 +1,116 @@
+using System.Buffers;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using MQTTnet.Server;
+
+namespace SmartLine.Iot.Broker;
+
+/// <summary>
+/// Broker MQTT dentro do próprio backend: o WISE publica direto no PC central,
+/// sem servidor externo (mantém a filosofia de um único .exe).
+///
+/// Só recebe e enfileira em <see cref="CaixaDeEntradaMqtt"/>. Não interpreta,
+/// não grava, não aplica regra.
+/// </summary>
+/// <remarks>
+/// Se a porta não abrir (outro broker instalado, porta bloqueada), registra o
+/// erro e segue: o resto do SmartLine funciona normalmente, só a coleta Semi
+/// Automática fica sem dados. Derrubar o app inteiro por causa disso tiraria
+/// também o Manual do ar.
+/// </remarks>
+public sealed class BrokerMqttService : IHostedService, IDisposable
+{
+    private readonly OpcoesBrokerMqtt _opcoes;
+    private readonly CaixaDeEntradaMqtt _caixa;
+    private readonly TimeProvider _tempo;
+    private readonly ILogger<BrokerMqttService> _log;
+
+    private MqttServer? _servidor;
+
+    public BrokerMqttService(
+        OpcoesBrokerMqtt opcoes,
+        CaixaDeEntradaMqtt caixa,
+        TimeProvider tempo,
+        ILogger<BrokerMqttService> log)
+    {
+        _opcoes = opcoes;
+        _caixa = caixa;
+        _tempo = tempo;
+        _log = log;
+    }
+
+    /// <summary>Broker aberto e aceitando conexões.</summary>
+    public bool EmExecucao => _servidor?.IsStarted == true;
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (!_opcoes.Habilitado)
+        {
+            _log.LogInformation("Broker MQTT desabilitado (MQTT_HABILITADO=false). Coleta Semi Automática indisponível nesta máquina.");
+            return;
+        }
+
+        var opcoesServidor = new MqttServerOptionsBuilder()
+            .WithDefaultEndpoint()
+            .WithDefaultEndpointPort(_opcoes.Porta)
+            .Build();
+
+        var servidor = new MqttServerFactory().CreateMqttServer(opcoesServidor);
+        servidor.InterceptingPublishAsync += AoReceberPublicacaoAsync;
+        servidor.ClientConnectedAsync += e =>
+        {
+            _log.LogInformation("Dispositivo conectado ao broker: {ClientId} ({Endereco})", e.ClientId, e.RemoteEndPoint);
+            return Task.CompletedTask;
+        };
+        servidor.ClientDisconnectedAsync += e =>
+        {
+            _log.LogWarning("Dispositivo desconectado do broker: {ClientId}", e.ClientId);
+            return Task.CompletedTask;
+        };
+
+        try
+        {
+            await servidor.StartAsync();
+            _servidor = servidor;
+            _log.LogInformation("Broker MQTT escutando na porta {Porta}.", _opcoes.Porta);
+        }
+        catch (Exception ex)
+        {
+            servidor.Dispose();
+            _log.LogError(ex,
+                "Não foi possível abrir o broker MQTT na porta {Porta}. Verifique se outro programa usa a porta " +
+                "ou se o firewall bloqueia. O SmartLine segue funcionando; a coleta Semi Automática fica sem dados.",
+                _opcoes.Porta);
+        }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_servidor is null)
+            return;
+
+        await _servidor.StopAsync();
+        _log.LogInformation("Broker MQTT encerrado.");
+    }
+
+    public void Dispose() => _servidor?.Dispose();
+
+    private Task AoReceberPublicacaoAsync(InterceptingPublishEventArgs e)
+    {
+        var mensagem = new MensagemMqtt(
+            e.ClientId ?? string.Empty,
+            e.ApplicationMessage.Topic ?? string.Empty,
+            e.ApplicationMessage.Payload.ToArray(),
+            _tempo.GetUtcNow().UtcDateTime);
+
+        _caixa.Publicar(mensagem);
+
+        if (_opcoes.LogBruto)
+        {
+            _log.LogInformation("[MQTT bruto] {ClientId} | {Topico} | {Payload}",
+                mensagem.ClientId, mensagem.Topico, mensagem.PayloadComoTexto);
+        }
+
+        return Task.CompletedTask;
+    }
+}
