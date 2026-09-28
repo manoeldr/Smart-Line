@@ -10,17 +10,17 @@ public class ParserWiseTests
     private static readonly DateTime Chegada = new(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc);
 
     private static ResultadoWise Interpretar(string payload, string topico = "Advantech/00D0C9AABBCC/data") =>
-        ParserWise.Interpretar(new MensagemMqtt("WISE-ENCH", topico, Encoding.UTF8.GetBytes(payload), Chegada));
+        ParserWise.Interpretar(new MensagemMqtt("WISE-ENCH", "192.168.10.21", topico, Encoding.UTF8.GetBytes(payload), Chegada));
 
     // ── Tópico ──────────────────────────────────────────────────────
 
-    [Fact]
-    public void TopicoDeDados_IdentificaPeloMac_EmMaiusculas()
+    [Theory]
+    [InlineData("Advantech/00D0C9AABBCC/data")]
+    [InlineData("Advantech/00d0c9aabbcc/data")]
+    [InlineData("Advantech/ENCHEDORA-01/data")] // o MAC não importa: quem identifica é o IP
+    public void TopicoDeDados_QualquerIdentificacaoNoMeio(string topico)
     {
-        var r = Interpretar("{}", "Advantech/00d0c9aabbcc/data");
-
-        Assert.Equal(TipoResultadoWise.Dados, r.Tipo);
-        Assert.Equal("00D0C9AABBCC", r.Identificador);
+        Assert.Equal(TipoResultadoWise.Dados, Interpretar("{}", topico).Tipo);
     }
 
     [Theory]
@@ -28,7 +28,7 @@ public class ParserWiseTests
     [InlineData("Advantech/00D0C9AABBCC/ctl/do1")]
     [InlineData("Advantech/00D0C9AABBCC/data/extra")]
     [InlineData("OutroFabricante/00D0C9AABBCC/data")]
-    [InlineData("Advantech/XYZ/data")]
+    [InlineData("Advantech//data")]
     public void OutrosTopicos_SaoIgnorados(string topico)
     {
         var r = Interpretar("{\"di1\":true}", topico);
@@ -140,12 +140,11 @@ public class ParserWiseTests
     [InlineData("")]
     [InlineData("nao e json")]
     [InlineData("{\"di1\":")]
-    public void JsonInvalido_Invalida_ComIdentificador(string payload)
+    public void JsonInvalido_Invalida(string payload)
     {
         var r = Interpretar(payload);
 
         Assert.Equal(TipoResultadoWise.Invalida, r.Tipo);
-        Assert.Equal("00D0C9AABBCC", r.Identificador);
         Assert.Null(r.Amostra);
         Assert.Contains("JSON", r.Motivo);
     }
@@ -167,7 +166,7 @@ public class ParserWiseTests
         var estado = new EstadoMaquinaIot(config);
 
         AmostraWise Em(int segundos, string payload) =>
-            ParserWise.Interpretar(new MensagemMqtt("WISE", "Advantech/00D0C9AABBCC/data",
+            ParserWise.Interpretar(new MensagemMqtt("WISE", "192.168.10.21", "Advantech/00D0C9AABBCC/data",
                 Encoding.UTF8.GetBytes(payload), Chegada.AddSeconds(segundos))).Amostra!;
 
         estado.Processar(Em(0, "{\"di2\":1000,\"di8\":false}"));

@@ -8,11 +8,16 @@ namespace SmartLine.Iot.Broker;
 /// Nenhuma interpretação aqui: o parser do WISE (passo 4.2) é quem entende o
 /// conteúdo.
 /// </summary>
-/// <param name="ClientId">Identificação da conexão MQTT (configurada no WISE).</param>
+/// <param name="ClientId">Identificação da conexão MQTT (configurada no WISE). Só informativo.</param>
+/// <param name="EnderecoIp">
+/// IP de onde a mensagem veio, na forma canônica (<see cref="EnderecoRede"/>).
+/// É ele que identifica o WISE e, pelo cadastro, a máquina. Vazio se o broker
+/// não conseguiu determinar (não deveria acontecer em rede TCP).
+/// </param>
 /// <param name="Topico">Tópico em que o dispositivo publicou.</param>
 /// <param name="Payload">Conteúdo bruto.</param>
 /// <param name="RecebidaEmUtc">Hora de chegada no backend, em UTC. É o timestamp da amostra.</param>
-public sealed record MensagemMqtt(string ClientId, string Topico, byte[] Payload, DateTime RecebidaEmUtc)
+public sealed record MensagemMqtt(string ClientId, string EnderecoIp, string Topico, byte[] Payload, DateTime RecebidaEmUtc)
 {
     /// <summary>Conteúdo como texto (o WISE publica JSON).</summary>
     public string PayloadComoTexto => Encoding.UTF8.GetString(Payload);

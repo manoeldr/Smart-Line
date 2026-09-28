@@ -82,6 +82,7 @@ public class BrokerMqttServiceTests : IAsyncLifetime
         await Publicar(wise, "Advantech/00D0C9AABBCC/data", "{\"di1\":true}");
 
         var m = await Proxima();
+        Assert.Equal("127.0.0.1", m.EnderecoIp); // o cliente conectou por 127.0.0.1
         Assert.Equal("WISE-4051-ENCH", m.ClientId);
         Assert.Equal("Advantech/00D0C9AABBCC/data", m.Topico);
         Assert.Equal("{\"di1\":true}", m.PayloadComoTexto);
@@ -133,7 +134,7 @@ public class BrokerMqttServiceTests : IAsyncLifetime
 public class CaixaDeEntradaMqttTests
 {
     private static MensagemMqtt Mensagem(int n) =>
-        new("WISE", "t", Encoding.UTF8.GetBytes(n.ToString()), DateTime.UtcNow);
+        new("WISE", "192.168.10.21", "t", Encoding.UTF8.GetBytes(n.ToString()), DateTime.UtcNow);
 
     [Fact]
     public void FilaCheia_DescartaAMaisAntiga_EConta()
@@ -146,5 +147,45 @@ public class CaixaDeEntradaMqttTests
         Assert.Equal(3, caixa.Descartadas);
         Assert.True(caixa.Leitor.TryRead(out var primeira));
         Assert.Equal("3", primeira.PayloadComoTexto); // 0, 1 e 2 foram descartadas
+    }
+}
+
+public class EnderecoRedeTests
+{
+    [Theory]
+    [InlineData("192.168.10.21", "192.168.10.21")]
+    [InlineData("  192.168.10.21 ", "192.168.10.21")]
+    [InlineData("::ffff:192.168.10.21", "192.168.10.21")] // IPv4 visto por socket IPv6
+    [InlineData("fe80::1", "fe80::1")]
+    public void Texto_ViraFormaCanonica(string texto, string esperado)
+    {
+        Assert.Equal(esperado, EnderecoRede.Normalizar(texto));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("wise-enchedora")]
+    [InlineData("192.168.10")]
+    [InlineData("10")]
+    [InlineData("192.168.10.300")]
+    public void TextoQueNaoEhIp_Nulo(string? texto)
+    {
+        Assert.Null(EnderecoRede.Normalizar(texto));
+    }
+
+    [Fact]
+    public void EndpointIpv4MapeadoEmIpv6_ViraIpv4()
+    {
+        var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse("192.168.10.21").MapToIPv6(), 51234);
+
+        Assert.Equal("192.168.10.21", EnderecoRede.Normalizar(endpoint));
+    }
+
+    [Fact]
+    public void EndpointQueNaoEhIp_Nulo()
+    {
+        Assert.Null(EnderecoRede.Normalizar(new System.Net.DnsEndPoint("wise.local", 1883)));
+        Assert.Null(EnderecoRede.Normalizar((System.Net.EndPoint?)null));
     }
 }

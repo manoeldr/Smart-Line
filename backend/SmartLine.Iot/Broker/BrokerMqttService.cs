@@ -25,6 +25,14 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
     private readonly TimeProvider _tempo;
     private readonly ILogger<BrokerMqttService> _log;
 
+    /// <summary>
+    /// Chave em que o IP de cada conexão fica guardado na sessão MQTT. A
+    /// mensagem publicada não traz o IP de origem; o evento de conexão traz, e
+    /// a MQTTnet garante que ele roda antes de qualquer publicação daquela
+    /// conexão ser processada, na mesma sessão.
+    /// </summary>
+    private const string ChaveIpNaSessao = "SmartLine.EnderecoIp";
+
     private MqttServer? _servidor;
 
     public BrokerMqttService(
@@ -59,7 +67,9 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
         servidor.InterceptingPublishAsync += AoReceberPublicacaoAsync;
         servidor.ClientConnectedAsync += e =>
         {
-            _log.LogInformation("Dispositivo conectado ao broker: {ClientId} ({Endereco})", e.ClientId, e.RemoteEndPoint);
+            var ip = EnderecoRede.Normalizar(e.RemoteEndPoint) ?? string.Empty;
+            e.SessionItems[ChaveIpNaSessao] = ip;
+            _log.LogInformation("Dispositivo conectado ao broker: IP {EnderecoIp} (ClientId {ClientId})", ip, e.ClientId);
             return Task.CompletedTask;
         };
         servidor.ClientDisconnectedAsync += e =>
@@ -99,6 +109,7 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
     {
         var mensagem = new MensagemMqtt(
             e.ClientId ?? string.Empty,
+            e.SessionItems?[ChaveIpNaSessao] as string ?? string.Empty,
             e.ApplicationMessage.Topic ?? string.Empty,
             e.ApplicationMessage.Payload.ToArray(),
             _tempo.GetUtcNow().UtcDateTime);
@@ -107,8 +118,8 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
 
         if (_opcoes.LogBruto)
         {
-            _log.LogInformation("[MQTT bruto] {ClientId} | {Topico} | {Payload}",
-                mensagem.ClientId, mensagem.Topico, mensagem.PayloadComoTexto);
+            _log.LogInformation("[MQTT bruto] {EnderecoIp} | {ClientId} | {Topico} | {Payload}",
+                mensagem.EnderecoIp, mensagem.ClientId, mensagem.Topico, mensagem.PayloadComoTexto);
         }
 
         return Task.CompletedTask;

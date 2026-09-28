@@ -37,6 +37,7 @@ public class AcompanhamentoServiceTests : IDisposable
     }
 
     private readonly Guid _linha;
+    private int _proximoIp = 20;
 
     public void Dispose() => _banco.Dispose();
 
@@ -51,7 +52,7 @@ public class AcompanhamentoServiceTests : IDisposable
         };
         db.MaquinasLinha.Add(ml);
         if (comWise)
-            db.DispositivosIot.Add(new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = ml.Id, Nome = "WISE", IdentificadorMqtt = Guid.NewGuid().ToString("N") });
+            db.DispositivosIot.Add(new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = ml.Id, Nome = "WISE", EnderecoIp = $"192.168.10.{Interlocked.Increment(ref _proximoIp)}" });
         db.SaveChanges();
         return ml.Id;
     }

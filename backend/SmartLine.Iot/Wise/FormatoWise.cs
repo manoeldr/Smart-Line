@@ -16,6 +16,8 @@ namespace SmartLine.Iot.Wise;
 /// Conteúdo: {"s":1,"t":"2024-08-08T17:48:21Z","q":192,"c":0,"di1":true,"di2":false}
 /// </code>
 /// <list type="bullet">
+/// <item>O MAC no tópico é ignorado: o WISE é identificado pelo IP de onde a
+/// mensagem veio (cadastro do dispositivo).</item>
 /// <item><c>diN</c>: entrada digital N (di1 = I0 = S1 ... di8 = I7 = S8).</item>
 /// <item><c>s</c>, <c>t</c>, <c>q</c>, <c>c</c>: sequência, hora do WISE, qualidade
 /// e contador de mensagens. Ignorados: a hora usada é a de chegada no backend
@@ -31,23 +33,16 @@ namespace SmartLine.Iot.Wise;
 /// </remarks>
 public static partial class FormatoWise
 {
-    /// <summary>Tópico de dados: <c>Advantech/&lt;MAC&gt;/data</c>. O MAC identifica o dispositivo.</summary>
-    [GeneratedRegex(@"^Advantech/(?<mac>[0-9A-Fa-f]{12})/data$")]
+    /// <summary>Tópico de dados: <c>Advantech/&lt;qualquer coisa&gt;/data</c> (normalmente o MAC).</summary>
+    [GeneratedRegex(@"^Advantech/[^/]+/data$")]
     private static partial Regex TopicoDados();
 
     /// <summary>Campo de entrada digital: <c>di1</c> a <c>di8</c>.</summary>
     [GeneratedRegex(@"^di(?<n>[1-8])$")]
     private static partial Regex CampoEntrada();
 
-    /// <summary>
-    /// Identificador do dispositivo (MAC em maiúsculas) se o tópico for de dados;
-    /// nulo para qualquer outro tópico (status, controle, etc.).
-    /// </summary>
-    public static string? IdentificadorDoTopicoDeDados(string topico)
-    {
-        var m = TopicoDados().Match(topico);
-        return m.Success ? m.Groups["mac"].Value.ToUpperInvariant() : null;
-    }
+    /// <summary>Tópico de dados? Os demais (status, controle...) são ignorados.</summary>
+    public static bool EhTopicoDeDados(string topico) => TopicoDados().IsMatch(topico);
 
     /// <summary>Canal correspondente ao nome do campo JSON, ou nulo se não for uma entrada.</summary>
     public static CanalWise? CanalDoCampo(string nomeCampo)

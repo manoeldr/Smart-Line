@@ -17,13 +17,11 @@ public enum TipoResultadoWise
     Invalida
 }
 
-/// <param name="Identificador">MAC do WISE (liga a mensagem ao DispositivoIot). Preenchido em Dados e Invalida.</param>
-/// <param name="Amostra">Só em Dados.</param>
+/// <param name="Amostra">Só em Dados. O WISE de origem é o IP da mensagem (<see cref="MensagemMqtt.EnderecoIp"/>).</param>
 /// <param name="Avisos">Campos descartados (ex.: contador com true/false). Não impedem a amostra.</param>
 /// <param name="Motivo">Por que foi ignorada ou é inválida.</param>
 public sealed record ResultadoWise(
     TipoResultadoWise Tipo,
-    string? Identificador,
     AmostraWise? Amostra,
     IReadOnlyList<string> Avisos,
     string? Motivo);
@@ -38,9 +36,8 @@ public static class ParserWise
 {
     public static ResultadoWise Interpretar(MensagemMqtt mensagem)
     {
-        var identificador = FormatoWise.IdentificadorDoTopicoDeDados(mensagem.Topico);
-        if (identificador is null)
-            return new(TipoResultadoWise.Ignorada, null, null, [], $"Tópico não é de dados: {mensagem.Topico}");
+        if (!FormatoWise.EhTopicoDeDados(mensagem.Topico))
+            return new(TipoResultadoWise.Ignorada, null, [], $"Tópico não é de dados: {mensagem.Topico}");
 
         JsonDocument documento;
         try
@@ -49,13 +46,13 @@ public static class ParserWise
         }
         catch (JsonException ex)
         {
-            return new(TipoResultadoWise.Invalida, identificador, null, [], $"Conteúdo não é JSON: {ex.Message}");
+            return new(TipoResultadoWise.Invalida, null, [], $"Conteúdo não é JSON: {ex.Message}");
         }
 
         using (documento)
         {
             if (documento.RootElement.ValueKind != JsonValueKind.Object)
-                return new(TipoResultadoWise.Invalida, identificador, null, [], "Conteúdo JSON não é um objeto.");
+                return new(TipoResultadoWise.Invalida, null, [], "Conteúdo JSON não é um objeto.");
 
             var contadores = new Dictionary<CanalWise, uint>();
             var estados = new Dictionary<CanalWise, bool>();
@@ -90,7 +87,7 @@ public static class ParserWise
                 Contadores = contadores,
                 Estados = estados
             };
-            return new(TipoResultadoWise.Dados, identificador, amostra, avisos, null);
+            return new(TipoResultadoWise.Dados, amostra, avisos, null);
         }
     }
 }

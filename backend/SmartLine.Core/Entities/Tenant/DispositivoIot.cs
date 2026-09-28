@@ -10,14 +10,14 @@ public class DispositivoIot
     public string Nome { get; set; } = string.Empty;
 
     /// <summary>
-    /// Como o dispositivo se identifica nas mensagens MQTT (ClientId ou MAC,
-    /// conforme o formato do firmware, a confirmar na bancada). É por aqui que
-    /// uma mensagem chega à máquina certa.
+    /// IP fixo configurado no WISE (ex.: "192.168.10.21"). É por ele que uma
+    /// mensagem chega à máquina certa: o broker anota o IP de cada conexão e a
+    /// coleta procura o dispositivo com esse endereço. Por isso o WISE precisa
+    /// de IP fixo (não DHCP). Gravado sempre na forma canônica (ver
+    /// <c>EnderecoRede.Normalizar</c>), para "192.168.010.021" e
+    /// "192.168.10.21" não virarem dois cadastros.
     /// </summary>
-    public string IdentificadorMqtt { get; set; } = string.Empty;
-
-    /// <summary>Informativo, para diagnóstico de rede.</summary>
-    public string? EnderecoIp { get; set; }
+    public string EnderecoIp { get; set; } = string.Empty;
 
     public bool Ativo { get; set; } = true;
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;

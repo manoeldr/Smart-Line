@@ -40,7 +40,7 @@ internal sealed class CenarioColeta : IDisposable
                 new Maquina { Id = MaquinaCatalogo, Nome = "Enchedora", Ativo = true },
                 new Usuario { Id = Usuario, Nome = "Auditor", Login = "auditor", SenhaHash = "x", Nivel = NivelUsuario.Auditor },
                 new MaquinaLinha { Id = MaquinaLinha, LinhaId = linha.Id, MaquinaId = MaquinaCatalogo, VelocidadeNominal = 36000, Ativo = true },
-                new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = MaquinaLinha, Nome = "WISE", IdentificadorMqtt = "00D0C9000001" });
+                new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = MaquinaLinha, Nome = "WISE", EnderecoIp = "192.168.10.21" });
             db.SaveChanges();
         }
 

@@ -78,8 +78,8 @@ public class DispositivoIotConfiguration : IEntityTypeConfiguration<DispositivoI
         // Um WISE por máquina, por enquanto. Se um dia forem vários, basta tirar o IsUnique.
         b.HasIndex(d => d.MaquinaLinhaId).IsUnique();
 
-        // É por ele que a mensagem MQTT encontra a máquina: não pode repetir.
-        b.HasIndex(d => d.IdentificadorMqtt).IsUnique();
+        // É pelo IP que a mensagem MQTT encontra a máquina: não pode repetir.
+        b.HasIndex(d => d.EnderecoIp).IsUnique();
     }
 }
 
