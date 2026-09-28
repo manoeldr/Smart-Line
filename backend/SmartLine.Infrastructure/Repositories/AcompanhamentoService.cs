@@ -167,6 +167,80 @@ public class AcompanhamentoService : IAcompanhamentoService
         return ResultadoFinalizacao.Finalizado;
     }
 
+    // ── Coletas em andamento ────────────────────────────────────────
+
+    public async Task<IReadOnlyList<ColetaIotResumoDto>> ListarEmAndamentoAsync(
+        Guid? maquinaLinhaId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var acompanhamentos = await _context.Acompanhamentos
+            .AsNoTracking()
+            .Where(a => a.FinalizadoEm == null && (maquinaLinhaId == null || a.MaquinaLinhaId == maquinaLinhaId))
+            .Select(a => new
+            {
+                a.Id,
+                a.MaquinaLinhaId,
+                Maquina = a.MaquinaLinha.Maquina.Nome,
+                a.MaquinaLinha.LinhaId,
+                Linha = a.MaquinaLinha.Linha.Nome,
+                Cliente = a.MaquinaLinha.Linha.Cliente.Nome,
+                a.MaquinaLinha.Ordem,
+                a.UsuarioId,
+                Usuario = a.Usuario.Nome,
+                a.IniciadoEm,
+                a.TempoDeteccaoParadaSegundos,
+                Canais = a.Canais.OrderBy(c => c.Canal).Select(c => new { c.Canal, c.Multiplicador }).ToList()
+            })
+            .ToListAsync(cancellationToken);
+
+        var resumos = new List<ColetaIotResumoDto>();
+        foreach (var a in acompanhamentos.OrderBy(a => a.Cliente).ThenBy(a => a.Linha).ThenBy(a => a.Ordem))
+        {
+            var ip = await _context.DispositivosIot
+                .Where(d => d.MaquinaLinhaId == a.MaquinaLinhaId)
+                .Select(d => d.EnderecoIp)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var sessao = await _context.Sessoes
+                .AsNoTracking()
+                .Where(s => s.AcompanhamentoId == a.Id && s.Status == StatusSessao.EmAndamento)
+                .Select(s => new { s.Id, s.Inicio, s.VelocidadeNominal })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var ultimaLeitura = sessao is null ? null : await _context.Producoes
+                .AsNoTracking()
+                .Where(p => p.SessaoId == sessao.Id)
+                .OrderByDescending(p => p.Hora)
+                .Select(p => new { p.Quantidade, p.Refugo, p.Hora })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var parada = sessao is null ? null : await _context.Paradas
+                .AsNoTracking()
+                .Where(p => p.SessaoId == sessao.Id && p.Fim == null)
+                .OrderByDescending(p => p.Inicio)
+                .Select(p => new { p.Id, p.Inicio, p.MotivoId, Motivo = p.Motivo == null ? null : p.Motivo.Nome, Tipo = p.Motivo == null ? (TipoParada?)null : p.Motivo.Tipo })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var semComunicacaoDesde = await _context.PeriodosSemComunicacao
+                .Where(p => p.MaquinaLinhaId == a.MaquinaLinhaId && p.Fim == null)
+                .OrderBy(p => p.Inicio)
+                .Select(p => (DateTime?)p.Inicio)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            resumos.Add(new ColetaIotResumoDto(
+                a.Id, a.MaquinaLinhaId, a.Maquina, a.LinhaId, a.Linha, a.Cliente,
+                a.UsuarioId, a.Usuario, a.IniciadoEm, a.TempoDeteccaoParadaSegundos,
+                a.Canais.Select(c => new CanalMedicaoRequest(c.Canal, c.Multiplicador)).ToList(),
+                ip,
+                sessao?.Id, sessao?.Inicio, sessao?.VelocidadeNominal ?? 0,
+                ultimaLeitura?.Quantidade ?? 0, ultimaLeitura?.Refugo ?? 0, ultimaLeitura?.Hora,
+                parada is null ? null : new ParadaAbertaDto(parada.Id, parada.Inicio, parada.MotivoId, parada.Motivo, parada.Tipo ?? TipoParada.Interna),
+                semComunicacaoDesde));
+        }
+
+        return resumos;
+    }
+
     // ── Configuração ────────────────────────────────────────────────
 
     public async Task<ConfiguracaoColetaIot> CarregarConfiguracaoAsync(

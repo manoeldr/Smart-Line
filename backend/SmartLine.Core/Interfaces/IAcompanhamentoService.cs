@@ -1,3 +1,4 @@
+using SmartLine.Core.Enums;
 using SmartLine.Core.Iot;
 
 namespace SmartLine.Core.Interfaces;
@@ -38,6 +39,16 @@ public interface IAcompanhamentoService
     Task<ConfiguracaoColetaIot> CarregarConfiguracaoAsync(
         Guid acompanhamentoId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Coletas em andamento como estão gravadas: quem, onde, desde quando, o que
+    /// lê, sessão do dia, produção já consolidada, parada aberta e falta de
+    /// comunicação. O painel ao vivo junta isto com o estado em memória do motor.
+    /// </summary>
+    /// <param name="maquinaLinhaId">Só a desta máquina; nulo = todas.</param>
+    Task<IReadOnlyList<ColetaIotResumoDto>> ListarEmAndamentoAsync(
+        Guid? maquinaLinhaId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Máquina a iniciar e o que ler dela.</summary>
@@ -60,6 +71,35 @@ public record ResultadoIniciarAcompanhamento(AcompanhamentoIniciadoDto? Iniciado
 }
 
 public record AcompanhamentoIniciadoDto(Guid AcompanhamentoId, Guid MaquinaLinhaId, Guid SessaoId);
+
+/// <param name="EnderecoIp">IP do WISE da máquina; nulo se não houver WISE cadastrado.</param>
+/// <param name="ProducaoConsolidada">Garrafas já gravadas na sessão do dia (última leitura).</param>
+/// <param name="UltimaConsolidacao">Hora da última leitura gravada.</param>
+/// <param name="SemComunicacaoDesde">Início do período sem comunicação em aberto, se houver.</param>
+public record ColetaIotResumoDto(
+    Guid AcompanhamentoId,
+    Guid MaquinaLinhaId,
+    string Maquina,
+    Guid LinhaId,
+    string Linha,
+    string Cliente,
+    Guid UsuarioId,
+    string Usuario,
+    DateTime IniciadoEm,
+    int TempoDeteccaoParadaSegundos,
+    IReadOnlyList<CanalMedicaoRequest> Canais,
+    string? EnderecoIp,
+    Guid? SessaoId,
+    DateTime? SessaoInicio,
+    decimal VelocidadeNominal,
+    long ProducaoConsolidada,
+    long RefugoConsolidado,
+    DateTime? UltimaConsolidacao,
+    ParadaAbertaDto? ParadaAberta,
+    DateTime? SemComunicacaoDesde);
+
+/// <param name="Motivo">Nome do motivo; nulo = não classificada (conta como Interna).</param>
+public record ParadaAbertaDto(Guid ParadaId, DateTime Inicio, Guid? MotivoId, string? Motivo, TipoParada Tipo);
 
 public enum ResultadoFinalizacao
 {
