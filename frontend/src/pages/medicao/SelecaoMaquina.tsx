@@ -3,12 +3,15 @@
 // produção até então, campos extras a coletar, valores iniciais e previsão de término).
 // Máquinas com medeProducao=false pulam velocidade/sobrevelocidade/produção inicial —
 // não faz sentido pedir esses dados de uma máquina sem contador de produção.
+// Na forma "Semi Auto" o conteúdo do modal é o ConfigurarSemiAuto (WISE, canais, sensores):
+// a coleta é iniciada ali mesmo e a tela volta para a seleção, pronta para iniciar outra.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import type { Linha, MaquinaLinha } from '../../types'
 import Switch from '../../components/Switch'
+import ConfigurarSemiAuto from './ConfigurarSemiAuto'
 import { btnPrimary, btnSecondarySm, btnToggle } from '../../styles/buttons'
 import { inputMdFull, label } from '../../styles/inputs'
 import { modalOverlay, modalPanel, modalHeader, modalTitle, modalSubtitle, modalBody, modalFooter } from '../../styles/modals'
@@ -39,6 +42,8 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const [maquinaSelecionada, setMaquinaSelecionada] = useState<MaquinaLinha | null>(null)
   const [loadingLinhas, setLoadingLinhas] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [recarregar, setRecarregar] = useState(0)
+  const [sucesso, setSucesso] = useState<string | null>(null)
 
   // Campos do modal de configuração
   const [velocidadeNominal, setVelocidadeNominal] = useState('')
@@ -65,7 +70,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       }
     }
     carregar()
-  }, [clienteId])
+  }, [clienteId, recarregar])
 
   function handleLinhaChange(linhaId: string) {
     const linha = linhas.find(l => l.id === linhaId) ?? null
@@ -97,7 +102,17 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   }
 
   function handleAbrirModal() {
+    setSucesso(null)
     setModalOpen(true)
+  }
+
+  // Coleta Semi Automática iniciada: volta para a seleção (dá para iniciar outra máquina).
+  function handleColetaIniciada(mensagem: string) {
+    setModalOpen(false)
+    setSucesso(mensagem)
+    setLinhaSelecionada(null)
+    setMaquinaSelecionada(null)
+    setRecarregar(r => r + 1)
   }
 
   function toggleCampo(campoId: string) {
@@ -163,11 +178,39 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     ? !!velocidadeNominal && Number(velocidadeNominal) > 0
     : true
 
+  // Seletor "Forma de medição" — compartilhado entre o conteúdo Manual e o Semi Automático.
+  const seletorForma = (
+    <div>
+      <label className="text-xs text-zinc-500 mb-2 block">Forma de medição</label>
+      <div className="grid grid-cols-3 gap-2">
+        {(['Manual', 'SemiAutomatico', 'Automatico'] as TipoColeta[]).map(t => (
+          <button
+            key={t}
+            onClick={() => setTipoColeta(t)}
+            disabled={t === 'Automatico'}
+            className={btnToggle(tipoColeta === t, 'blue')}
+          >
+            {t === 'Manual' ? 'Manual' : t === 'SemiAutomatico' ? 'Semi Auto' : 'Automático'}
+          </button>
+        ))}
+      </div>
+      {tipoColeta === 'Automatico' && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">Em desenvolvimento</p>
+      )}
+    </div>
+  )
+
   return (
     <>
       <div className="max-w-lg mx-auto mt-8">
         <div className={cardPadded}>
           <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Nova medição</h2>
+
+          {sucesso && (
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-3 py-2 mb-4 text-xs text-green-700 dark:text-green-400">
+              {sucesso} Acompanhe pelo Overview.
+            </div>
+          )}
 
           {/* Linha */}
           <div className="flex flex-col gap-1.5 mb-3">
@@ -199,7 +242,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 .sort((a, b) => a.ordem - b.ordem)
                 .map(m => (
                   <option key={m.id} value={m.id} disabled={m.sessaoAtiva}>
-                    {m.maquinaNome}{m.sessaoAtiva ? ' (sessão ativa)' : ''}{m.critica ? ' ★' : ''}
+                    {m.maquinaNome}{m.sessaoAtiva ? (m.acompanhamentoId ? ' (coleta automática)' : ' (sessão ativa)') : ''}{m.critica ? ' ★' : ''}
                   </option>
                 ))}
             </select>
@@ -221,34 +264,25 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       {/* Modal de configuração */}
       {modalOpen && maquinaSelecionada && (
         <div className={modalOverlay}>
-          <div className={`${modalPanel} w-[480px] max-h-[90vh]`}>
+          <div className={`${modalPanel} w-[520px] max-h-[90vh]`}>
 
             <div className={modalHeader}>
               <p className={modalTitle}>Configurar medição</p>
               <p className={modalSubtitle}>{maquinaSelecionada.maquinaNome}</p>
             </div>
 
+            {tipoColeta === 'SemiAutomatico' ? (
+              <ConfigurarSemiAuto
+                key={maquinaSelecionada.id}
+                maquina={maquinaSelecionada}
+                seletorForma={seletorForma}
+                onCancelar={() => setModalOpen(false)}
+                onIniciada={handleColetaIniciada}
+              />
+            ) : (
+            <>
             <div className={modalBody}>
-
-              {/* Forma de medição */}
-              <div>
-                <label className="text-xs text-zinc-500 mb-2 block">Forma de medição</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Manual', 'SemiAutomatico', 'Automatico'] as TipoColeta[]).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTipoColeta(t)}
-                      disabled={t !== 'Manual'}
-                      className={btnToggle(tipoColeta === t, 'blue')}
-                    >
-                      {t === 'Manual' ? 'Manual' : t === 'SemiAutomatico' ? 'Semi Auto' : 'Automático'}
-                    </button>
-                  ))}
-                </div>
-                {tipoColeta !== 'Manual' && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">Em desenvolvimento</p>
-                )}
-              </div>
+              {seletorForma}
 
               {/* Velocidade — só faz sentido se a máquina mede produção */}
               {maquinaSelecionada.medeProducao && (
@@ -361,6 +395,8 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                 {loadingExterno ? 'Iniciando...' : 'Iniciar medição'}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}

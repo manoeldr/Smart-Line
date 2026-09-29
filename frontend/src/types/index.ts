@@ -44,6 +44,13 @@ export interface MaquinaLinha {
   sessaoAtiva: boolean
   sessaoAtivaId: string | null
   ultimaSessaoFim: string | null
+  // Coleta automática (Semi Automático): preenchidos pela API do Overview quando se aplica
+  acompanhamentoId?: string | null
+  motivoParadaAtual?: string | null
+  paradasSemMotivo?: number
+  enderecoIpWise?: string | null
+  situacaoColeta?: 'Rodando' | 'Parada' | 'SemComunicacao' | 'AguardandoPrimeiraAmostra' | null
+  wiseConectado?: boolean | null
 }
 
 export interface Linha {
