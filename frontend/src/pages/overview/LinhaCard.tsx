@@ -9,9 +9,10 @@ interface Props {
   filtroAtivo: boolean
   dataFiltro: string | null
   onFinalizarMaquina?: (maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) => void
+  onAbrirMaquina?: (maquinaLinhaId: string) => void
 }
 
-export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina }: Props) {
+export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina, onAbrirMaquina }: Props) {
   const temSessao = linha.maquinas.some(m => m.sessaoAtiva)
   const temDados = filtroAtivo ? linha.maquinas.some(m => m.oee !== null) : temSessao
   const badgeText = filtroAtivo
@@ -54,6 +55,7 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarM
                   maquina={maquina}
                   filtroAtivo={filtroAtivo}
                   onFinalizar={onFinalizarMaquina ? () => onFinalizarMaquina(maquina.id, maquina.maquinaNome, maquina.medeProducao) : undefined}
+                  onAbrir={onAbrirMaquina ? () => onAbrirMaquina(maquina.id) : undefined}
                 />
                 {index < linha.maquinas.length - 1 && (
                   <div className="w-5 flex-shrink-0 flex items-center justify-center text-zinc-300 dark:text-zinc-600">

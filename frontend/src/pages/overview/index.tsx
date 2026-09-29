@@ -1,5 +1,8 @@
 // Tela Overview — lista todas as linhas do cliente com status ao vivo das máquinas.
 // Administrador/Desenvolvedor podem finalizar sessões ativas de outros usuários direto daqui.
+// Clicar numa máquina abre o detalhe (o mesmo do Dashboard); na coleta Semi Automática ele
+// mostra a coleta ao vivo. Finalizar uma coleta Semi Automática não pede leitura final: o
+// contador é do WISE, e a produção pendente é gravada pelo próprio backend.
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -9,6 +12,10 @@ import { configuracaoService, type CampoMaquinaDto } from '../../services/config
 import type { Linha } from '../../types'
 import LinhaCard from './LinhaCard'
 import LeituraFinalModal from '../../modals/LeituraFinalModal'
+import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
+import ConfirmModal from '../../components/ConfirmModal'
+import { coletaIotService } from '../../services/coletaIotService'
+import { mensagemErro } from '../../services/api'
 
 interface OutletContext {
   dataFiltro: string | null
@@ -35,6 +42,14 @@ export default function Overview() {
   const [finalizando, setFinalizando] = useState<FinalizandoState | null>(null)
   const [salvandoFinalizacao, setSalvandoFinalizacao] = useState(false)
 
+  // Coleta Semi Automática: finalização com confirmação simples
+  const [finalizandoColeta, setFinalizandoColeta] = useState<{ acompanhamentoId: string; maquinaNome: string } | null>(null)
+  const [erroAcao, setErroAcao] = useState<string | null>(null)
+
+  // Detalhe da máquina clicada
+  const [detalhe, setDetalhe] = useState<string | null>(null)
+  const [recarregar, setRecarregar] = useState(0)
+
   useEffect(() => {
     if (!clienteId) return
     async function carregar() {
@@ -52,7 +67,7 @@ export default function Overview() {
     carregar()
     const id = setInterval(carregar, 30000)
     return () => clearInterval(id)
-  }, [clienteId])
+  }, [clienteId, recarregar])
 
   async function handleFinalizarClick(maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) {
     // Acha a máquina pra pegar o sessaoAtivaId e o maquinaId (necessário pra buscar os campos extras)
@@ -61,6 +76,11 @@ export default function Overview() {
     for (const linha of linhas) {
       const m = linha.maquinas.find(x => x.id === maquinaLinhaId)
       if (m) {
+        // Coleta Semi Automática: confirmação simples, sem leitura final
+        if (m.acompanhamentoId) {
+          setFinalizandoColeta({ acompanhamentoId: m.acompanhamentoId, maquinaNome })
+          return
+        }
         sessaoId = m.sessaoAtivaId
         maquinaId = m.maquinaId
         break
@@ -92,6 +112,19 @@ export default function Overview() {
     }
   }
 
+  async function handleConfirmarFinalizarColeta() {
+    if (!finalizandoColeta) return
+    const alvo = finalizandoColeta
+    setFinalizandoColeta(null)
+    setErroAcao(null)
+    try {
+      await coletaIotService.finalizar(alvo.acompanhamentoId)
+      setRecarregar(r => r + 1)
+    } catch (e) {
+      setErroAcao(mensagemErro(e, `Não foi possível finalizar a coleta da ${alvo.maquinaNome}.`))
+    }
+  }
+
   if (!clienteId) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
@@ -118,6 +151,12 @@ export default function Overview() {
 
   return (
     <div className="p-4 flex flex-col gap-3">
+      {erroAcao && (
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400 flex justify-between gap-3">
+          <span>{erroAcao}</span>
+          <button onClick={() => setErroAcao(null)} className="text-red-400 hover:text-red-600">fechar</button>
+        </div>
+      )}
       {linhas.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
           Nenhuma linha cadastrada
@@ -130,9 +169,27 @@ export default function Overview() {
             filtroAtivo={dataFiltro !== null}
             dataFiltro={dataFiltro}
             onFinalizarMaquina={handleFinalizarClick}
+            onAbrirMaquina={setDetalhe}
           />
         ))
       )}
+
+      <MaquinaDetalheModal
+        open={detalhe !== null}
+        maquinaLinhaId={detalhe}
+        onFechar={() => setDetalhe(null)}
+        onColetaFinalizada={() => setRecarregar(r => r + 1)}
+      />
+
+      <ConfirmModal
+        open={finalizandoColeta !== null}
+        titulo="Finalizar coleta"
+        mensagem={finalizandoColeta
+          ? `Finalizar a coleta Semi Automática da ${finalizandoColeta.maquinaNome}? A produção ainda não gravada é gravada antes, e a máquina fica sem coleta até alguém iniciar de novo.`
+          : ''}
+        onConfirmar={handleConfirmarFinalizarColeta}
+        onCancelar={() => setFinalizandoColeta(null)}
+      />
 
       <LeituraFinalModal
         open={finalizando !== null}
