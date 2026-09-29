@@ -1,9 +1,9 @@
 // Validar entradas — mostra as 8 entradas de um WISE ao vivo, para conferir a fiação:
 // o contador sobe quando a máquina produz, o sensor muda (0/1) quando é acionado.
-// Reutilizável: quem abre passa a função que busca a situação (por IP, na aba Dispositivos
-// IoT, ou pela máquina, no Configurar medição). Atualiza a cada 2 s enquanto aberto.
+// Quem abre passa a função que busca as entradas (por IP). Mostra se o WISE está conectado e
+// se está em alguma medição ou livre. Atualiza a cada 2 s enquanto aberto.
 import { useEffect, useEffectEvent, useState } from 'react'
-import type { EntradaAoVivoDto, SituacaoWiseDto } from '../services/dispositivoIotService'
+import type { EntradaAoVivoDto, EntradasDoWiseDto } from '../services/dispositivoIotService'
 import { mensagemErro } from '../services/api'
 import SituacaoWiseTexto from '../components/iot/SituacaoWiseTexto'
 import { tempoDesde } from '../utils/tempo'
@@ -15,7 +15,7 @@ interface Props {
   open: boolean
   titulo?: string
   subtitulo?: string
-  carregar: () => Promise<SituacaoWiseDto>
+  carregar: () => Promise<EntradasDoWiseDto>
   onFechar: () => void
 }
 
@@ -31,7 +31,7 @@ export default function ValidarEntradasModal(props: Props) {
 }
 
 function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }: Props) {
-  const [situacao, setSituacao] = useState<SituacaoWiseDto | null>(null)
+  const [situacao, setSituacao] = useState<EntradasDoWiseDto | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
 
@@ -84,12 +84,18 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
             !erro && <p className="text-xs text-zinc-400">Carregando...</p>
           ) : (
             <>
-              <div className="flex items-center justify-between text-xs">
-                <p className="text-zinc-500">
-                  WISE {situacao.enderecoIp ? `${situacao.enderecoIp} ` : ''}
-                  <SituacaoWiseTexto situacao={situacao.situacao} />
-                </p>
-                <p className="text-zinc-400">
+              <div className="flex items-start justify-between gap-3 text-xs">
+                <div>
+                  <p className="text-zinc-500">
+                    WISE {situacao.enderecoIp} <SituacaoWiseTexto situacao={situacao.conectado ? 'Conectado' : 'Desconectado'} />
+                  </p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">
+                    {situacao.medicao
+                      ? `Em medição na ${situacao.medicao.maquina} (${situacao.medicao.linha} · ${situacao.medicao.cliente}): nomes das entradas desta máquina.`
+                      : 'Livre (sem medição): nomes padrão das entradas.'}
+                  </p>
+                </div>
+                <p className="text-zinc-400 text-right">
                   última mensagem: {situacao.ultimaMensagemUtc ? tempoDesde(situacao.ultimaMensagemUtc, agora) : 'nenhuma desde que o sistema iniciou'}
                 </p>
               </div>

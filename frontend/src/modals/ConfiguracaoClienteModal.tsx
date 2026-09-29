@@ -76,7 +76,6 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
         {!item.isNew && (
           <p className="text-[10px] text-zinc-400">
             Semi Auto: parada após {item.tempoDeteccaoParadaSegundos ?? 60} s
-            {' · '}{item.enderecoIpWise ? `WISE ${item.enderecoIpWise}` : 'sem WISE'}
             {' · '}{item.regrasPersonalizadas ? <span className="text-blue-600 dark:text-blue-400">regras personalizadas</span> : 'regras do catálogo'}
           </p>
         )}

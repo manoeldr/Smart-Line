@@ -1,36 +1,29 @@
-// Cadastro dos WISE (Semi Automático), diagnóstico do broker e Validar entradas.
+// WISE vistos pelo SmartLine e diagnóstico da comunicação: lista, Validar entradas, ping e broker.
+// Não há cadastro de WISE: o IP é informado ao iniciar a medição e ele fica livre ao finalizar.
 import { api } from './api'
 
-export type SituacaoConexaoWise = 'Conectado' | 'Desconectado' | 'NaoCadastrado'
 export type TipoCanal = 'Contador' | 'Estado'
 
-export interface DispositivoIotDto {
-  id: string
-  nome: string
-  enderecoIp: string
-  ativo: boolean
+// A coleta em andamento que está usando um WISE.
+export interface MedicaoDoWiseDto {
+  acompanhamentoId: string
   maquinaLinhaId: string
   maquina: string
-  linhaId: string
   linha: string
   cliente: string
-  ultimaMensagemEm: string | null
-  coletaEmAndamento: boolean
+  usuario: string
+  iniciadoEmUtc: string
+}
+
+// Um WISE: conectado ao broker agora, que publicou desde que o backend subiu, ou em medição.
+export interface WiseDto {
+  enderecoIp: string
   conectado: boolean
-}
-
-export interface SalvarDispositivoIotRequest {
-  maquinaLinhaId: string
-  nome: string
-  enderecoIp: string
-  ativo: boolean
-}
-
-export interface WiseDesconhecidoDto {
-  enderecoIp: string
-  clientId: string
-  topico: string
-  ultimaMensagemUtc: string
+  clientId: string | null
+  ultimaMensagemUtc: string | null
+  mensagens: number
+  // Nulo = livre (nenhuma medição usando)
+  medicao: MedicaoDoWiseDto | null
 }
 
 export interface StatusColetaIotDto {
@@ -59,23 +52,38 @@ export interface EntradaAoVivoDto {
   texto: string | null
 }
 
-export interface SituacaoWiseDto {
-  situacao: SituacaoConexaoWise
-  dispositivoId: string | null
-  nome: string | null
-  enderecoIp: string | null
+export interface EntradasDoWiseDto {
+  enderecoIp: string
+  conectado: boolean
   ultimaMensagemUtc: string | null
+  medicao: MedicaoDoWiseDto | null
   entradas: EntradaAoVivoDto[]
 }
 
-export const dispositivoIotService = {
-  listar: () => api.get<DispositivoIotDto[]>('/dispositivos-iot'),
-  desconhecidos: () => api.get<WiseDesconhecidoDto[]>('/dispositivos-iot/desconhecidos'),
-  status: () => api.get<StatusColetaIotDto>('/dispositivos-iot/status'),
-  criar: (dados: SalvarDispositivoIotRequest) => api.post<DispositivoIotDto>('/dispositivos-iot', dados),
-  editar: (id: string, dados: SalvarDispositivoIotRequest) => api.put<DispositivoIotDto>(`/dispositivos-iot/${id}`, dados),
-  excluir: (id: string) => api.delete<void>(`/dispositivos-iot/${id}`),
+export interface RespostaPingDto {
+  sequencia: number
+  respondeu: boolean
+  tempoMs: number | null
+  situacao: string
+}
 
-  // Validar entradas por IP: funciona com WISE cadastrado ou ainda sem máquina.
-  entradasDoIp: (ip: string) => api.get<SituacaoWiseDto>(`/dispositivos-iot/entradas?ip=${encodeURIComponent(ip)}`),
+export interface ResultadoPingDto {
+  enderecoIp: string
+  respostas: RespostaPingDto[]
+  enviados: number
+  recebidos: number
+  perdaPercentual: number
+  tempoMinimoMs: number | null
+  tempoMaximoMs: number | null
+  tempoMedioMs: number | null
+}
+
+export const dispositivoIotService = {
+  // Administrador, Desenvolvedor e Auditor (o Configurar medição usa para a situação do IP)
+  listar: () => api.get<WiseDto[]>('/dispositivos-iot'),
+
+  // Só Administrador e Desenvolvedor
+  status: () => api.get<StatusColetaIotDto>('/dispositivos-iot/status'),
+  entradasDoIp: (ip: string) => api.get<EntradasDoWiseDto>(`/dispositivos-iot/entradas?ip=${encodeURIComponent(ip)}`),
+  ping: (enderecoIp: string) => api.post<ResultadoPingDto>('/dispositivos-iot/ping', { enderecoIp }),
 }

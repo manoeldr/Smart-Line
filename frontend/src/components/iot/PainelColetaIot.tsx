@@ -88,7 +88,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
         {/* Números principais */}
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-zinc-500">
           <p>
-            WISE {c.enderecoIp ?? ''} <SituacaoWiseTexto situacao={c.enderecoIp ? (painel.wiseConectado ? 'Conectado' : 'Desconectado') : 'NaoCadastrado'} />
+            WISE {c.enderecoIp ?? ''} <SituacaoWiseTexto situacao={painel.wiseConectado ? 'Conectado' : 'Desconectado'} />
             {painel.ultimaMensagem && <span className="text-zinc-400"> · última mensagem {tempoDesde(painel.ultimaMensagem, agora)}</span>}
           </p>
           <p>Produção da sessão: <span className="font-medium text-zinc-900 dark:text-zinc-100">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>

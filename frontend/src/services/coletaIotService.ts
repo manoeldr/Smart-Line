@@ -1,6 +1,5 @@
-// Coleta Semi Automática (WISE): iniciar, finalizar, situação do WISE da máquina.
+// Coleta Semi Automática (WISE): iniciar, finalizar, painel ao vivo da máquina.
 import { api } from './api'
-import type { SituacaoWiseDto } from './dispositivoIotService'
 
 // Canal lido na medição. Multiplicador = garrafas por pulso (1 quando não há multiplicador).
 export interface CanalMedicaoRequest {
@@ -10,6 +9,8 @@ export interface CanalMedicaoRequest {
 
 export interface IniciarColetaRequest {
   maquinaLinhaId: string
+  // IP do WISE instalado na máquina: fica associado a ela até finalizar a medição
+  enderecoIpWise: string
   velocidadeNominal: number | null
   sobreVelocidade: number | null
   canais: CanalMedicaoRequest[]
@@ -43,6 +44,7 @@ export interface ColetaIotResumoDto {
   iniciadoEm: string
   tempoDeteccaoParadaSegundos: number
   canais: CanalMedicaoRequest[]
+  // WISE informado ao iniciar
   enderecoIp: string | null
   sessaoId: string | null
   sessaoInicio: string | null
@@ -82,7 +84,4 @@ export const coletaIotService = {
 
   iniciar: (dados: IniciarColetaRequest) => api.post<ColetaIniciadaDto>('/coleta-iot/iniciar', dados),
   finalizar: (acompanhamentoId: string) => api.post<void>(`/coleta-iot/${acompanhamentoId}/finalizar`, {}),
-
-  // Situação do WISE da máquina e as 8 entradas ao vivo (funciona sem coleta ligada).
-  wiseDaMaquina: (maquinaLinhaId: string) => api.get<SituacaoWiseDto>(`/coleta-iot/maquina/${maquinaLinhaId}/wise`),
 }

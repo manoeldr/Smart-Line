@@ -1,21 +1,21 @@
-// Situação da conexão de um WISE, só em texto colorido (sem ícone):
-// conectado em verde, desconectado em amarelo, não cadastrado em vermelho.
-import type { SituacaoConexaoWise } from '../../services/dispositivoIotService'
+// Situação de um WISE, só em texto colorido (sem ícone): conectado em verde,
+// desconectado em amarelo, em uso (em outra medição) em vermelho.
+export type SituacaoWise = 'Conectado' | 'Desconectado' | 'EmUso'
 
-const textos: Record<SituacaoConexaoWise, string> = {
+const textos: Record<SituacaoWise, string> = {
   Conectado: 'conectado',
   Desconectado: 'desconectado',
-  NaoCadastrado: 'não cadastrado',
+  EmUso: 'em uso',
 }
 
-const cores: Record<SituacaoConexaoWise, string> = {
+const cores: Record<SituacaoWise, string> = {
   Conectado: 'text-green-600 dark:text-green-400',
   Desconectado: 'text-amber-600 dark:text-amber-400',
-  NaoCadastrado: 'text-red-600 dark:text-red-400',
+  EmUso: 'text-red-600 dark:text-red-400',
 }
 
 interface Props {
-  situacao: SituacaoConexaoWise
+  situacao: SituacaoWise
   className?: string
 }
 

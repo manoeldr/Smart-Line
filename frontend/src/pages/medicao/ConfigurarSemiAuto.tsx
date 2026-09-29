@@ -1,18 +1,21 @@
 // Configuração da medição Semi Automática (WISE), dentro do modal "Configurar medição".
-// Mostra a situação do WISE da máquina (só em texto: conectado em verde, desconectado em
-// amarelo, não cadastrado em vermelho) e só deixa iniciar com ele conectado. O WISE é
-// cadastrado ali mesmo (só o IP; a máquina é a selecionada). O usuário escolhe
+// O usuário informa o IP do WISE instalado na máquina e vê a situação dele (só em texto:
+// conectado em verde, desconectado em amarelo, em uso em outra medição em vermelho); só dá
+// para iniciar com ele conectado e livre. O WISE fica associado à máquina até finalizar a
+// medição e depois fica livre para outra (não há cadastro de WISE). O usuário escolhe
 // o que ler: contadores de produção (S2, S5, S6) e rejeito (S3), cada um com o seu
 // multiplicador opcional (garrafas por ciclo), e os sensores (S1, S4, S7, S8) liga/desliga.
 // Abre sempre no padrão: S2 e S3 sem multiplicador e os quatro sensores ligados.
 import { useEffect, useState, type ReactNode } from 'react'
 import type { MaquinaLinha } from '../../types'
 import { coletaIotService } from '../../services/coletaIotService'
-import type { SituacaoWiseDto } from '../../services/dispositivoIotService'
+import { dispositivoIotService, type WiseDto } from '../../services/dispositivoIotService'
+import { entradasWiseService, type EntradaWiseDto } from '../../services/entradasWiseService'
 import { regrasClassificacaoService, type RegraDto } from '../../services/regrasClassificacaoService'
 import { mensagemErro } from '../../services/api'
 import Switch from '../../components/Switch'
-import WiseDaMaquina from '../../components/iot/WiseDaMaquina'
+import WiseDaMedicao from '../../components/iot/WiseDaMedicao'
+import { ipValido, situacaoDoIp } from '../../components/iot/situacaoWise'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
 import { inputBase, inputMdFull, label, checkbox } from '../../styles/inputs'
 import { modalBody, modalFooter } from '../../styles/modals'
@@ -21,7 +24,7 @@ const CONTADORES_PRODUCAO = ['S2', 'S5', 'S6']
 const CONTADORES_REJEITO = ['S3']
 const SENSORES = ['S1', 'S4', 'S7', 'S8']
 
-// Nomes até a primeira resposta do WISE (depois valem os textos da máquina).
+// Nomes enquanto os textos da máquina não chegam (ou se a consulta falhar).
 const NOMES_PADRAO: Record<string, string> = {
   S1: 'Acúmulo mínimo na entrada',
   S2: 'Contador de produção (entrada 1)',
@@ -61,26 +64,28 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const [sobreVelocidade, setSobreVelocidade] = useState('0')
   const [canais, setCanais] = useState<Record<string, CanalConfig>>(configuracaoPadrao)
 
-  const [wise, setWise] = useState<SituacaoWiseDto | null>(null)
-  const [erroWise, setErroWise] = useState<string | null>(null)
+  const [ipWise, setIpWise] = useState('')
+  const [wises, setWises] = useState<WiseDto[] | null>(null)
+  const [erroWises, setErroWises] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
+  const [textos, setTextos] = useState<EntradaWiseDto[]>([])
   const [regras, setRegras] = useState<RegraDto[]>([])
-  const [consultarWise, setConsultarWise] = useState(0)
 
   const [iniciando, setIniciando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  // Situação do WISE, atualizada enquanto o modal está aberto.
+  // WISE conhecidos (conectados, livres ou em medição), atualizados enquanto o modal está aberto:
+  // é deles que sai a situação do IP digitado e as sugestões.
   useEffect(() => {
     let ativo = true
     async function atualizar() {
       try {
-        const s = await coletaIotService.wiseDaMaquina(maquina.id)
+        const lista = await dispositivoIotService.listar()
         if (!ativo) return
-        setWise(s)
-        setErroWise(null)
+        setWises(lista)
+        setErroWises(null)
       } catch (e) {
-        if (ativo) setErroWise(mensagemErro(e, 'Não foi possível consultar o WISE da máquina.'))
+        if (ativo) setErroWises(mensagemErro(e, 'Não foi possível consultar os WISE.'))
       } finally {
         if (ativo) setAgora(new Date())
       }
@@ -88,7 +93,16 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     atualizar()
     const id = setInterval(atualizar, INTERVALO_WISE_MS)
     return () => { ativo = false; clearInterval(id) }
-  }, [maquina.id, consultarWise])
+  }, [])
+
+  // Textos das entradas da máquina (catálogo): nomes dos canais.
+  useEffect(() => {
+    let ativo = true
+    entradasWiseService.obter(maquina.maquinaId)
+      .then(t => { if (ativo) setTextos(t) })
+      .catch(() => { /* sem eles, ficam os nomes padrão */ })
+    return () => { ativo = false }
+  }, [maquina.maquinaId])
 
   // Regras da máquina: para avisar quando um sensor desligado é usado por alguma.
   useEffect(() => {
@@ -100,7 +114,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   }, [maquina.id])
 
   function nome(canal: string) {
-    return wise?.entradas.find(e => e.canal === canal)?.nome ?? NOMES_PADRAO[canal]
+    return textos.find(e => e.canal === canal)?.nome ?? NOMES_PADRAO[canal]
   }
 
   function alterar(canal: string, mudanca: Partial<CanalConfig>) {
@@ -120,7 +134,8 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const sensoresDesligados = new Set(SENSORES.filter(c => !canais[c].ligado))
   const regrasAfetadas = regras.filter(r => r.ativa && r.condicoes.some(c => c.canal && sensoresDesligados.has(c.canal)))
 
-  const podeIniciar = wise?.situacao === 'Conectado' && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !iniciando
+  const wiseOk = ipValido(ipWise) && wises !== null && situacaoDoIp(ipWise, wises).situacao === 'Conectado'
+  const podeIniciar = wiseOk && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !iniciando
 
   async function iniciar() {
     setIniciando(true)
@@ -128,13 +143,14 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     try {
       await coletaIotService.iniciar({
         maquinaLinhaId: maquina.id,
+        enderecoIpWise: ipWise.trim(),
         velocidadeNominal: Number(velocidadeNominal),
         sobreVelocidade: Number(sobreVelocidade) || 0,
         canais: Object.entries(canais)
           .filter(([, c]) => c.ligado)
           .map(([canal, c]) => ({ canal, multiplicador: c.comMultiplicador ? Number(c.multiplicador) : 1 })),
       })
-      onIniciada(`Coleta Semi Automática iniciada na ${maquina.maquinaNome}.`)
+      onIniciada(`Coleta Semi Automática iniciada na ${maquina.maquinaNome} com o WISE ${ipWise.trim()}.`)
     } catch (e) {
       setErro(mensagemErro(e, 'Não foi possível iniciar a coleta.'))
     } finally {
@@ -185,15 +201,8 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           </div>
         )}
 
-        {/* WISE da máquina (e o cadastro dele, se ainda não houver) */}
-        <WiseDaMaquina
-          maquinaLinhaId={maquina.id}
-          maquinaNome={maquina.maquinaNome}
-          wise={wise}
-          erroConsulta={erroWise}
-          agora={agora}
-          onAlterado={() => setConsultarWise(c => c + 1)}
-        />
+        {/* WISE desta medição: só o IP */}
+        <WiseDaMedicao ip={ipWise} onChangeIp={setIpWise} wises={wises} erroLista={erroWises} agora={agora} />
 
         {/* Velocidade */}
         <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,6 @@
-// Semi Automático de uma máquina da linha: tempo para detectar parada (Z), o WISE dela (só
-// leitura: o cadastro é em Dispositivos IoT) e as regras de classificação — as do catálogo
-// ou personalizadas só para esta máquina. Grava ao Salvar deste modal (não depende do Salvar
+// Semi Automático de uma máquina da linha: tempo para detectar parada (Z) e as regras de
+// classificação — as do catálogo ou personalizadas só para esta máquina. O WISE não é da
+// máquina: é informado ao iniciar cada medição. Grava ao Salvar deste modal (não depende do Salvar
 // do cliente). Vale para as coletas iniciadas depois.
 import { useEffect, useState } from 'react'
 import type { MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
@@ -122,13 +122,6 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
                 Sem produção por este tempo, a máquina é considerada parada (o início da parada é a última produção).
                 Deve ser maior que o intervalo de publicação do WISE.
               </p>
-            </div>
-            <div>
-              <label className={label}>WISE</label>
-              <p className="text-xs text-zinc-900 dark:text-zinc-100 h-8 flex items-center">
-                {item.enderecoIpWise ?? <span className="text-red-600 dark:text-red-400">nenhum WISE cadastrado</span>}
-              </p>
-              <p className="text-[10px] text-zinc-400 mt-1">O cadastro do WISE é em Configurações &gt; Dispositivos IoT.</p>
             </div>
           </div>
 

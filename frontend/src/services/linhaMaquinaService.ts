@@ -13,7 +13,6 @@ export interface MaquinaLinhaConfDto {
   ativo: boolean
   // Semi Automático
   tempoDeteccaoParadaSegundos?: number
-  enderecoIpWise?: string | null
   regrasPersonalizadas?: boolean
 }
 
