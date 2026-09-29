@@ -8,7 +8,7 @@ namespace SmartLine.API.Autorizacao;
 /// </summary>
 public static class Politicas
 {
-    /// <summary>Diagnóstico da infraestrutura (Dispositivos IoT: entradas, ping, broker): só Administrador e Desenvolvedor.</summary>
+    /// <summary>Cadastro e diagnóstico dos WISE (Dispositivos IoT: cadastro, entradas, ping, broker): só Administrador e Desenvolvedor.</summary>
     public const string AdministradorOuDesenvolvedor = nameof(AdministradorOuDesenvolvedor);
 
     /// <summary>

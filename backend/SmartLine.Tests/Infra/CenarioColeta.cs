@@ -42,7 +42,8 @@ internal sealed class CenarioColeta : IDisposable
                 cliente, linha,
                 new Maquina { Id = MaquinaCatalogo, Nome = "Enchedora", Ativo = true },
                 new Usuario { Id = Usuario, Nome = "Auditor", Login = "auditor", SenhaHash = "x", Nivel = NivelUsuario.Auditor },
-                new MaquinaLinha { Id = MaquinaLinha, LinhaId = linha.Id, MaquinaId = MaquinaCatalogo, VelocidadeNominal = 36000, Ativo = true });
+                new MaquinaLinha { Id = MaquinaLinha, LinhaId = linha.Id, MaquinaId = MaquinaCatalogo, VelocidadeNominal = 36000, Ativo = true },
+                new Wise { Id = Guid.NewGuid(), EnderecoIp = IpWise, CriadoEm = T0.UtcDateTime });
             db.SaveChanges();
         }
 

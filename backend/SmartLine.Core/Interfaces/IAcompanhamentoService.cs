@@ -11,9 +11,9 @@ public interface IAcompanhamentoService
     /// <summary>
     /// Inicia a coleta numa máquina com o WISE informado. Uma por vez; várias
     /// podem rodar ao mesmo tempo, inclusive do mesmo usuário, e cada máquina da
-    /// linha é independente (outras podem estar em medição Manual). O WISE fica
-    /// associado à máquina até a coleta ser finalizada e não pode estar em uso
-    /// em outra coleta.
+    /// linha é independente (outras podem estar em medição Manual). O WISE tem
+    /// de estar cadastrado, fica associado à máquina até a coleta ser finalizada
+    /// e não pode estar em uso em outra coleta.
     /// </summary>
     Task<ResultadoIniciarAcompanhamento> IniciarAsync(
         Guid usuarioId,

@@ -64,10 +64,11 @@ public class DiagnosticoColetaIotTests : IAsyncLifetime
         using var novo = Wise(9, "127.0.0.29");
         await novo.PublicarAsync(DateTime.UtcNow);
         await _amb.AguardarMensagensAsync(1);
+        _amb.CadastrarWise("127.0.0.29");
         await _amb.IniciarColetaAsync(_amb.MaquinaB, "127.0.0.29");
 
         var medicoes = await _amb.WisesEmMedicaoAsync();
-        var lista = ListaWise.Montar(_broker.Conexoes(), _amb.Servico.WiseVistos(), medicoes);
+        var lista = ListaWise.Montar([], _broker.Conexoes(), _amb.Servico.WiseVistos(), medicoes);
 
         var wise = Assert.Single(lista);
         Assert.Equal(("127.0.0.29", true, "SIM-WISE-9", 1L), (wise.EnderecoIp, wise.Conectado, wise.ClientId, wise.Mensagens));

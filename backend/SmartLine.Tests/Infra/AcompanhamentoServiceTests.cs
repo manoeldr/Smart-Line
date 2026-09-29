@@ -42,7 +42,7 @@ public class AcompanhamentoServiceTests : IDisposable
 
     public void Dispose() => _banco.Dispose();
 
-    /// <summary>Máquina na linha, com um WISE próprio (IP que <see cref="Item"/> informa ao iniciar).</summary>
+    /// <summary>Máquina na linha e um WISE cadastrado para ela (IP que <see cref="Item"/> informa ao iniciar).</summary>
     private Guid NovaMaquinaLinha(int z = 60, decimal velocidade = 36000)
     {
         using var db = _banco.NovoContexto();
@@ -52,8 +52,9 @@ public class AcompanhamentoServiceTests : IDisposable
             VelocidadeNominal = velocidade, TempoDeteccaoParadaSegundos = z, Ativo = true
         };
         db.MaquinasLinha.Add(ml);
-        db.SaveChanges();
         _ips[ml.Id] = $"192.168.10.{++_proximoIp}";
+        db.Wises.Add(new Wise { Id = Guid.NewGuid(), EnderecoIp = _ips[ml.Id], CriadoEm = Agora.UtcDateTime });
+        db.SaveChanges();
         return ml.Id;
     }
 
@@ -159,9 +160,25 @@ public class AcompanhamentoServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Iniciar_WiseNaoCadastrado_Recusa()
+    {
+        var ml = NovaMaquinaLinha();
+
+        var r = await Iniciar(_usuario, Item(ml) with { EnderecoIpWise = "192.168.10.99" });
+
+        Assert.False(r.Sucesso);
+        Assert.Contains("O WISE 192.168.10.99 não está cadastrado", r.Erro);
+    }
+
+    [Fact]
     public async Task Iniciar_GravaOIpDoWiseNaFormaCanonica()
     {
         var ml = NovaMaquinaLinha();
+        using (var cadastro = _banco.NovoContexto())
+        {
+            cadastro.Wises.Add(new Wise { Id = Guid.NewGuid(), EnderecoIp = "192.168.10.50", CriadoEm = Agora.UtcDateTime });
+            cadastro.SaveChanges();
+        }
 
         await IniciarOk(_usuario, Item(ml) with { EnderecoIpWise = " ::ffff:192.168.10.50 " });
 

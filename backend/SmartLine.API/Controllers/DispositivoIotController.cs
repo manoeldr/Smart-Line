@@ -10,15 +10,16 @@ using SmartLine.Iot.Rede;
 namespace SmartLine.API.Controllers;
 
 /// <summary>
-/// WISE vistos pelo SmartLine e diagnóstico da comunicação (entradas ao vivo,
-/// ping, broker). Não há cadastro: o WISE é associado a uma máquina ao iniciar
-/// a medição e fica livre ao finalizar.
+/// Cadastro dos WISE (a lista de aparelhos que podem ser usados numa medição)
+/// e diagnóstico da comunicação (entradas ao vivo, ping, broker). O WISE não é
+/// de nenhuma máquina: é escolhido ao iniciar a medição e fica livre ao finalizar.
 /// </summary>
 [ApiController]
 [Route("api/dispositivos-iot")]
 [Authorize]
 public class DispositivoIotController : ControllerBase
 {
+    private readonly IWiseService _wises;
     private readonly ILocalizadorColetaIot _localizador;
     private readonly IEntradasWiseService _entradas;
     private readonly BrokerMqttService _broker;
@@ -28,6 +29,7 @@ public class DispositivoIotController : ControllerBase
     private readonly ITestePing _ping;
 
     public DispositivoIotController(
+        IWiseService wises,
         ILocalizadorColetaIot localizador,
         IEntradasWiseService entradas,
         BrokerMqttService broker,
@@ -36,6 +38,7 @@ public class DispositivoIotController : ControllerBase
         ColetaIotService coleta,
         ITestePing ping)
     {
+        _wises = wises;
         _localizador = localizador;
         _entradas = entradas;
         _broker = broker;
@@ -46,14 +49,39 @@ public class DispositivoIotController : ControllerBase
     }
 
     /// <summary>
-    /// Todos os WISE que se sabe existir: conectados, que publicaram desde que
-    /// o backend subiu, ou em medição. Também serve o Configurar medição
-    /// (situação do IP digitado e sugestões de WISE livres), por isso Operação.
+    /// Todos os WISE que se sabe existir: cadastrados, conectados, que
+    /// publicaram desde que o backend subiu, ou em medição. Também serve o
+    /// Configurar medição (escolha do WISE), por isso Operação.
     /// </summary>
     [HttpGet]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> Listar(CancellationToken cancellationToken) =>
-        Ok(ListaWise.Montar(_broker.Conexoes(), _coleta.WiseVistos(), await _localizador.WisesEmMedicaoAsync(cancellationToken)));
+        Ok(ListaWise.Montar(
+            await _wises.ListarAsync(cancellationToken),
+            _broker.Conexoes(),
+            _coleta.WiseVistos(),
+            await _localizador.WisesEmMedicaoAsync(cancellationToken)));
+
+    /// <summary>Cadastra um WISE (o ping antes é feito pela tela).</summary>
+    [HttpPost]
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
+    public async Task<IActionResult> Adicionar([FromBody] SalvarWiseRequest request, CancellationToken cancellationToken) =>
+        Responder(await _wises.AdicionarAsync(request, cancellationToken));
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
+    public async Task<IActionResult> Editar(Guid id, [FromBody] SalvarWiseRequest request, CancellationToken cancellationToken) =>
+        Responder(await _wises.EditarAsync(id, request, cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
+    public async Task<IActionResult> Remover(Guid id, CancellationToken cancellationToken)
+    {
+        var resultado = await _wises.RemoverAsync(id, cancellationToken);
+        if (resultado.NaoEncontrado) return NotFound();
+        if (resultado.Erro is not null) return BadRequest(new { mensagem = resultado.Erro });
+        return NoContent();
+    }
 
     /// <summary>
     /// Validar entradas de um IP: as 8 entradas ao vivo, em medição ou livre.
@@ -95,6 +123,13 @@ public class DispositivoIotController : ControllerBase
             return BadRequest(new { mensagem = $"IP inválido: \"{request.EnderecoIp}\"." });
 
         return Ok(await _ping.PingarAsync(enderecoIp, cancellationToken));
+    }
+
+    private IActionResult Responder(ResultadoCadastro<WiseCadastradoDto> resultado)
+    {
+        if (resultado.NaoEncontrado) return NotFound();
+        if (resultado.Erro is not null) return BadRequest(new { mensagem = resultado.Erro });
+        return Ok(resultado.Valor);
     }
 
     /// <summary>Situação do broker e do motor da coleta, para a tela de diagnóstico.</summary>

@@ -18,9 +18,9 @@ namespace SmartLine.Tests.Infra;
 
 /// <summary>
 /// O motor da coleta montado como no app (mesmos serviços, escopo por
-/// operação), sobre banco em arquivo. Duas enchedoras numa linha, cada uma com
-/// seu WISE: <see cref="MaquinaA"/> com o IP <see cref="IpA"/> e
-/// <see cref="MaquinaB"/> com o <see cref="IpB"/> (informados ao iniciar a
+/// operação), sobre banco em arquivo. Duas enchedoras numa linha e dois WISE
+/// cadastrados: <see cref="MaquinaA"/> mede com o <see cref="IpA"/> e
+/// <see cref="MaquinaB"/> com o <see cref="IpB"/> (escolhidos ao iniciar a
 /// coleta, que é quando o WISE fica associado à máquina). Nenhuma coleta iniciada.
 /// </summary>
 internal sealed class AmbienteColetaIot : IAsyncDisposable
@@ -45,6 +45,9 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
             var catalogo = new Maquina { Id = Guid.NewGuid(), Nome = "Enchedora", Ativo = true };
             db.AddRange(cliente, linha, catalogo,
                 new Usuario { Id = Usuario, Nome = "Auditor", Login = "auditor", SenhaHash = "x", Nivel = NivelUsuario.Auditor });
+            db.Wises.AddRange(
+                new Wise { Id = Guid.NewGuid(), EnderecoIp = IpA, CriadoEm = DateTime.UtcNow },
+                new Wise { Id = Guid.NewGuid(), EnderecoIp = IpB, CriadoEm = DateTime.UtcNow });
             foreach (var maquina in new[] { MaquinaA, MaquinaB })
             {
                 db.Add(new MaquinaLinha
@@ -101,6 +104,10 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
         _iniciado = false;
         await Servico.StopAsync(CancellationToken.None);
     }
+
+    /// <summary>Cadastra mais um WISE (os de <see cref="IpA"/> e <see cref="IpB"/> já vêm cadastrados).</summary>
+    public void CadastrarWise(string ip) =>
+        Alterar(db => db.Wises.Add(new Wise { Id = Guid.NewGuid(), EnderecoIp = ip, CriadoEm = DateTime.UtcNow }));
 
     /// <summary>WISE de sempre da máquina: <see cref="IpA"/> na A, <see cref="IpB"/> na B.</summary>
     public string IpDa(Guid maquina) => maquina == MaquinaA ? IpA : IpB;

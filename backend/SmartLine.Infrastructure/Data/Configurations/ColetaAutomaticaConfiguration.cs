@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartLine.Core.Entities.Global;
 using SmartLine.Core.Entities.Tenant;
+using SmartLine.Core.Interfaces;
 using SmartLine.Core.Iot;
 
 namespace SmartLine.Infrastructure.Data.Configurations;
@@ -187,5 +188,16 @@ public class TextoEntradaWiseConfiguration : IEntityTypeConfiguration<TextoEntra
         b.Property(t => t.Nome).HasMaxLength(TextosEntradasWise.TamanhoMaximo).IsRequired();
         b.Property(t => t.TextoAtivo).HasMaxLength(TextosEntradasWise.TamanhoMaximo);
         b.Property(t => t.TextoNormal).HasMaxLength(TextosEntradasWise.TamanhoMaximo);
+    }
+}
+
+public class WiseConfiguration : IEntityTypeConfiguration<Wise>
+{
+    public void Configure(EntityTypeBuilder<Wise> b)
+    {
+        // É pelo IP que a mensagem MQTT encontra a medição: não pode repetir no cadastro.
+        b.Property(w => w.EnderecoIp).HasMaxLength(45).IsRequired();
+        b.HasIndex(w => w.EnderecoIp).IsUnique();
+        b.Property(w => w.Nome).HasMaxLength(LimitesWise.TamanhoMaximoNome);
     }
 }

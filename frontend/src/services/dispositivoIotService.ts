@@ -1,5 +1,5 @@
-// WISE vistos pelo SmartLine e diagnóstico da comunicação: lista, Validar entradas, ping e broker.
-// Não há cadastro de WISE: o IP é informado ao iniciar a medição e ele fica livre ao finalizar.
+// Cadastro dos WISE e diagnóstico da comunicação: lista, Validar entradas, ping e broker.
+// O WISE não é de nenhuma máquina: é escolhido da lista ao iniciar a medição e fica livre ao finalizar.
 import { api } from './api'
 
 export type TipoCanal = 'Contador' | 'Estado'
@@ -15,15 +15,31 @@ export interface MedicaoDoWiseDto {
   iniciadoEmUtc: string
 }
 
-// Um WISE: conectado ao broker agora, que publicou desde que o backend subiu, ou em medição.
+// Um WISE: cadastrado, conectado ao broker agora, que publicou desde que o backend subiu, ou em medição.
 export interface WiseDto {
+  // Cadastro; nulo = não cadastrado (conectou ou publicou, mas não está na lista)
+  id: string | null
+  cadastrado: boolean
   enderecoIp: string
+  nome: string | null
   conectado: boolean
   clientId: string | null
   ultimaMensagemUtc: string | null
   mensagens: number
   // Nulo = livre (nenhuma medição usando)
   medicao: MedicaoDoWiseDto | null
+}
+
+export interface WiseCadastradoDto {
+  id: string
+  enderecoIp: string
+  nome: string | null
+  criadoEm: string
+}
+
+export interface SalvarWiseRequest {
+  enderecoIp: string
+  nome: string | null
 }
 
 export interface StatusColetaIotDto {
@@ -83,6 +99,9 @@ export const dispositivoIotService = {
   listar: () => api.get<WiseDto[]>('/dispositivos-iot'),
 
   // Só Administrador e Desenvolvedor
+  adicionar: (dados: SalvarWiseRequest) => api.post<WiseCadastradoDto>('/dispositivos-iot', dados),
+  editar: (id: string, dados: SalvarWiseRequest) => api.put<WiseCadastradoDto>(`/dispositivos-iot/${id}`, dados),
+  remover: (id: string) => api.delete<void>(`/dispositivos-iot/${id}`),
   status: () => api.get<StatusColetaIotDto>('/dispositivos-iot/status'),
   entradasDoIp: (ip: string) => api.get<EntradasDoWiseDto>(`/dispositivos-iot/entradas?ip=${encodeURIComponent(ip)}`),
   ping: (enderecoIp: string) => api.post<ResultadoPingDto>('/dispositivos-iot/ping', { enderecoIp }),

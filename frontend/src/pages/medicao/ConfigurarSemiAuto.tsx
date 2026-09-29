@@ -1,8 +1,8 @@
 // Configuração da medição Semi Automática (WISE), dentro do modal "Configurar medição".
-// O usuário informa o IP do WISE instalado na máquina e vê a situação dele (só em texto:
-// conectado em verde, desconectado em amarelo, em uso em outra medição em vermelho); só dá
-// para iniciar com ele conectado e livre. O WISE fica associado à máquina até finalizar a
-// medição e depois fica livre para outra (não há cadastro de WISE). O usuário escolhe
+// O usuário escolhe o WISE instalado na máquina na lista de cadastrados, com a situação de
+// cada um (só em texto: conectado em verde, desconectado em amarelo, em uso em outra medição
+// em vermelho); só dá para iniciar com ele conectado e livre. O WISE fica associado à máquina
+// até finalizar a medição e depois fica livre para outra. O usuário escolhe
 // o que ler: contadores de produção (S2, S5, S6) e rejeito (S3), cada um com o seu
 // multiplicador opcional (garrafas por ciclo), e os sensores (S1, S4, S7, S8) liga/desliga.
 // Abre sempre no padrão: S2 e S3 sem multiplicador e os quatro sensores ligados.
@@ -14,7 +14,7 @@ import { entradasWiseService, type EntradaWiseDto } from '../../services/entrada
 import { mensagemErro } from '../../services/api'
 import Switch from '../../components/Switch'
 import WiseDaMedicao from '../../components/iot/WiseDaMedicao'
-import { ipValido, situacaoDoIp } from '../../components/iot/situacaoWise'
+import { situacaoDoIp } from '../../components/iot/situacaoWise'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
 import { inputBase, inputMdFull, label, checkbox } from '../../styles/inputs'
 import { modalBody, modalFooter } from '../../styles/modals'
@@ -72,8 +72,8 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const [iniciando, setIniciando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  // WISE conhecidos (conectados, livres ou em medição), atualizados enquanto o modal está aberto:
-  // é deles que sai a situação do IP digitado e as sugestões.
+  // WISE cadastrados e a situação de cada um (conectado, livre, em medição), atualizados
+  // enquanto o modal está aberto.
   useEffect(() => {
     let ativo = true
     async function atualizar() {
@@ -120,7 +120,8 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const multiplicadorInvalido = [...CONTADORES_PRODUCAO, ...CONTADORES_REJEITO].some(c => !multiplicadorValido(canais[c]))
   const velocidadeInvalida = !(Number(velocidadeNominal) > 0)
 
-  const wiseOk = ipValido(ipWise) && wises !== null && situacaoDoIp(ipWise, wises).situacao === 'Conectado'
+  const wiseOk = wises !== null && wises.some(w => w.enderecoIp === ipWise && w.cadastrado)
+    && situacaoDoIp(ipWise, wises).situacao === 'Conectado'
   const podeIniciar = wiseOk && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !iniciando
 
   async function iniciar() {
@@ -187,7 +188,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           </div>
         )}
 
-        {/* WISE desta medição: só o IP */}
+        {/* WISE desta medição: escolhido da lista de cadastrados */}
         <WiseDaMedicao ip={ipWise} onChangeIp={setIpWise} wises={wises} erroLista={erroWises} agora={agora} />
 
         {/* Velocidade */}

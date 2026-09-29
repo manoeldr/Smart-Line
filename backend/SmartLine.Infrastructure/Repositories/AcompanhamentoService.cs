@@ -97,6 +97,8 @@ public class AcompanhamentoService : IAcompanhamentoService
             return "Informe o IP do WISE instalado nesta máquina.";
         if (enderecoIp is null)
             return $"IP do WISE inválido: \"{request.EnderecoIpWise.Trim()}\". Use o formato 192.168.10.21.";
+        if (!await _context.Wises.AnyAsync(w => w.EnderecoIp == enderecoIp, cancellationToken))
+            return $"O WISE {enderecoIp} não está cadastrado. O cadastro é em Configurações → Dispositivos IoT.";
 
         // Só esta máquina: as outras da linha continuam livres (inclusive para o Manual).
         var ocupada =

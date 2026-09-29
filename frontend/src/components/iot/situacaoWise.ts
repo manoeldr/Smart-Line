@@ -1,4 +1,4 @@
-// Situação de um IP de WISE digitado, a partir da lista de WISE que o SmartLine conhece.
+// Situação de um WISE (pelo IP) a partir da lista de WISE que o SmartLine conhece, e validação de IP.
 import type { WiseDto } from '../../services/dispositivoIotService'
 import type { SituacaoWise } from './SituacaoWiseTexto'
 
