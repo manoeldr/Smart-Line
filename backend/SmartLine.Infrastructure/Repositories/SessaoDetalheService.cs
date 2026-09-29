@@ -108,6 +108,10 @@ public class SessaoDetalheService : ISessaoDetalheService
 
         eventos.Add(new EventoTimelineDto("Marcha", sessao.Inicio, null, null, null, null));
 
+        // Uma parada que continua noutra no mesmo instante (reclassificação da coleta automática,
+        // virada do dia) não teve marcha no meio.
+        var iniciosDeParada = sessao.Paradas.Select(p => p.Inicio).ToHashSet();
+
         foreach (var parada in sessao.Paradas.OrderBy(p => p.Inicio))
         {
             var duracao = parada.Fim.HasValue
@@ -120,10 +124,12 @@ public class SessaoDetalheService : ISessaoDetalheService
                 parada.Motivo?.Nome,
                 parada.Motivo?.Tipo.ToString(),
                 duracao,
-                parada.FotoPath
+                parada.FotoPath,
+                parada.Id.ToString(),
+                parada.MotivoId?.ToString()
             ));
 
-            if (parada.Fim.HasValue)
+            if (parada.Fim.HasValue && !iniciosDeParada.Contains(parada.Fim.Value))
             {
                 eventos.Add(new EventoTimelineDto("Marcha", parada.Fim.Value, null, null, null, null));
             }
@@ -151,7 +157,8 @@ public class SessaoDetalheService : ISessaoDetalheService
             MtbfMs: mtbfMs,
             CamposExtras: camposExtras,
             PontosProducao: pontosProducao,
-            Eventos: eventos
+            Eventos: eventos,
+            MaquinaId: maquinaLinha.MaquinaId.ToString()
         );
     }
 }

@@ -34,7 +34,8 @@ public record FiltroParadasPendentes(
     Guid? LinhaId = null,
     DateTime? Desde = null,
     DateTime? Ate = null,
-    int Limite = 200);
+    int Limite = 200,
+    Guid? ClienteId = null);
 
 /// <param name="MaquinaId">Máquina do catálogo: os motivos possíveis vêm de <c>GET api/maquinas/{MaquinaId}/motivos-parada</c>.</param>
 /// <param name="DuracaoSegundos">Até o fim, ou até agora se ainda está aberta.</param>

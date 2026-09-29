@@ -27,6 +27,8 @@ public class ClassificacaoParadaService : IClassificacaoParadaService
 
         if (filtro.MaquinaLinhaId is { } maquina)
             consulta = consulta.Where(p => p.Sessao.MaquinaLinhaId == maquina);
+        if (filtro.ClienteId is { } cliente)
+            consulta = consulta.Where(p => p.Sessao.MaquinaLinha.Linha.ClienteId == cliente);
         if (filtro.LinhaId is { } linha)
             consulta = consulta.Where(p => p.Sessao.MaquinaLinha.LinhaId == linha);
         if (filtro.Desde is { } desde)

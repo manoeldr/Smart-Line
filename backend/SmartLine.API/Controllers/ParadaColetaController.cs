@@ -24,12 +24,13 @@ public class ParadaColetaController : ControllerBase
     public async Task<IActionResult> Pendentes(
         [FromQuery] Guid? maquinaLinhaId,
         [FromQuery] Guid? linhaId,
+        [FromQuery] Guid? clienteId,
         [FromQuery] DateTime? desde,
         [FromQuery] DateTime? ate,
         [FromQuery] int limite = 200,
         CancellationToken cancellationToken = default) =>
         Ok(await _service.ListarPendentesAsync(
-            new FiltroParadasPendentes(maquinaLinhaId, linhaId, Utc(desde), Utc(ate), limite), cancellationToken));
+            new FiltroParadasPendentes(maquinaLinhaId, linhaId, Utc(desde), Utc(ate), limite, clienteId), cancellationToken));
 
     /// <summary>Troca o motivo da parada. Fica no histórico com o usuário logado.</summary>
     [HttpPut("{paradaId:guid}/motivo")]

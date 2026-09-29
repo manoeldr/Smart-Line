@@ -11,6 +11,9 @@ import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } 
 import { badgeAtivaVerde } from '../styles/badges'
 import { metricaBox, metricaValor, metricaLabel } from '../styles/cards'
 import PainelColetaIot from '../components/iot/PainelColetaIot'
+import EditarMotivoParadaModal from './EditarMotivoParadaModal'
+import HistoricoParadaModal from './HistoricoParadaModal'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   open: boolean
@@ -42,6 +45,13 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
   const [erro, setErro] = useState<string | null>(null)
   const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
 
+  // Editar o motivo de uma parada da linha do tempo (Manual ou Semi Automático) e ver o histórico
+  const { usuario } = useAuth()
+  const podeEditarMotivo = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(usuario?.nivel ?? '')
+  const [editandoParada, setEditandoParada] = useState<string | null>(null)
+  const [historicoParada, setHistoricoParada] = useState<string | null>(null)
+  const [recarregar, setRecarregar] = useState(0)
+
   useEffect(() => {
     if (!open || !maquinaLinhaId) return
     async function carregar() {
@@ -64,7 +74,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
       }
     }
     carregar()
-  }, [open, maquinaLinhaId])
+  }, [open, maquinaLinhaId, recarregar])
 
   function toggleCampo(id: string) {
     setCamposSelecionados(prev => {
@@ -231,11 +241,23 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                           </span>
                           <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
                         </div>
-                        {evento.motivoNome && (
+                        {evento.tipo === 'Parada' && (
                           <p className="text-[11px] text-zinc-500 mt-0.5">
-                            {evento.motivoNome}
-                            {evento.duracaoMs !== null && ` — ${formatarHoras(evento.duracaoMs!)}`}
+                            {evento.motivoNome ?? <span className="text-amber-600 dark:text-amber-400">sem motivo (conta como interna)</span>}
+                            {evento.duracaoMs !== null ? ` — ${formatarHoras(evento.duracaoMs!)}` : ' — em andamento'}
                           </p>
+                        )}
+                        {evento.tipo === 'Parada' && evento.paradaId && (
+                          <div className="flex items-center gap-3 mt-1">
+                            {podeEditarMotivo && dados.maquinaId && (
+                              <button onClick={() => setEditandoParada(evento.paradaId!)} className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">
+                                Editar motivo
+                              </button>
+                            )}
+                            <button onClick={() => setHistoricoParada(evento.paradaId!)} className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:underline">
+                              Histórico
+                            </button>
+                          </div>
                         )}
                       </div>
                       {evento.fotoPath && (
@@ -257,6 +279,13 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
           </>
         )}
       </div>
+
+      <EditarMotivoParadaModal
+        alvo={editandoParada && dados?.maquinaId ? { paradaId: editandoParada, maquinaId: dados.maquinaId } : null}
+        onFechar={() => setEditandoParada(null)}
+        onSalvo={() => { setEditandoParada(null); setRecarregar(r => r + 1) }}
+      />
+      <HistoricoParadaModal paradaId={historicoParada} onFechar={() => setHistoricoParada(null)} />
     </div>
   )
 }

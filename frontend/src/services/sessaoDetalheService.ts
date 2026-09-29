@@ -24,6 +24,9 @@ export interface EventoTimelineDto {
   motivoTipo: string | null
   duracaoMs: number | null
   fotoPath: string | null
+  // Só nas paradas: para editar o motivo e ver o histórico
+  paradaId?: string | null
+  motivoId?: string | null
 }
 
 export interface SessaoDetalheDto {
@@ -47,6 +50,8 @@ export interface SessaoDetalheDto {
   camposExtras: CampoGraficoDto[]
   pontosProducao: PontoProducaoDto[]
   eventos: EventoTimelineDto[]
+  // Máquina do catálogo (motivos de parada)
+  maquinaId?: string | null
 }
 
 export const sessaoDetalheService = {

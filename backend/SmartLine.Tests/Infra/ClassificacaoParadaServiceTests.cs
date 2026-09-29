@@ -75,6 +75,12 @@ public class ClassificacaoParadaServiceTests : IDisposable
         Assert.Equal(Em(300), Assert.Single(await Pendentes(new FiltroParadasPendentes(Desde: Em(100)))).Inicio);
         Assert.Equal(Em(60), Assert.Single(await Pendentes(new FiltroParadasPendentes(Ate: Em(100)))).Inicio);
         Assert.Single(await Pendentes(new FiltroParadasPendentes(Limite: 1)));
+
+        Guid cliente;
+        using (var db = _c.Banco.NovoContexto())
+            cliente = db.Clientes.Single().Id;
+        Assert.Equal(2, (await Pendentes(new FiltroParadasPendentes(ClienteId: cliente))).Count);
+        Assert.Empty(await Pendentes(new FiltroParadasPendentes(ClienteId: Guid.NewGuid())));
     }
 
     [Fact]

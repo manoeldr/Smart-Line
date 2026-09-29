@@ -25,7 +25,9 @@ public record SessaoDetalheDto(
     double? MtbfMs,
     IList<CampoGraficoDto> CamposExtras,
     IList<PontoProducaoDto> PontosProducao,
-    IList<EventoTimelineDto> Eventos
+    IList<EventoTimelineDto> Eventos,
+    // Máquina do catálogo: de onde vêm os motivos para editar o motivo de uma parada
+    string? MaquinaId = null
 );
 
 public record CampoGraficoDto(
@@ -45,5 +47,8 @@ public record EventoTimelineDto(
     string? MotivoNome,
     string? MotivoTipo,
     double? DuracaoMs,
-    string? FotoPath
+    string? FotoPath,
+    // Só nas paradas: para editar o motivo e ver o histórico
+    string? ParadaId = null,
+    string? MotivoId = null
 );
