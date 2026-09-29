@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Controllers;
@@ -27,10 +28,12 @@ public class RegrasClassificacaoController : ControllerBase
 
     /// <summary>Substitui as regras do catálogo. A ordem da lista é a prioridade.</summary>
     [HttpPut("catalogo/{maquinaId:guid}")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> SalvarDoCatalogo(Guid maquinaId, [FromBody] SalvarRegrasRequest request, CancellationToken cancellationToken) =>
         Responder(await _service.SalvarDoCatalogoAsync(maquinaId, request, cancellationToken));
 
     [HttpPost("catalogo/{maquinaId:guid}/restaurar-padrao")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> RestaurarPadrao(Guid maquinaId, CancellationToken cancellationToken) =>
         Responder(await _service.RestaurarPadraoAsync(maquinaId, cancellationToken));
 
@@ -41,11 +44,13 @@ public class RegrasClassificacaoController : ControllerBase
 
     /// <summary>Personaliza as regras desta máquina da linha.</summary>
     [HttpPut("maquina-linha/{maquinaLinhaId:guid}")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> SalvarDaMaquinaLinha(Guid maquinaLinhaId, [FromBody] SalvarRegrasRequest request, CancellationToken cancellationToken) =>
         Responder(await _service.SalvarDaMaquinaLinhaAsync(maquinaLinhaId, request, cancellationToken));
 
     /// <summary>Tira a personalização: a máquina volta às regras do catálogo.</summary>
     [HttpDelete("maquina-linha/{maquinaLinhaId:guid}")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> RemoverPersonalizacao(Guid maquinaLinhaId, CancellationToken cancellationToken) =>
         Responder(await _service.RemoverPersonalizacaoAsync(maquinaLinhaId, cancellationToken));
 

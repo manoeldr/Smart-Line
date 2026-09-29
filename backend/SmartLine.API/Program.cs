@@ -2,6 +2,7 @@ using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SmartLine.API.Autorizacao;
 using SmartLine.API.Middleware;
 using SmartLine.Core.Interfaces;
 using SmartLine.Core.Services;
@@ -56,6 +57,7 @@ builder.Services.AddScoped<ILocalizadorColetaIot, SmartLine.Infrastructure.Colet
 builder.Services.AddScoped<IDispositivoIotService, DispositivoIotService>();
 builder.Services.AddScoped<IClassificacaoParadaService, ClassificacaoParadaService>();
 builder.Services.AddScoped<IRegrasClassificacaoService, RegrasClassificacaoService>();
+builder.Services.AddScoped<IEntradasWiseService, EntradasWiseService>();
 
 // Coleta automática: relógio injetável (testes usam FakeTimeProvider) e parâmetros globais.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -90,7 +92,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(Politicas.Registrar);
 
 // Controllers
 builder.Services.AddControllers()

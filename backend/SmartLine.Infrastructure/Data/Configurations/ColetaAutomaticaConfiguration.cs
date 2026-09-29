@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartLine.Core.Entities.Global;
 using SmartLine.Core.Entities.Tenant;
+using SmartLine.Core.Iot;
 
 namespace SmartLine.Infrastructure.Data.Configurations;
 
@@ -177,5 +178,22 @@ public class ParadaColetaConfiguration : IEntityTypeConfiguration<Parada>
         b.HasOne(p => p.RegraClassificacao).WithMany()
             .HasForeignKey(p => p.RegraClassificacaoId)
             .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class TextoEntradaWiseConfiguration : IEntityTypeConfiguration<TextoEntradaWise>
+{
+    public void Configure(EntityTypeBuilder<TextoEntradaWise> b)
+    {
+        b.HasOne(t => t.Maquina).WithMany()
+            .HasForeignKey(t => t.MaquinaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // No máximo um texto por entrada em cada máquina do catálogo.
+        b.HasIndex(t => new { t.MaquinaId, t.Canal }).IsUnique();
+
+        b.Property(t => t.Nome).HasMaxLength(TextosEntradasWise.TamanhoMaximo).IsRequired();
+        b.Property(t => t.TextoAtivo).HasMaxLength(TextosEntradasWise.TamanhoMaximo);
+        b.Property(t => t.TextoNormal).HasMaxLength(TextosEntradasWise.TamanhoMaximo);
     }
 }

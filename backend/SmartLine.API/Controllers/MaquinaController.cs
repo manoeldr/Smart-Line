@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Controllers;
@@ -24,6 +25,7 @@ public class MaquinaController : ControllerBase
     }
 
     [HttpPost("{id}/motivos-parada")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> CriarMotivoParada(Guid id, [FromBody] CriarMotivoParadaRequest request)
     {
         var motivo = await _maquinaService.CriarMotivoParadaAsync(id, request.Nome, request.Tipo);
@@ -31,6 +33,7 @@ public class MaquinaController : ControllerBase
     }
 
     [HttpDelete("motivos-parada/{motivoId}")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> DeletarMotivoParada(Guid motivoId)
     {
         var sucesso = await _maquinaService.DeletarMotivoParadaAsync(motivoId);

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 using SmartLine.Iot.Broker;
 using SmartLine.Iot.Coleta;
@@ -9,7 +10,7 @@ namespace SmartLine.API.Controllers;
 /// <summary>Cadastro dos WISE (Semi Automático) e diagnóstico do broker.</summary>
 [ApiController]
 [Route("api/dispositivos-iot")]
-[Authorize]
+[Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
 public class DispositivoIotController : ControllerBase
 {
     private readonly IDispositivoIotService _service;

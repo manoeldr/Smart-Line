@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 using SmartLine.Core.Iot;
 using SmartLine.Iot.Broker;
@@ -54,6 +55,7 @@ public class ColetaIotController : ControllerBase
     /// tempo. O motor começa a acompanhar em até um segundo.
     /// </summary>
     [HttpPost("iniciar")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> Iniciar([FromBody] IniciarAcompanhamentoRequest request, CancellationToken cancellationToken)
     {
         var resultado = await _acompanhamentos.IniciarAsync(ObterUsuarioId(), request, cancellationToken);
@@ -65,6 +67,7 @@ public class ColetaIotController : ControllerBase
     /// Administrador/Desenvolvedor.
     /// </summary>
     [HttpPost("{acompanhamentoId:guid}/finalizar")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> Finalizar(Guid acompanhamentoId, CancellationToken cancellationToken)
     {
         var nivel = User.FindFirst("nivel")?.Value;

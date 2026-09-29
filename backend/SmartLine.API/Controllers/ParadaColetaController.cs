@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Controllers;
@@ -32,6 +33,7 @@ public class ParadaColetaController : ControllerBase
 
     /// <summary>Troca o motivo da parada. Fica no histórico com o usuário logado.</summary>
     [HttpPut("{paradaId:guid}/motivo")]
+    [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> Reclassificar(Guid paradaId, [FromBody] ReclassificarParadaRequest request, CancellationToken cancellationToken)
     {
         var resultado = await _service.ReclassificarAsync(paradaId, request.MotivoId, ObterUsuarioId(), cancellationToken);

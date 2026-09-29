@@ -40,6 +40,7 @@ public class SmartLineDbContext : DbContext
     public DbSet<AcompanhamentoCanal> AcompanhamentoCanais => Set<AcompanhamentoCanal>();
     public DbSet<HistoricoClassificacaoParada> HistoricosClassificacaoParada => Set<HistoricoClassificacaoParada>();
     public DbSet<PeriodoSemComunicacao> PeriodosSemComunicacao => Set<PeriodoSemComunicacao>();
+    public DbSet<TextoEntradaWise> TextosEntradasWise => Set<TextoEntradaWise>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
