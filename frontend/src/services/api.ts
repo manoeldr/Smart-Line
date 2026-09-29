@@ -28,3 +28,17 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
 }
+
+// Texto para mostrar ao usuário a partir de um erro da API. O backend devolve
+// recusas como { "mensagem": "..." }; o request acima joga esse corpo cru no Error.
+export function mensagemErro(e: unknown, padrao: string): string {
+  if (!(e instanceof Error) || !e.message) return padrao
+  if (e.message === 'Erro 403') return 'Seu usuário não tem permissão para esta ação.'
+  try {
+    const corpo = JSON.parse(e.message)
+    if (typeof corpo?.mensagem === 'string') return corpo.mensagem
+  } catch {
+    // não era JSON: segue com a mensagem como veio
+  }
+  return e.message.startsWith('<') || e.message.startsWith('{') ? padrao : e.message
+}

@@ -1,14 +1,16 @@
 // Tela de Configurações — navegação por abas.
 // Visibilidade das abas por nível: Administrador e Desenvolvedor veem tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
+// Dispositivos IoT (WISE do Semi Automático) é só Administrador e Desenvolvedor, como no backend.
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
 import AbaClientes from './AbaClientes'
 import AbaMaquinas from './AbaMaquinas'
 import AbaExportImport from './AbaExportImport'
+import AbaDispositivosIot from './AbaDispositivosIot'
 import { tabButton } from '../../styles/tables'
 
-type Aba = 'usuarios' | 'clientes' | 'maquinas' | 'exportimport'
+type Aba = 'usuarios' | 'clientes' | 'maquinas' | 'dispositivos' | 'exportimport'
 
 export default function Configuracao() {
   const { usuario } = useAuth()
@@ -23,6 +25,7 @@ export default function Configuracao() {
     { id: 'usuarios', label: 'Usuários', niveis: ['Administrador', 'Desenvolvedor'] },
     { id: 'clientes', label: 'Clientes', niveis: ['Administrador', 'Desenvolvedor', 'Auditor'] },
     { id: 'maquinas', label: 'Máquinas', niveis: ['Administrador', 'Desenvolvedor', 'Auditor'] },
+    { id: 'dispositivos', label: 'Dispositivos IoT', niveis: ['Administrador', 'Desenvolvedor'] },
     { id: 'exportimport', label: 'Exportar/Importar', niveis: ['Administrador', 'Desenvolvedor'] },
   ]
 
@@ -49,6 +52,7 @@ export default function Configuracao() {
         {abaAtiva === 'usuarios' && <AbaUsuarios />}
         {abaAtiva === 'clientes' && <AbaClientes />}
         {abaAtiva === 'maquinas' && <AbaMaquinas />}
+        {abaAtiva === 'dispositivos' && <AbaDispositivosIot />}
         {abaAtiva === 'exportimport' && <AbaExportImport />}
       </div>
     </div>
