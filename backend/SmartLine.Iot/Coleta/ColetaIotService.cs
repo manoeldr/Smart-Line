@@ -76,6 +76,7 @@ public sealed class ColetaIotService : BackgroundService
 
     private readonly ConcurrentDictionary<Guid, SituacaoColetaIot> _situacoes = new();
     private readonly ConcurrentDictionary<string, WiseDesconhecido> _desconhecidos = new();
+    private readonly LeiturasEntradasWise _leituras = new();
     private readonly TaskCompletionSource _retomadaConcluida = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private long _processadas;
     private long _descartadas;
@@ -117,6 +118,12 @@ public sealed class ColetaIotService : BackgroundService
     /// </summary>
     public IReadOnlyCollection<WiseDesconhecido> WiseDesconhecidos() =>
         _desconhecidos.Values.OrderBy(w => w.EnderecoIp).ToList();
+
+    /// <summary>
+    /// Últimas leituras das entradas de um WISE (cadastrado ou não, com ou sem
+    /// coleta), para o Validar entradas. Nulo se nada chegou desse IP desde que o backend subiu.
+    /// </summary>
+    public LeituraEntradas? LeiturasDoWise(string enderecoIp) => _leituras.Obter(enderecoIp);
 
     /// <summary>Estado atual de uma máquina; nulo se ela não está em coleta.</summary>
     public SituacaoColetaIot? Situacao(Guid maquinaLinhaId) =>
@@ -295,6 +302,8 @@ public sealed class ColetaIotService : BackgroundService
 
         if (resultado.Avisos.Count > 0)
             AvisarProblema(mensagem, string.Join(" ", resultado.Avisos));
+
+        _leituras.Registrar(mensagem.EnderecoIp, resultado.Amostra!);
 
         Guid? maquina;
         try

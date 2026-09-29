@@ -38,6 +38,26 @@ public class LocalizadorColetaIot : ILocalizadorColetaIot
             .Select(a => (Guid?)a.MaquinaLinhaId)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<Guid?> MaquinaDoCatalogoAsync(Guid maquinaLinhaId, CancellationToken cancellationToken = default) =>
+        await _context.MaquinasLinha
+            .AsNoTracking()
+            .Where(m => m.Id == maquinaLinhaId)
+            .Select(m => (Guid?)m.MaquinaId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<WiseCadastrado?> WiseDaMaquinaAsync(Guid maquinaLinhaId, CancellationToken cancellationToken = default) =>
+        await Wises(_context.DispositivosIot.Where(d => d.MaquinaLinhaId == maquinaLinhaId)).FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<WiseCadastrado?> WiseDoIpAsync(string enderecoIp, CancellationToken cancellationToken = default) =>
+        await Wises(_context.DispositivosIot.Where(d => d.EnderecoIp == enderecoIp)).FirstOrDefaultAsync(cancellationToken);
+
+    // Filtro antes da projeção: depois do construtor o EF não consegue mais traduzir.
+    private static IQueryable<WiseCadastrado> Wises(IQueryable<Core.Entities.Tenant.DispositivoIot> consulta) =>
+        consulta
+            .AsNoTracking()
+            .Select(d => new WiseCadastrado(
+                d.Id, d.Nome, d.EnderecoIp, d.Ativo, d.MaquinaLinhaId, d.MaquinaLinha.MaquinaId, d.UltimaMensagemEm));
+
     public async Task RegistrarUltimaMensagemAsync(string enderecoIp, DateTime instanteUtc, CancellationToken cancellationToken = default) =>
         await _context.DispositivosIot
             .Where(d => d.EnderecoIp == enderecoIp)

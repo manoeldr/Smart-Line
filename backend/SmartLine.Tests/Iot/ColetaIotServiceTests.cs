@@ -210,6 +210,20 @@ public class ColetaIotServiceTests : IAsyncLifetime
         Assert.Equal(60, _amb.Servico.Situacao(_amb.MaquinaA)!.ProducaoPendente.Garrafas);
         Assert.Single(_amb.Log.Entradas, e => e.Nivel == LogLevel.Warning && e.Texto.Contains("fora do formato"));
     }
+
+    [Fact]
+    public async Task ValidarEntradas_GuardaALeitura_MesmoDeIpSemCadastroESemColeta()
+    {
+        await _amb.SubirAsync();
+
+        Enviar("10.0.0.99", 0, s2: 100);
+        Enviar("10.0.0.99", 20, s2: 160, falta: true);
+        await Aguardar();
+
+        var l = _amb.Servico.LeiturasDoWise("10.0.0.99")!;
+        Assert.Equal((160u, (long?)60, true), (l.Contadores[CanalWise.S2].Valor, l.Contadores[CanalWise.S2].Incremento, l.Estados[CanalWise.S8]));
+        Assert.Null(_amb.Servico.LeiturasDoWise(AmbienteColetaIot.IpA));
+    }
 }
 
 /// <summary>
