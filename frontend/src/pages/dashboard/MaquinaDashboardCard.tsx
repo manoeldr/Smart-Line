@@ -2,7 +2,7 @@
 // finalizadas dentro do período selecionado. Ao clicar, abre o MaquinaDetalheModal.
 import type { MaquinaDashboardDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
-import { cardPadded, cardCritica } from '../../styles/cards'
+import { cardPadded } from '../../styles/cards'
 
 interface Props {
   dados: MaquinaDashboardDto
@@ -21,63 +21,50 @@ export default function MaquinaDashboardCard({ dados }: Props) {
       : 'text-red-600 dark:text-red-400'
 
   return (
-    <div className={`${cardPadded} ${cardCritica(dados.critica)}`}>
+    // Crítica: faixa azul no topo desenhada por dentro (sombra, não borda), para não mudar
+    // a altura; h-full deixa os cards de uma mesma fileira sempre com a mesma altura.
+    <div className={`${cardPadded} relative h-full text-center ${dados.critica ? 'shadow-[inset_0_2px_0_0_#2563eb]' : ''}`}>
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{dados.maquinaNome}</p>
-        {dados.critica && <span className={badgeCritica}>crítica</span>}
-      </div>
+      {/* Header: a etiqueta "crítica" fica no canto, fora do fluxo, para os cards
+          críticos e os demais ficarem com tudo na mesma altura lado a lado */}
+      {dados.critica && <span className={`${badgeCritica} absolute top-3 right-3`}>crítica</span>}
+      <p className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-3 px-14 truncate">{dados.maquinaNome}</p>
 
       {/* OEE grande */}
-      <div className="text-center mb-4">
-        <p className={`text-3xl font-medium ${oeeColor}`}>{dados.oee}%</p>
-        <p className="text-[10px] text-zinc-400">OEE médio</p>
+      <div className="mb-4">
+        <p className={`text-4xl font-medium ${oeeColor}`}>{dados.oee}%</p>
+        <p className="text-xs text-zinc-400">OEE médio</p>
       </div>
 
       {/* Disponibilidade / Performance / Qualidade */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="text-center">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{dados.disponibilidade}%</p>
-          <p className="text-[9px] text-zinc-400">Disponib.</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{dados.performance}%</p>
-          <p className="text-[9px] text-zinc-400">Perform.</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{dados.qualidade}%</p>
-          <p className="text-[9px] text-zinc-400">Qualid.</p>
-        </div>
+        <Indicador valor={`${dados.disponibilidade}%`} rotulo="Disponib." />
+        <Indicador valor={`${dados.performance}%`} rotulo="Perform." />
+        <Indicador valor={`${dados.qualidade}%`} rotulo="Qualid." />
       </div>
 
       {/* Produção / Refugo */}
       <div className="grid grid-cols-2 gap-2 mb-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-        <div>
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{dados.producao.toLocaleString('pt-BR')}</p>
-          <p className="text-[9px] text-zinc-400">Produção total</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{dados.refugo.toLocaleString('pt-BR')}</p>
-          <p className="text-[9px] text-zinc-400">Refugo total</p>
-        </div>
+        <Indicador valor={dados.producao.toLocaleString('pt-BR')} rotulo="Produção total" />
+        <Indicador valor={dados.refugo.toLocaleString('pt-BR')} rotulo="Refugo total" />
       </div>
 
       {/* Tempo rodando / parado / sessões */}
-      <div className="grid grid-cols-3 gap-2 text-[9px] text-zinc-400 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-        <div>
-          <p className="text-zinc-900 dark:text-zinc-100 text-xs font-medium">{formatarHoras(dados.tempoRodandoMs)}</p>
-          rodando
-        </div>
-        <div>
-          <p className="text-zinc-900 dark:text-zinc-100 text-xs font-medium">{formatarHoras(dados.tempoParadoMs)}</p>
-          parado
-        </div>
-        <div>
-          <p className="text-zinc-900 dark:text-zinc-100 text-xs font-medium">{dados.numSessoes}</p>
-          sessões
-        </div>
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+        <Indicador valor={formatarHoras(dados.tempoRodandoMs)} rotulo="rodando" />
+        <Indicador valor={formatarHoras(dados.tempoParadoMs)} rotulo="parado" />
+        <Indicador valor={String(dados.numSessoes)} rotulo="sessões" />
       </div>
+    </div>
+  )
+}
+
+// Valor em destaque com o rótulo embaixo, centralizados no espaço dele.
+function Indicador({ valor, rotulo }: { valor: string; rotulo: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">{valor}</p>
+      <p className="text-xs text-zinc-400">{rotulo}</p>
     </div>
   )
 }
