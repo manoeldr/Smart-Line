@@ -3,7 +3,7 @@
 // Ao editar uma máquina existente, aparecem abas Manual/Semi Automático/Automático
 // com a configuração específica de cada modo de coleta.
 // Segue o padrão "staged changes": campos e motivos só são persistidos no banco ao clicar em Salvar.
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { configuracaoService, type MaquinaConfDto, type CampoMaquinaDto } from '../services/configuracaoService'
 import { maquinaService, type MotivoParadaDto } from '../services/maquinaService'
 import ConfirmModal from '../components/ConfirmModal'
@@ -12,6 +12,8 @@ import { inputBase, label } from '../styles/inputs'
 import { badgeFixo, badgeInterna, badgeExterna, badgeNovo } from '../styles/badges'
 import { modalOverlay, modalOverlayNested, modalContainerSm, modalPanel, modalHeader, modalTitle, modalFooter } from '../styles/modals'
 import { tabButton } from '../styles/tables'
+import SemiAutomaticoMaquina from '../pages/configuracao/SemiAutomaticoMaquina'
+import { mensagemErro } from '../services/api'
 
 type AbaModal = 'manual' | 'semi' | 'auto'
 
@@ -48,6 +50,10 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
     descricao: maquina?.descricao ?? ''
   })
   const [salvando, setSalvando] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null)
+
+  // Gravação da aba Semi Automático (textos das entradas e regras), registrada por ela
+  const salvarSemiRef = useRef<(() => Promise<void>) | null>(null)
 
   // Campos de coleta (staged)
   const [campos, setCampos] = useState<CampoStaged[]>([])
@@ -166,6 +172,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
   // Persiste tudo de uma vez: dados da máquina, campos e motivos pendentes
   async function salvarTudo() {
     setSalvando(true)
+    setErroSalvar(null)
     try {
       const data = { nome: form.nome, descricao: form.descricao || null }
       let maquinaId = maquina?.id
@@ -195,8 +202,13 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
         }
       }
 
+      // Semi Automático por último: se algo nele for recusado, o resto já está salvo e o modal fica aberto
+      if (salvarSemiRef.current) await salvarSemiRef.current()
+
       onSalvo()
       onFechar()
+    } catch (e) {
+      setErroSalvar(mensagemErro(e, 'Erro ao salvar a máquina.'))
     } finally { setSalvando(false) }
   }
 
@@ -210,7 +222,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
     <>
       {/* Modal principal */}
       <div className={modalOverlay}>
-        <div className={`${modalPanel} w-[600px] max-h-[90vh]`}>
+        <div className={`${modalPanel} ${abaModal === 'semi' ? 'w-[860px]' : 'w-[600px]'} max-h-[90vh]`}>
 
         <div className={`${modalHeader} flex items-center justify-between`}>
           <p className={modalTitle}>
@@ -320,10 +332,12 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                   </div>
                 )}
 
-                {/* Ainda não implementados — reservados para os próximos modos de coleta */}
-                {abaModal === 'semi' && (
-                  <div className="flex items-center justify-center h-32 text-xs text-zinc-400">Em desenvolvimento</div>
-                )}
+                {/* Semi Automático fica montado mesmo em outra aba, para não perder o que foi editado */}
+                <div className={abaModal === 'semi' ? '' : 'hidden'}>
+                  <SemiAutomaticoMaquina maquinaId={maquina.id} salvarRef={salvarSemiRef} />
+                </div>
+
+                {/* Ainda não implementado — reservado para o modo Automático */}
 
                 {abaModal === 'auto' && (
                   <div className="flex items-center justify-center h-32 text-xs text-zinc-400">Em desenvolvimento</div>
@@ -333,6 +347,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
           )}
 
           <div className={modalFooter}>
+            {erroSalvar && <p className="flex-1 self-center text-xs text-red-600 dark:text-red-400">{erroSalvar}</p>}
             <button onClick={onFechar} disabled={salvando} className={btnSecondarySm}>
               Cancelar
             </button>
