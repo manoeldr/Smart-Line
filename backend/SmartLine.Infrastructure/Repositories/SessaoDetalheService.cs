@@ -7,6 +7,24 @@ namespace SmartLine.Infrastructure.Repositories;
 
 public class SessaoDetalheService : ISessaoDetalheService
 {
+    /// <summary>
+    /// Soma a produção de cada hora cheia. O ponto fica no fim da hora, como a leitura do
+    /// Manual (o produzido das 10:00 às 11:00 aparece às 11:00); a hora ainda em andamento
+    /// (ou cortada pela finalização) aparece na hora da última gravação dela.
+    /// </summary>
+    public static List<PontoProducaoDto> PorHora(IEnumerable<PontoProducaoDto> pontos) =>
+        pontos
+            .GroupBy(p => FimDaHora(p.Hora))
+            .OrderBy(g => g.Key)
+            .Select(g => new PontoProducaoDto(g.Max(p => p.Hora), g.Sum(p => p.Quantidade)))
+            .ToList();
+
+    private static DateTime FimDaHora(DateTime t)
+    {
+        var inicio = new DateTime(t.Year, t.Month, t.Day, t.Hour, 0, 0, t.Kind);
+        return inicio == t ? t : inicio.AddHours(1);
+    }
+
     private readonly SmartLineDbContext _context;
     private readonly IOeeService _oeeService;
 
@@ -102,6 +120,11 @@ public class SessaoDetalheService : ISessaoDetalheService
             var diferenca = producaoOrdenada[i].Quantidade - producaoOrdenada[i - 1].Quantidade;
             pontosProducao.Add(new PontoProducaoDto(producaoOrdenada[i].Hora, Math.Max(0, diferenca)));
         }
+
+        // Semi Automático: a produção é gravada a cada 5 min, o que daria uma barra a cada 5 min.
+        // O gráfico fica por hora, como no Manual.
+        if (sessao.TipoColeta == TipoColeta.SemiAutomatico)
+            pontosProducao = PorHora(pontosProducao);
 
         // Timeline de eventos (Marcha/Parada)
         var eventos = new List<EventoTimelineDto>();

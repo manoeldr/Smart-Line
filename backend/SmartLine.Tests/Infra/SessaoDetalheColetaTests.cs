@@ -32,4 +32,34 @@ public class SessaoDetalheColetaTests : IDisposable
         Assert.Equal((paradas[1].Id.ToString(), _c.Motivo("Falta de garrafas na entrada").ToString()), (detalhe.Eventos[2].ParadaId, detalhe.Eventos[2].MotivoId));
         Assert.Equal(_c.MaquinaCatalogo.ToString(), detalhe.MaquinaId);
     }
+
+    [Fact]
+    public async Task GraficoDeProducao_PorHora_EmVezDeACada5Minutos()
+    {
+        // Coleta às 11:00; gravações às 11:05, 11:10, 12:00 e 12:05.
+        await _c.Consolidar(Em(300), garrafas: 100);
+        await _c.Consolidar(Em(600), garrafas: 150);
+        await _c.Consolidar(Em(3600), garrafas: 750);
+        await _c.Consolidar(Em(3900), garrafas: 100);
+
+        await using var db = _c.Banco.NovoContexto();
+        var detalhe = (await new SessaoDetalheService(db, new OeeService()).GetUltimaSessaoDetalheAsync(_c.MaquinaLinha))!;
+
+        // 11:00–12:00 inteira às 12:00; a hora em andamento na última gravação (12:05).
+        Assert.Equal(new[] { (Em(3600), 1000), (Em(3900), 100) }, detalhe.PontosProducao.Select(p => (p.Hora, p.Quantidade)));
+    }
+
+    [Fact]
+    public void PorHora_HoraCheiaNoFim_EGravacaoExatamenteNaHoraFicaNaHoraQueTerminou()
+    {
+        var t = new DateTime(2026, 9, 29, 10, 0, 0, DateTimeKind.Utc);
+
+        var pontos = SessaoDetalheService.PorHora(
+        [
+            new(t.AddMinutes(5), 10), new(t.AddMinutes(55), 20), new(t.AddHours(1), 30), // 10:00–11:00
+            new(t.AddHours(1).AddMinutes(5), 40), new(t.AddHours(2), 50),                 // 11:00–12:00
+        ]);
+
+        Assert.Equal(new[] { (t.AddHours(1), 60), (t.AddHours(2), 90) }, pontos.Select(p => (p.Hora, p.Quantidade)));
+    }
 }
