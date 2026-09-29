@@ -11,7 +11,6 @@ import type { MaquinaLinha } from '../../types'
 import { coletaIotService } from '../../services/coletaIotService'
 import { dispositivoIotService, type WiseDto } from '../../services/dispositivoIotService'
 import { entradasWiseService, type EntradaWiseDto } from '../../services/entradasWiseService'
-import { regrasClassificacaoService, type RegraDto } from '../../services/regrasClassificacaoService'
 import { mensagemErro } from '../../services/api'
 import Switch from '../../components/Switch'
 import WiseDaMedicao from '../../components/iot/WiseDaMedicao'
@@ -69,7 +68,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const [erroWises, setErroWises] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
   const [textos, setTextos] = useState<EntradaWiseDto[]>([])
-  const [regras, setRegras] = useState<RegraDto[]>([])
 
   const [iniciando, setIniciando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -104,15 +102,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     return () => { ativo = false }
   }, [maquina.maquinaId])
 
-  // Regras da máquina: para avisar quando um sensor desligado é usado por alguma.
-  useEffect(() => {
-    let ativo = true
-    regrasClassificacaoService.daMaquinaLinha(maquina.id)
-      .then(r => { if (ativo) setRegras(r.regras) })
-      .catch(() => { /* sem as regras, só não mostra o aviso */ })
-    return () => { ativo = false }
-  }, [maquina.id])
-
   function nome(canal: string) {
     return textos.find(e => e.canal === canal)?.nome ?? NOMES_PADRAO[canal]
   }
@@ -130,9 +119,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const semProducao = !CONTADORES_PRODUCAO.some(c => canais[c].ligado)
   const multiplicadorInvalido = [...CONTADORES_PRODUCAO, ...CONTADORES_REJEITO].some(c => !multiplicadorValido(canais[c]))
   const velocidadeInvalida = !(Number(velocidadeNominal) > 0)
-
-  const sensoresDesligados = new Set(SENSORES.filter(c => !canais[c].ligado))
-  const regrasAfetadas = regras.filter(r => r.ativa && r.condicoes.some(c => c.canal && sensoresDesligados.has(c.canal)))
 
   const wiseOk = ipValido(ipWise) && wises !== null && situacaoDoIp(ipWise, wises).situacao === 'Conectado'
   const podeIniciar = wiseOk && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !iniciando
@@ -238,12 +224,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
               <span className="text-xs text-zinc-900 dark:text-zinc-100 truncate">{canal} - {nome(canal)}</span>
               <Switch checked={canais[canal].ligado} onChange={v => alterar(canal, { ligado: v })} />
             </div>
-          ))}
-          {regrasAfetadas.map(r => (
-            <p key={r.id} className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-              A regra "{r.nome}" usa {r.condicoes.filter(c => c.canal && sensoresDesligados.has(c.canal)).map(c => c.canal).join(', ')},
-              que está desligado: ela não vai classificar paradas nesta medição.
-            </p>
           ))}
         </div>
 
