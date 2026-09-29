@@ -1,5 +1,5 @@
-// Validar entradas — mostra as 8 entradas de um WISE ao vivo, em texto, para conferir a
-// fiação: o contador sobe quando a máquina produz, o sensor muda quando é acionado.
+// Validar entradas — mostra as 8 entradas de um WISE ao vivo, para conferir a fiação:
+// o contador sobe quando a máquina produz, o sensor muda (0/1) quando é acionado.
 // Reutilizável: quem abre passa a função que busca a situação (por IP, na aba Dispositivos
 // IoT, ou pela máquina, no Configurar medição). Atualiza a cada 2 s enquanto aberto.
 import { useEffect, useEffectEvent, useState } from 'react'
@@ -35,9 +35,6 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
   const [erro, setErro] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
 
-  // Primeiro valor visto de cada contador desde que o modal abriu: "subiu N desde que abriu".
-  const [inicial, setInicial] = useState<Record<string, number>>({})
-
   // Quem abre recria a função a cada render; como evento, ela não reinicia o polling.
   const buscar = useEffectEvent(() => carregar())
 
@@ -47,13 +44,6 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
       try {
         const s = await buscar()
         if (!ativo) return
-        setInicial(anterior => {
-          const novo = { ...anterior }
-          for (const e of s.entradas) {
-            if (e.tipo === 'Contador' && e.valor !== null && novo[e.canal] === undefined) novo[e.canal] = e.valor
-          }
-          return novo
-        })
         setSituacao(s)
         setErro(null)
       } catch (e) {
@@ -68,37 +58,16 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
     return () => { ativo = false; clearInterval(id) }
   }, [])
 
-  function leitura(e: EntradaAoVivoDto) {
+  // Valor atual da entrada: o número do contador, ou 0/1 no sensor (como chega do WISE).
+  function status(e: EntradaAoVivoDto) {
     if (!e.recebida) return <span className="text-zinc-400">sem leitura</span>
-    if (e.tipo === 'Contador') {
-      return <span className="font-medium text-zinc-900 dark:text-zinc-100">{numero(e.valor ?? 0)}</span>
-    }
-    return (
-      <span className={e.emAlarme ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-green-600 dark:text-green-400'}>
-        {e.texto}
-      </span>
-    )
-  }
-
-  function variacao(e: EntradaAoVivoDto) {
-    if (!e.recebida) return null
-    if (e.tipo === 'Estado') {
-      return <span className="text-zinc-400">{e.emAlarme ? 'ativo' : 'normal'} (entrada = {e.valorBruto ? 1 : 0})</span>
-    }
-    const partes: string[] = []
-    if (e.incremento !== null && e.intervaloSegundos !== null) {
-      partes.push(`+${numero(e.incremento)} em ${Math.round(e.intervaloSegundos)} s`)
-    }
-    const base = inicial[e.canal]
-    if (base !== undefined && e.valor !== null && e.valor >= base) {
-      partes.push(`+${numero(e.valor - base)} desde que abriu`)
-    }
-    return <span className="text-zinc-500">{partes.join(' · ') || '—'}</span>
+    const valor = e.tipo === 'Contador' ? numero(e.valor ?? 0) : e.valorBruto ? '1' : '0'
+    return <span className="font-medium text-zinc-900 dark:text-zinc-100">{valor}</span>
   }
 
   return (
     <div className={modalOverlayNested}>
-      <div className={`${modalPanel} w-[620px] max-h-[90vh]`}>
+      <div className={`${modalPanel} w-[520px] max-h-[90vh]`}>
         <div className={modalHeader}>
           <p className={modalTitle}>{titulo}</p>
           {subtitulo && <p className={modalSubtitle}>{subtitulo}</p>}
@@ -130,8 +99,7 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
                   <tr className={tableHeadRow}>
                     <th className={tableHeadCell}>Entrada</th>
                     <th className={tableHeadCell}>Nome</th>
-                    <th className={tableHeadCell}>Leitura</th>
-                    <th className={tableHeadCell}>Variação</th>
+                    <th className={tableHeadCell}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -139,16 +107,14 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
                     <tr key={e.canal} className={tableBodyRow}>
                       <td className="py-2 pr-4 text-zinc-500 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
                       <td className="py-2 pr-4 text-zinc-900 dark:text-zinc-100">{e.nome}</td>
-                      <td className="py-2 pr-4">{leitura(e)}</td>
-                      <td className="py-2 pr-4">{variacao(e)}</td>
+                      <td className="py-2 pr-4">{status(e)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
               <p className="text-[10px] text-zinc-400">
-                Os contadores chegam no intervalo de publicação configurado no WISE; os sensores chegam na hora em que mudam.
-                Uma entrada "sem leitura" nunca foi enviada pelo WISE: confira a fiação e a configuração daquela entrada.
+                "Sem leitura": o WISE ainda não enviou essa entrada. Confira a fiação e a configuração dela.
               </p>
             </>
           )}
