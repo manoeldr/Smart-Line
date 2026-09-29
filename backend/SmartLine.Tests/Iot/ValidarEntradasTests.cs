@@ -90,16 +90,4 @@ public class EntradasAoVivoTests
 
         Assert.Equal(("Entrada rotuladora", "Rotuladora vazia"), (s8.Nome, s8.Texto));
     }
-
-    [Fact]
-    public void Situacao_DoWise()
-    {
-        var wise = new WiseCadastrado(Guid.NewGuid(), "WISE", "192.168.10.21", true, Guid.NewGuid(), Guid.NewGuid(), null);
-        var conectados = new HashSet<string> { "192.168.10.21" };
-
-        Assert.Equal(SituacaoConexaoWise.Conectado, EntradasAoVivo.Situacao(wise, conectados));
-        Assert.Equal(SituacaoConexaoWise.Desconectado, EntradasAoVivo.Situacao(wise, new HashSet<string>()));
-        Assert.Equal(SituacaoConexaoWise.NaoCadastrado, EntradasAoVivo.Situacao(wise with { Ativo = false }, conectados));
-        Assert.Equal(SituacaoConexaoWise.NaoCadastrado, EntradasAoVivo.Situacao(null, conectados));
-    }
 }

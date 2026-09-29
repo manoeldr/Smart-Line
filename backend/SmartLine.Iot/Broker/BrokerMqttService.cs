@@ -58,6 +58,10 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
     /// <summary>IPs com conexão MQTT aberta agora (tela de dispositivos).</summary>
     public IReadOnlySet<string> IpsConectados() => _conexoes.Values.ToHashSet();
 
+    /// <summary>Conexões MQTT abertas agora, com o ClientId de cada uma.</summary>
+    public IReadOnlyList<ConexaoMqtt> Conexoes() =>
+        _conexoes.Select(c => new ConexaoMqtt(c.Key, c.Value)).ToList();
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (!_opcoes.Habilitado)
@@ -137,3 +141,8 @@ public sealed class BrokerMqttService : IHostedService, IDisposable
         return Task.CompletedTask;
     }
 }
+
+/// <summary>Uma conexão MQTT aberta no broker.</summary>
+/// <param name="ClientId">Identificação configurada no dispositivo.</param>
+/// <param name="EnderecoIp">IP de origem, na forma canônica.</param>
+public sealed record ConexaoMqtt(string ClientId, string EnderecoIp);

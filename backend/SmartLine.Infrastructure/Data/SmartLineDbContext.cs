@@ -35,7 +35,6 @@ public class SmartLineDbContext : DbContext
     public DbSet<ConjuntoRegras> ConjuntosRegras => Set<ConjuntoRegras>();
     public DbSet<RegraClassificacao> RegrasClassificacao => Set<RegraClassificacao>();
     public DbSet<CondicaoRegra> CondicoesRegra => Set<CondicaoRegra>();
-    public DbSet<DispositivoIot> DispositivosIot => Set<DispositivoIot>();
     public DbSet<Acompanhamento> Acompanhamentos => Set<Acompanhamento>();
     public DbSet<AcompanhamentoCanal> AcompanhamentoCanais => Set<AcompanhamentoCanal>();
     public DbSet<HistoricoClassificacaoParada> HistoricosClassificacaoParada => Set<HistoricoClassificacaoParada>();

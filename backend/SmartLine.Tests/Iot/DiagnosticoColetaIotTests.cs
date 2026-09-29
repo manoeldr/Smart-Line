@@ -2,12 +2,13 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartLine.Iot.Broker;
+using SmartLine.Iot.Coleta;
 using SmartLine.Iot.Simulacao;
 using SmartLine.Tests.Infra;
 
 namespace SmartLine.Tests.Iot;
 
-/// <summary>O que a tela de dispositivos mostra: quem está conectado e quem publica sem cadastro.</summary>
+/// <summary>O que a tela de dispositivos mostra: quem está conectado, quem publica e em que medição.</summary>
 public class DiagnosticoColetaIotTests : IAsyncLifetime
 {
     private readonly int _porta = PortaLivre();
@@ -58,19 +59,19 @@ public class DiagnosticoColetaIotTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task WiseSemCadastro_AparecePraCadastrar_ESomeDepoisDeCadastrado()
+    public async Task ListaDeWise_JuntaBrokerMotorEMedicoes()
     {
         using var novo = Wise(9, "127.0.0.29");
         await novo.PublicarAsync(DateTime.UtcNow);
         await _amb.AguardarMensagensAsync(1);
+        await _amb.IniciarColetaAsync(_amb.MaquinaB, "127.0.0.29");
 
-        var desconhecido = Assert.Single(_amb.Servico.WiseDesconhecidos());
-        Assert.Equal(("127.0.0.29", "SIM-WISE-9"), (desconhecido.EnderecoIp, desconhecido.ClientId));
+        var medicoes = await _amb.WisesEmMedicaoAsync();
+        var lista = ListaWise.Montar(_broker.Conexoes(), _amb.Servico.WiseVistos(), medicoes);
 
-        _amb.Alterar(db => db.DispositivosIot.Single(d => d.EnderecoIp == AmbienteColetaIot.IpB).EnderecoIp = "127.0.0.29");
-        await novo.PublicarAsync(DateTime.UtcNow);
-        await _amb.AguardarMensagensAsync(2);
-
-        Assert.Empty(_amb.Servico.WiseDesconhecidos());
+        var wise = Assert.Single(lista);
+        Assert.Equal(("127.0.0.29", true, "SIM-WISE-9", 1L), (wise.EnderecoIp, wise.Conectado, wise.ClientId, wise.Mensagens));
+        Assert.Equal((_amb.MaquinaB, "Enchedora", "Linha 1", "Cliente", "Auditor"),
+            (wise.Medicao!.MaquinaLinhaId, wise.Medicao.Maquina, wise.Medicao.Linha, wise.Medicao.Cliente, wise.Medicao.Usuario));
     }
 }

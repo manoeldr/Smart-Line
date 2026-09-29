@@ -72,7 +72,7 @@ public class LinhaMaquinaService : ILinhaMaquinaService
         return await Projetar(_context.MaquinasLinha.Where(ml => ml.Id == maquinaLinhaId)).SingleAsync();
     }
 
-    /// <summary>DTO com o que a tela de configuração mostra, inclusive o WISE e as regras da máquina.</summary>
+    /// <summary>DTO com o que a tela de configuração mostra, inclusive se as regras da máquina são personalizadas.</summary>
     private IQueryable<MaquinaLinhaConfDto> Projetar(IQueryable<MaquinaLinha> consulta) =>
         consulta.Select(ml => new MaquinaLinhaConfDto(
             ml.Id.ToString(),
@@ -86,10 +86,6 @@ public class LinhaMaquinaService : ILinhaMaquinaService
             ml.MedeProducao,
             ml.Ativo,
             ml.TempoDeteccaoParadaSegundos,
-            _context.DispositivosIot
-                .Where(d => d.MaquinaLinhaId == ml.Id && d.Ativo)
-                .Select(d => d.EnderecoIp)
-                .FirstOrDefault(),
             _context.ConjuntosRegras.Any(c => c.MaquinaLinhaId == ml.Id)));
 
     public async Task<bool> RemoverMaquinaAsync(Guid maquinaLinhaId)

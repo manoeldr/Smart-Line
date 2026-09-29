@@ -12,7 +12,7 @@ namespace SmartLine.Iot.Broker;
 /// <param name="ClientId">Identificação da conexão MQTT (configurada no WISE). Só informativo.</param>
 /// <param name="EnderecoIp">
 /// IP de onde a mensagem veio, na forma canônica (<see cref="EnderecoRede"/>).
-/// É ele que identifica o WISE e, pelo cadastro, a máquina. Vazio se o broker
+/// É ele que identifica o WISE e, pela coleta em andamento com esse IP, a máquina. Vazio se o broker
 /// não conseguiu determinar (não deveria acontecer em rede TCP).
 /// </param>
 /// <param name="Topico">Tópico em que o dispositivo publicou.</param>

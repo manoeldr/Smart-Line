@@ -106,7 +106,7 @@ public class ColetaIotServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task IpSemWiseCadastrado_DescartaEAvisaUmaVezSo()
+    public async Task WiseLivre_Descarta_ERegistraUmaVezSo_SemAviso()
     {
         await _amb.SubirAsync();
 
@@ -115,19 +115,46 @@ public class ColetaIotServiceTests : IAsyncLifetime
         await Aguardar();
 
         Assert.Equal(3, _amb.Servico.MensagensDescartadas);
-        Assert.Single(_amb.Log.Entradas, e => e.Nivel == LogLevel.Warning && e.Texto.Contains("10.0.0.99"));
+        Assert.Single(_amb.Log.Entradas, e => e.Nivel == LogLevel.Information && e.Texto.Contains("10.0.0.99"));
+        Assert.DoesNotContain(_amb.Log.Entradas, e => e.Nivel >= LogLevel.Warning);
     }
 
     [Fact]
-    public async Task WiseInativo_ETratadoComoNaoCadastrado()
+    public async Task OWiseEDaMedicao_NaoDaMaquina_DepoisDeFinalizarVaiParaOutraMaquina()
     {
-        _amb.Alterar(db => db.DispositivosIot.Single(d => d.EnderecoIp == AmbienteColetaIot.IpA).Ativo = false);
         await _amb.SubirAsync();
+        var naA = await _amb.IniciarColetaAsync(_amb.MaquinaA, AmbienteColetaIot.IpA);
+        Enviar(AmbienteColetaIot.IpA, 0, s2: 0);
+        Enviar(AmbienteColetaIot.IpA, 20, s2: 100);
+        await Aguardar();
+        Assert.Equal(100, _amb.Servico.Situacao(_amb.MaquinaA)!.ProducaoPendente.Garrafas);
 
-        Enviar(AmbienteColetaIot.IpA, 0, s2: 100);
+        await _amb.FinalizarColetaAsync(naA);
+        var naB = await _amb.IniciarColetaAsync(_amb.MaquinaB, AmbienteColetaIot.IpA);
+        Enviar(AmbienteColetaIot.IpA, 40, s2: 200); // referência da coleta na B
+        Enviar(AmbienteColetaIot.IpA, 60, s2: 260);
         await Aguardar();
 
-        Assert.Equal(1, _amb.Servico.MensagensDescartadas);
+        var b = _amb.Servico.Situacao(_amb.MaquinaB)!;
+        Assert.Equal((naB, 60L), (b.AcompanhamentoId, b.ProducaoPendente.Garrafas));
+        await _amb.Servico.VerificarAgoraAsync();
+        Assert.Null(_amb.Servico.Situacao(_amb.MaquinaA));
+    }
+
+    [Fact]
+    public async Task WiseVistos_TodoIpQuePublicou_EmMedicaoOuLivre_ComContagem()
+    {
+        await _amb.SubirAsync();
+        await _amb.IniciarColetaAsync(_amb.MaquinaA);
+        Enviar(AmbienteColetaIot.IpA, 0, s2: 0);
+        Enviar(AmbienteColetaIot.IpA, 20, s2: 10);
+        Enviar("10.0.0.99", 30, s2: 5);
+        await Aguardar();
+
+        var vistos = _amb.Servico.WiseVistos();
+        Assert.Equal(
+            new[] { (AmbienteColetaIot.IpA, $"WISE-{AmbienteColetaIot.IpA}", Em(20), 2L), ("10.0.0.99", "WISE-10.0.0.99", Em(30), 1L) },
+            vistos.Select(v => (v.EnderecoIp, v.ClientId, v.UltimaMensagemUtc, v.Mensagens)).OrderBy(v => v.EnderecoIp != AmbienteColetaIot.IpA));
     }
 
     [Fact]
@@ -154,8 +181,7 @@ public class ColetaIotServiceTests : IAsyncLifetime
 
         _tempo.Advance(TimeSpan.FromMinutes(1));
         await _amb.FinalizarColetaAsync(primeira);
-        Enviar(AmbienteColetaIot.IpA, 40, s2: 200);
-        await Aguardar();
+        await _amb.Servico.VerificarAgoraAsync(); // o relógio percebe a coleta finalizada
         Assert.Null(_amb.Servico.Situacao(_amb.MaquinaA));
 
         _tempo.Advance(TimeSpan.FromMinutes(1));
@@ -212,7 +238,7 @@ public class ColetaIotServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ValidarEntradas_GuardaALeitura_MesmoDeIpSemCadastroESemColeta()
+    public async Task ValidarEntradas_GuardaALeitura_MesmoDeWiseLivre()
     {
         await _amb.SubirAsync();
 

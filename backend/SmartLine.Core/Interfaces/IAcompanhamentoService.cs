@@ -9,9 +9,11 @@ namespace SmartLine.Core.Interfaces;
 public interface IAcompanhamentoService
 {
     /// <summary>
-    /// Inicia a coleta numa máquina. Uma por vez; várias podem rodar ao mesmo
-    /// tempo, inclusive do mesmo usuário, e cada máquina da linha é independente
-    /// (outras podem estar em medição Manual).
+    /// Inicia a coleta numa máquina com o WISE informado. Uma por vez; várias
+    /// podem rodar ao mesmo tempo, inclusive do mesmo usuário, e cada máquina da
+    /// linha é independente (outras podem estar em medição Manual). O WISE fica
+    /// associado à máquina até a coleta ser finalizada e não pode estar em uso
+    /// em outra coleta.
     /// </summary>
     Task<ResultadoIniciarAcompanhamento> IniciarAsync(
         Guid usuarioId,
@@ -21,7 +23,7 @@ public interface IAcompanhamentoService
     /// <summary>
     /// Finaliza a coleta: fecha a sessão do dia, a parada e o período sem
     /// comunicação que estiverem abertos. A máquina fica sem coleta até alguém
-    /// iniciar de novo.
+    /// iniciar de novo, e o WISE fica livre para ir para outra máquina.
     /// </summary>
     /// <param name="podeFinalizarDeOutros">Administrador/Desenvolvedor (decidido no controller).</param>
     Task<ResultadoFinalizacao> FinalizarAsync(
@@ -51,12 +53,14 @@ public interface IAcompanhamentoService
         CancellationToken cancellationToken = default);
 }
 
-/// <summary>Máquina a iniciar e o que ler dela.</summary>
+/// <summary>Máquina a iniciar, o WISE que está nela e o que ler.</summary>
+/// <param name="EnderecoIpWise">IP fixo do WISE instalado na máquina, como digitado (ex.: "192.168.10.21").</param>
 /// <param name="VelocidadeNominal">Nulo = a cadastrada na máquina da linha.</param>
 /// <param name="SobreVelocidade">Nulo = a cadastrada na máquina da linha.</param>
 /// <param name="Canais">Canais marcados na medição (contadores e sensores).</param>
 public record IniciarAcompanhamentoRequest(
     Guid MaquinaLinhaId,
+    string? EnderecoIpWise,
     decimal? VelocidadeNominal,
     decimal? SobreVelocidade,
     IList<CanalMedicaoRequest> Canais);
@@ -72,7 +76,7 @@ public record ResultadoIniciarAcompanhamento(AcompanhamentoIniciadoDto? Iniciado
 
 public record AcompanhamentoIniciadoDto(Guid AcompanhamentoId, Guid MaquinaLinhaId, Guid SessaoId);
 
-/// <param name="EnderecoIp">IP do WISE da máquina; nulo se não houver WISE cadastrado.</param>
+/// <param name="EnderecoIp">IP do WISE informado ao iniciar a coleta.</param>
 /// <param name="ProducaoConsolidada">Garrafas já gravadas na sessão do dia (última leitura).</param>
 /// <param name="UltimaConsolidacao">Hora da última leitura gravada.</param>
 /// <param name="SemComunicacaoDesde">Início do período sem comunicação em aberto, se houver.</param>

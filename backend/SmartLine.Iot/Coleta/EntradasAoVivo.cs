@@ -3,15 +3,6 @@ using SmartLine.Core.Iot;
 
 namespace SmartLine.Iot.Coleta;
 
-/// <summary>Situação da conexão de um WISE, como a tela mostra.</summary>
-public enum SituacaoConexaoWise
-{
-    Conectado,
-    Desconectado,
-    /// <summary>Sem WISE cadastrado, ou cadastrado mas inativo.</summary>
-    NaoCadastrado
-}
-
 /// <summary>Uma entrada do WISE agora, já em texto.</summary>
 /// <param name="Recebida">O WISE já mandou esta entrada alguma vez desde que o backend subiu.</param>
 /// <param name="Valor">Contadores: último valor bruto.</param>
@@ -33,24 +24,20 @@ public sealed record EntradaAoVivoDto(
     bool? EmAlarme,
     string? Texto);
 
-/// <summary>WISE de uma máquina (ou de um IP) e suas 8 entradas ao vivo.</summary>
-/// <param name="UltimaMensagemUtc">A mais recente conhecida: em memória, ou a anotada no cadastro.</param>
-public sealed record SituacaoWiseDto(
-    SituacaoConexaoWise Situacao,
-    Guid? DispositivoId,
-    string? Nome,
-    string? EnderecoIp,
+/// <summary>Um WISE e suas 8 entradas ao vivo (Validar entradas).</summary>
+/// <param name="Conectado">Conexão MQTT aberta agora.</param>
+/// <param name="UltimaMensagemUtc">A mais recente conhecida: em memória, ou a anotada na coleta.</param>
+/// <param name="Medicao">Coleta em andamento com este WISE; nulo se ele está livre.</param>
+public sealed record EntradasDoWiseDto(
+    string EnderecoIp,
+    bool Conectado,
     DateTime? UltimaMensagemUtc,
+    MedicaoDoWiseDto? Medicao,
     IReadOnlyList<EntradaAoVivoDto> Entradas);
 
-/// <summary>Monta o que as telas de validação e de início da coleta mostram. Puro.</summary>
+/// <summary>Monta o que o Validar entradas mostra. Puro.</summary>
 public static class EntradasAoVivo
 {
-    public static SituacaoConexaoWise Situacao(WiseCadastrado? wise, IReadOnlySet<string> ipsConectados) =>
-        wise is not { Ativo: true } ? SituacaoConexaoWise.NaoCadastrado
-        : ipsConectados.Contains(wise.EnderecoIp) ? SituacaoConexaoWise.Conectado
-        : SituacaoConexaoWise.Desconectado;
-
     /// <param name="textos">As 8 entradas com os textos da máquina (ou os padrão).</param>
     public static IReadOnlyList<EntradaAoVivoDto> Montar(IReadOnlyList<EntradaWiseDto> textos, LeituraEntradas? leitura) =>
         textos.Select(t =>
@@ -70,7 +57,7 @@ public static class EntradasAoVivo
                 null, null, null, bruto, emAlarme, emAlarme ? t.TextoAtivo : t.TextoNormal);
         }).ToList();
 
-    /// <summary>Textos padrão, para um IP ainda sem máquina.</summary>
+    /// <summary>Textos padrão, para um WISE livre (sem máquina).</summary>
     public static IReadOnlyList<EntradaWiseDto> TextosPadrao() =>
         MapaWise.Canais.Select(d =>
         {

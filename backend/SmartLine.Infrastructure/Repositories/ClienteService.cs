@@ -73,10 +73,13 @@ public class ClienteService : IClienteService
                         .FirstOrDefaultAsync();
                 }
 
-                var enderecoIpWise = await _context.DispositivosIot
-                    .Where(d => d.MaquinaLinhaId == ml.Id && d.Ativo)
-                    .Select(d => d.EnderecoIp)
-                    .FirstOrDefaultAsync();
+                // WISE só pertence à máquina enquanto a coleta dela está em andamento.
+                var enderecoIpWise = sessaoAtiva?.AcompanhamentoId is { } acompanhamentoId
+                    ? await _context.Acompanhamentos
+                        .Where(a => a.Id == acompanhamentoId)
+                        .Select(a => a.EnderecoIpWise)
+                        .FirstOrDefaultAsync()
+                    : null;
                 var paradaEmCurso = sessaoAtiva?.Paradas.FirstOrDefault(p => !p.Fim.HasValue);
                 var coletaAutomatica = sessaoAtiva?.AcompanhamentoId is not null;
 

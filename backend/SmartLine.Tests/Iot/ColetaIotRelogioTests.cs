@@ -194,22 +194,36 @@ public class ColetaIotRelogioTests : IAsyncLifetime
         Assert.Equal((250, Em(30)), (AmbienteColetaIot.UltimaLeitura(sessao).Quantidade, AmbienteColetaIot.UltimaLeitura(sessao).Hora));
     }
 
-    // ── Cadastro do WISE ────────────────────────────────────────────
+    // ── Última mensagem do WISE ─────────────────────────────────────
 
     [Fact]
-    public async Task UltimaMensagemDoWise_AnotadaNoMaximoUmaVezPorMinuto_MesmoSemColeta()
+    public async Task UltimaMensagemDoWise_AnotadaNaColeta_NoMaximoUmaVezPorMinuto()
     {
+        var acompanhamento = await _amb.IniciarColetaAsync(_amb.MaquinaA);
+
         Enviar(0, s2: 1);
         await Aguardar();
-        Assert.Equal(Em(0), _amb.UltimaMensagemDoWise(A));
+        Assert.Equal(Em(0), _amb.UltimaMensagemDoWise(acompanhamento));
 
         Enviar(20, s2: 2);
         await Aguardar();
-        Assert.Equal(Em(0), _amb.UltimaMensagemDoWise(A));
+        Assert.Equal(Em(0), _amb.UltimaMensagemDoWise(acompanhamento));
 
         Enviar(70, s2: 3);
         await Aguardar();
-        Assert.Equal(Em(70), _amb.UltimaMensagemDoWise(A));
+        Assert.Equal(Em(70), _amb.UltimaMensagemDoWise(acompanhamento));
+    }
+
+    [Fact]
+    public async Task WiseLivre_NaoAnotaNada_NaColetaQueJaFinalizou()
+    {
+        var acompanhamento = await _amb.IniciarColetaAsync(_amb.MaquinaA);
+        await _amb.FinalizarColetaAsync(acompanhamento);
+
+        Enviar(0, s2: 1);
+        await Aguardar();
+
+        Assert.Null(_amb.UltimaMensagemDoWise(acompanhamento));
     }
 }
 

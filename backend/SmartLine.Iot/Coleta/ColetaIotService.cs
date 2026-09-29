@@ -23,8 +23,8 @@ namespace SmartLine.Iot.Coleta;
 /// primeira mensagem já creditar o que foi produzido com o backend fora.
 /// </para>
 /// <para>
-/// <b>Caminho de uma mensagem</b>: parser do WISE → IP → máquina (cadastro do
-/// WISE) → fila daquela máquina. Na fila: coleta em andamento → máquina de
+/// <b>Caminho de uma mensagem</b>: parser do WISE → IP → máquina (a coleta em
+/// andamento iniciada com esse IP) → fila daquela máquina. Na fila: coleta em andamento → máquina de
 /// estados → eventos gravados pelo registrador. A produção apurada é somada em
 /// memória e gravada na consolidação.
 /// </para>
@@ -70,12 +70,12 @@ public sealed class ColetaIotService : BackgroundService
     private bool _encerrando; // protegido por _criacaoDeFilas
 
     // Só o despachante (um fluxo só) mexe nestes.
-    private readonly HashSet<string> _ipsDesconhecidosAvisados = new();
+    private readonly HashSet<string> _ipsLivresAvisados = new();
     private readonly HashSet<string> _ipsComProblemaAvisados = new();
     private readonly Dictionary<string, DateTime> _ultimaMensagemAnotada = new();
 
     private readonly ConcurrentDictionary<Guid, SituacaoColetaIot> _situacoes = new();
-    private readonly ConcurrentDictionary<string, WiseDesconhecido> _desconhecidos = new();
+    private readonly ConcurrentDictionary<string, WiseVisto> _vistos = new();
     private readonly LeiturasEntradasWise _leituras = new();
     private readonly TaskCompletionSource _retomadaConcluida = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private long _processadas;
@@ -100,8 +100,8 @@ public sealed class ColetaIotService : BackgroundService
 
     /// <summary>
     /// Mensagens que não viraram amostra de nenhuma coleta: tópico que não é de
-    /// dados, conteúdo inválido, IP sem WISE cadastrado, máquina sem coleta
-    /// ligada, fila da máquina travada, erro ao processar.
+    /// dados, conteúdo inválido, WISE livre (sem medição com o IP dele),
+    /// fila da máquina travada, erro ao processar.
     /// </summary>
     public long MensagensDescartadas => Interlocked.Read(ref _descartadas);
 
@@ -112,16 +112,16 @@ public sealed class ColetaIotService : BackgroundService
     public IReadOnlyCollection<SituacaoColetaIot> Situacoes() => _situacoes.Values.ToList();
 
     /// <summary>
-    /// IPs que estão publicando sem WISE ativo cadastrado, com a última
-    /// mensagem de cada um. Ajuda no cadastro: o WISE já aparece aqui antes de
-    /// ser cadastrado. Some da lista quando o IP é cadastrado.
+    /// Todo IP que publicou no broker desde que o backend subiu, em medição ou
+    /// livre, com a última mensagem de cada um. É o que a tela Dispositivos IoT
+    /// mostra e o que o Configurar medição sugere.
     /// </summary>
-    public IReadOnlyCollection<WiseDesconhecido> WiseDesconhecidos() =>
-        _desconhecidos.Values.OrderBy(w => w.EnderecoIp).ToList();
+    public IReadOnlyCollection<WiseVisto> WiseVistos() =>
+        _vistos.Values.OrderBy(w => w.EnderecoIp).ToList();
 
     /// <summary>
-    /// Últimas leituras das entradas de um WISE (cadastrado ou não, com ou sem
-    /// coleta), para o Validar entradas. Nulo se nada chegou desse IP desde que o backend subiu.
+    /// Últimas leituras das entradas de um WISE (em medição ou livre), para o
+    /// Validar entradas. Nulo se nada chegou desse IP desde que o backend subiu.
     /// </summary>
     public LeituraEntradas? LeiturasDoWise(string enderecoIp) => _leituras.Obter(enderecoIp);
 
@@ -287,6 +287,17 @@ public sealed class ColetaIotService : BackgroundService
 
     private async Task DespacharAsync(MensagemMqtt mensagem, CancellationToken parar)
     {
+        _vistos.AddOrUpdate(
+            mensagem.EnderecoIp,
+            ip => new WiseVisto(ip, mensagem.ClientId, mensagem.Topico, mensagem.RecebidaEmUtc, 1),
+            (_, antes) => antes with
+            {
+                ClientId = mensagem.ClientId,
+                Topico = mensagem.Topico,
+                UltimaMensagemUtc = mensagem.RecebidaEmUtc,
+                Mensagens = antes.Mensagens + 1
+            });
+
         var resultado = ParserWise.Interpretar(mensagem);
         switch (resultado.Tipo)
         {
@@ -310,36 +321,35 @@ public sealed class ColetaIotService : BackgroundService
         {
             await using var escopo = _escopos.CreateAsyncScope();
             var localizador = escopo.ServiceProvider.GetRequiredService<ILocalizadorColetaIot>();
-            maquina = await localizador.MaquinaDoDispositivoAsync(mensagem.EnderecoIp, parar);
+            maquina = await localizador.MaquinaDoWiseAsync(mensagem.EnderecoIp, parar);
             if (maquina is not null)
                 await AnotarUltimaMensagemAsync(localizador, mensagem, parar);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Interlocked.Increment(ref _descartadas);
-            _log.LogError(ex, "Falha ao localizar o WISE do IP {EnderecoIp}; mensagem descartada.", mensagem.EnderecoIp);
+            _log.LogError(ex, "Falha ao localizar a medição do WISE {EnderecoIp}; mensagem descartada.", mensagem.EnderecoIp);
             return;
         }
 
         if (maquina is null)
         {
+            // WISE livre: ligado, mas nenhuma medição em andamento com o IP dele. Normal
+            // (ex.: instalado e aguardando o início, ou recém-finalizado). Um registro por IP:
+            // um WISE publica a cada poucos segundos.
             Interlocked.Increment(ref _descartadas);
-            _desconhecidos[mensagem.EnderecoIp] =
-                new WiseDesconhecido(mensagem.EnderecoIp, mensagem.ClientId, mensagem.Topico, mensagem.RecebidaEmUtc);
-            // Um aviso por IP: um WISE sem cadastro publica a cada poucos segundos.
-            if (_ipsDesconhecidosAvisados.Add(mensagem.EnderecoIp))
+            if (_ipsLivresAvisados.Add(mensagem.EnderecoIp))
             {
-                _log.LogWarning(
-                    "Mensagem de um IP sem WISE ativo cadastrado: {EnderecoIp} (ClientId {ClientId}). " +
-                    "Cadastre o WISE com esse IP na máquina em que ele está. As próximas mensagens deste IP serão descartadas sem novo aviso.",
+                _log.LogInformation(
+                    "WISE {EnderecoIp} (ClientId {ClientId}) publicando sem medição em andamento com esse IP. " +
+                    "As mensagens dele são descartadas até uma medição Semi Automática ser iniciada com esse IP.",
                     mensagem.EnderecoIp, mensagem.ClientId);
             }
             return;
         }
 
-        _desconhecidos.TryRemove(mensagem.EnderecoIp, out _);
-        if (_ipsDesconhecidosAvisados.Remove(mensagem.EnderecoIp))
-            _log.LogInformation("WISE do IP {EnderecoIp} agora está cadastrado.", mensagem.EnderecoIp);
+        if (_ipsLivresAvisados.Remove(mensagem.EnderecoIp))
+            _log.LogInformation("WISE {EnderecoIp} agora está na medição da máquina {MaquinaLinhaId}.", mensagem.EnderecoIp, maquina.Value);
 
         var fila = Fila(maquina.Value);
         if (fila is null || !fila.EnviarAmostra(resultado.Amostra!))
@@ -350,7 +360,7 @@ public sealed class ColetaIotService : BackgroundService
         }
     }
 
-    /// <summary>Anota no cadastro, no máximo uma vez por intervalo por WISE. Falha aqui não impede a coleta.</summary>
+    /// <summary>Anota na coleta, no máximo uma vez por intervalo por WISE. Falha aqui não impede a coleta.</summary>
     private async Task AnotarUltimaMensagemAsync(ILocalizadorColetaIot localizador, MensagemMqtt mensagem, CancellationToken parar)
     {
         if (_ultimaMensagemAnotada.TryGetValue(mensagem.EnderecoIp, out var anotada)

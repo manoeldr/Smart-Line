@@ -38,11 +38,12 @@ public class AcompanhamentoServiceTests : IDisposable
 
     private readonly Guid _linha;
     private int _proximoIp = 20;
+    private readonly Dictionary<Guid, string> _ips = new();
 
     public void Dispose() => _banco.Dispose();
 
-    /// <summary>Máquina na linha, com WISE ativo por padrão.</summary>
-    private Guid NovaMaquinaLinha(bool comWise = true, int z = 60, decimal velocidade = 36000)
+    /// <summary>Máquina na linha, com um WISE próprio (IP que <see cref="Item"/> informa ao iniciar).</summary>
+    private Guid NovaMaquinaLinha(int z = 60, decimal velocidade = 36000)
     {
         using var db = _banco.NovoContexto();
         var ml = new MaquinaLinha
@@ -51,17 +52,16 @@ public class AcompanhamentoServiceTests : IDisposable
             VelocidadeNominal = velocidade, TempoDeteccaoParadaSegundos = z, Ativo = true
         };
         db.MaquinasLinha.Add(ml);
-        if (comWise)
-            db.DispositivosIot.Add(new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = ml.Id, Nome = "WISE", EnderecoIp = $"192.168.10.{Interlocked.Increment(ref _proximoIp)}" });
         db.SaveChanges();
+        _ips[ml.Id] = $"192.168.10.{++_proximoIp}";
         return ml.Id;
     }
 
     private AcompanhamentoService Servico(SmartLine.Infrastructure.Data.SmartLineDbContext db) =>
         new(db, new RegrasPadraoService(db), _tempo, new OpcoesColetaIot());
 
-    private static IniciarAcompanhamentoRequest Item(Guid maquinaLinha, params CanalMedicaoRequest[] canais) =>
-        new(maquinaLinha, null, null, canais.Length > 0
+    private IniciarAcompanhamentoRequest Item(Guid maquinaLinha, params CanalMedicaoRequest[] canais) =>
+        new(maquinaLinha, _ips.GetValueOrDefault(maquinaLinha, "192.168.10.200"), null, null, canais.Length > 0
             ? canais
             : [new(CanalWise.S2, 12), new(CanalWise.S3), new(CanalWise.S8), new(CanalWise.S7)]);
 
@@ -140,18 +140,79 @@ public class AcompanhamentoServiceTests : IDisposable
         Assert.Equal(2, db.Sessoes.Count(x => x.UsuarioId == _usuario && x.Status == StatusSessao.EmAndamento));
     }
 
-    [Fact]
-    public async Task Iniciar_SemWise_Recusa_ENadaEhCriado()
+    [Theory]
+    [InlineData(null, "Informe o IP do WISE")]
+    [InlineData("   ", "Informe o IP do WISE")]
+    [InlineData("192.168.010.021", "IP do WISE inválido")]
+    [InlineData("wise", "IP do WISE inválido")]
+    public async Task Iniciar_SemIpDoWiseOuInvalido_Recusa_ENadaEhCriado(string? ip, string erro)
     {
-        var semWise = NovaMaquinaLinha(comWise: false);
+        var ml = NovaMaquinaLinha();
 
-        var r = await Iniciar(_usuario, Item(semWise));
+        var r = await Iniciar(_usuario, Item(ml) with { EnderecoIpWise = ip });
 
         Assert.False(r.Sucesso);
-        Assert.Contains("WISE", r.Erro);
+        Assert.Contains(erro, r.Erro);
         using var db = _banco.NovoContexto();
         Assert.Empty(db.Acompanhamentos);
         Assert.Empty(db.Sessoes);
+    }
+
+    [Fact]
+    public async Task Iniciar_GravaOIpDoWiseNaFormaCanonica()
+    {
+        var ml = NovaMaquinaLinha();
+
+        await IniciarOk(_usuario, Item(ml) with { EnderecoIpWise = " ::ffff:192.168.10.50 " });
+
+        using var db = _banco.NovoContexto();
+        Assert.Equal("192.168.10.50", db.Acompanhamentos.Single().EnderecoIpWise);
+    }
+
+    [Fact]
+    public async Task Iniciar_WiseEmUsoEmOutraMedicao_RecusaDizendoOnde()
+    {
+        var enchedora = NovaMaquinaLinha();
+        var rotuladora = NovaMaquinaLinha();
+        await IniciarOk(_usuario, Item(enchedora));
+
+        var r = await Iniciar(_outroUsuario, Item(rotuladora) with { EnderecoIpWise = _ips[enchedora] });
+
+        Assert.False(r.Sucesso);
+        Assert.Contains($"O WISE {_ips[enchedora]} está em uso na medição da Enchedora (Linha 1 · Cliente)", r.Erro);
+    }
+
+    [Fact]
+    public async Task DepoisDeFinalizar_OWiseFicaLivre_EPodeIrParaOutraMaquina_EAColetaGuardaOIp()
+    {
+        var enchedora = NovaMaquinaLinha();
+        var rotuladora = NovaMaquinaLinha();
+        var ip = _ips[enchedora];
+        var primeira = (await IniciarOk(_usuario, Item(enchedora))).AcompanhamentoId;
+        await Finalizar(primeira, _usuario);
+
+        var segunda = (await IniciarOk(_usuario, Item(rotuladora) with { EnderecoIpWise = ip })).AcompanhamentoId;
+
+        using var db = _banco.NovoContexto();
+        Assert.Equal(ip, db.Acompanhamentos.Single(a => a.Id == primeira).EnderecoIpWise);
+        Assert.Equal(ip, db.Acompanhamentos.Single(a => a.Id == segunda).EnderecoIpWise);
+    }
+
+    [Fact]
+    public async Task Banco_NaoDeixaOMesmoWiseEmDuasColetasEmAndamento()
+    {
+        var enchedora = NovaMaquinaLinha();
+        var rotuladora = NovaMaquinaLinha();
+        await IniciarOk(_usuario, Item(enchedora));
+
+        using var db = _banco.NovoContexto();
+        db.Acompanhamentos.Add(new Acompanhamento
+        {
+            Id = Guid.NewGuid(), MaquinaLinhaId = rotuladora, UsuarioId = _usuario, IniciadoEm = Agora.UtcDateTime,
+            EnderecoIpWise = _ips[enchedora], TempoDeteccaoParadaSegundos = 60
+        });
+
+        Assert.Throws<DbUpdateException>(() => db.SaveChanges());
     }
 
     [Fact]
@@ -202,7 +263,7 @@ public class AcompanhamentoServiceTests : IDisposable
     [Fact]
     public async Task OutraMaquinaDaMesmaLinhaEmMedicaoManual_NaoImpede()
     {
-        var paletizadora = NovaMaquinaLinha(comWise: false);
+        var paletizadora = NovaMaquinaLinha();
         var enchedora = NovaMaquinaLinha();
         using (var db = _banco.NovoContexto())
         {

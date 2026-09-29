@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
 
@@ -13,15 +14,15 @@ public class LocalizadorColetaIot : ILocalizadorColetaIot
         _context = context;
     }
 
-    public async Task<Guid?> MaquinaDoDispositivoAsync(string enderecoIp, CancellationToken cancellationToken = default)
+    public async Task<Guid?> MaquinaDoWiseAsync(string enderecoIp, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(enderecoIp))
             return null;
 
-        return await _context.DispositivosIot
+        return await _context.Acompanhamentos
             .AsNoTracking()
-            .Where(d => d.EnderecoIp == enderecoIp && d.Ativo)
-            .Select(d => (Guid?)d.MaquinaLinhaId)
+            .Where(a => a.FinalizadoEm == null && a.EnderecoIpWise == enderecoIp)
+            .Select(a => (Guid?)a.MaquinaLinhaId)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -45,26 +46,36 @@ public class LocalizadorColetaIot : ILocalizadorColetaIot
             .Select(m => (Guid?)m.MaquinaId)
             .FirstOrDefaultAsync(cancellationToken);
 
-    public async Task<WiseCadastrado?> WiseDaMaquinaAsync(Guid maquinaLinhaId, CancellationToken cancellationToken = default) =>
-        await Wises(_context.DispositivosIot.Where(d => d.MaquinaLinhaId == maquinaLinhaId)).FirstOrDefaultAsync(cancellationToken);
+    public async Task<IReadOnlyList<WiseEmMedicao>> WisesEmMedicaoAsync(CancellationToken cancellationToken = default) =>
+        await Wises(_context.Acompanhamentos.Where(a => a.FinalizadoEm == null && a.EnderecoIpWise != null))
+            .ToListAsync(cancellationToken);
 
-    public async Task<WiseCadastrado?> WiseDoIpAsync(string enderecoIp, CancellationToken cancellationToken = default) =>
-        await Wises(_context.DispositivosIot.Where(d => d.EnderecoIp == enderecoIp)).FirstOrDefaultAsync(cancellationToken);
-
-    // Filtro antes da projeção: depois do construtor o EF não consegue mais traduzir.
-    private static IQueryable<WiseCadastrado> Wises(IQueryable<Core.Entities.Tenant.DispositivoIot> consulta) =>
-        consulta
-            .AsNoTracking()
-            .Select(d => new WiseCadastrado(
-                d.Id, d.Nome, d.EnderecoIp, d.Ativo, d.MaquinaLinhaId, d.MaquinaLinha.MaquinaId, d.UltimaMensagemEm));
+    public async Task<WiseEmMedicao?> WiseEmMedicaoAsync(string enderecoIp, CancellationToken cancellationToken = default) =>
+        await Wises(_context.Acompanhamentos.Where(a => a.FinalizadoEm == null && a.EnderecoIpWise == enderecoIp))
+            .FirstOrDefaultAsync(cancellationToken);
 
     public async Task RegistrarUltimaMensagemAsync(string enderecoIp, DateTime instanteUtc, CancellationToken cancellationToken = default) =>
-        await _context.DispositivosIot
-            .Where(d => d.EnderecoIp == enderecoIp)
-            .ExecuteUpdateAsync(s => s.SetProperty(d => d.UltimaMensagemEm, instanteUtc), cancellationToken);
+        await _context.Acompanhamentos
+            .Where(a => a.FinalizadoEm == null && a.EnderecoIpWise == enderecoIp)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.UltimaMensagemWiseEm, instanteUtc), cancellationToken);
 
-    // O SQLite devolve DateTime sem Kind; o que se grava aqui é sempre UTC.
     // Filtro antes da projeção: depois do construtor o EF não consegue mais traduzir.
+    // As datas já saem em UTC (conversor do contexto).
+    private static IQueryable<WiseEmMedicao> Wises(IQueryable<Acompanhamento> consulta) =>
+        consulta
+            .AsNoTracking()
+            .Select(a => new WiseEmMedicao(
+                a.EnderecoIpWise!,
+                a.Id,
+                a.MaquinaLinhaId,
+                a.MaquinaLinha.MaquinaId,
+                a.MaquinaLinha.Maquina.Nome,
+                a.MaquinaLinha.Linha.Nome,
+                a.MaquinaLinha.Linha.Cliente.Nome,
+                a.Usuario.Nome,
+                a.IniciadoEm,
+                a.UltimaMensagemWiseEm));
+
     private IQueryable<ColetaEmAndamento> EmAndamento(Guid? maquinaLinhaId) =>
         _context.Acompanhamentos
             .AsNoTracking()

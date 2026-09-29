@@ -42,21 +42,20 @@ public class MaquinaLinhaEOverviewTests : IDisposable
     // ── Máquina da linha ────────────────────────────────────────────
 
     [Fact]
-    public async Task MaquinaDaLinha_TrazZ_IpDoWise_ESeAsRegrasSaoPersonalizadas()
+    public async Task MaquinaDaLinha_TrazZ_ESeAsRegrasSaoPersonalizadas()
     {
         var m = (await Linhas(s => s.GetMaquinasDaLinhaAsync(LinhaId()))).Single();
 
-        Assert.Equal((60, "192.168.10.21", false), (m.TempoDeteccaoParadaSegundos, m.EnderecoIpWise, m.RegrasPersonalizadas));
+        Assert.Equal((60, false), (m.TempoDeteccaoParadaSegundos, m.RegrasPersonalizadas));
 
         using (var db = _c.Banco.NovoContexto())
         {
             db.ConjuntosRegras.Add(new ConjuntoRegras { Id = Guid.NewGuid(), MaquinaLinhaId = _c.MaquinaLinha });
-            db.DispositivosIot.Single().Ativo = false;
             db.SaveChanges();
         }
 
         m = (await Linhas(s => s.GetMaquinasDaLinhaAsync(LinhaId()))).Single();
-        Assert.Equal(((string?)null, true), (m.EnderecoIpWise, m.RegrasPersonalizadas));
+        Assert.True(m.RegrasPersonalizadas);
     }
 
     [Fact]
@@ -86,19 +85,26 @@ public class MaquinaLinhaEOverviewTests : IDisposable
         var informado = await Linhas(s => s.AdicionarMaquinaAsync(LinhaId(), encaixotadora, false, 30000, 0, true, 45));
 
         Assert.Equal((60, 45), (padrao.TempoDeteccaoParadaSegundos, informado.TempoDeteccaoParadaSegundos));
-        Assert.Equal(("Rotuladora", (string?)null), (padrao.MaquinaNome, padrao.EnderecoIpWise));
+        Assert.Equal("Rotuladora", padrao.MaquinaNome);
     }
 
     // ── Overview ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Overview_MarcaAColetaAutomatica_ComWise()
+    public async Task Overview_MarcaAColetaAutomatica_ComOWiseDaMedicao()
     {
         var m = await Overview();
 
         Assert.Equal((_c.Acompanhamento.ToString(), "192.168.10.21", 0, (string?)null),
             (m.AcompanhamentoId, m.EnderecoIpWise, m.ParadasSemMotivo, m.MotivoParadaAtual));
         Assert.True(m.SessaoAtiva);
+
+        // Finalizada, o WISE fica livre: a máquina não tem mais WISE.
+        await using (var db = _c.Banco.NovoContexto())
+            await _c.Servico(db).FinalizarAsync(_c.Acompanhamento, _c.Usuario, false);
+
+        m = await Overview();
+        Assert.Equal(((string?)null, (string?)null, false), (m.AcompanhamentoId, m.EnderecoIpWise, m.SessaoAtiva));
     }
 
     [Fact]

@@ -54,7 +54,6 @@ builder.Services.AddScoped<IAcompanhamentoService, AcompanhamentoService>();
 builder.Services.AddScoped<IRegistradorColeta, SmartLine.Infrastructure.Coleta.RegistradorColeta>();
 builder.Services.AddScoped<IRetomadaColetaService, SmartLine.Infrastructure.Coleta.RetomadaColetaService>();
 builder.Services.AddScoped<ILocalizadorColetaIot, SmartLine.Infrastructure.Coleta.LocalizadorColetaIot>();
-builder.Services.AddScoped<IDispositivoIotService, DispositivoIotService>();
 builder.Services.AddScoped<IClassificacaoParadaService, ClassificacaoParadaService>();
 builder.Services.AddScoped<IRegrasClassificacaoService, RegrasClassificacaoService>();
 builder.Services.AddScoped<IEntradasWiseService, EntradasWiseService>();
@@ -70,6 +69,7 @@ builder.Services.AddSingleton(new SmartLine.Core.Coleta.OpcoesColetaIot());
 builder.Services.AddSingleton(OpcoesBrokerMqtt.DoAmbiente());
 builder.Services.AddSingleton<CaixaDeEntradaMqtt>();
 builder.Services.AddSingleton<BrokerMqttService>();
+builder.Services.AddSingleton<SmartLine.Iot.Rede.ITestePing, SmartLine.Iot.Rede.TestePing>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BrokerMqttService>());
 
 // Motor da coleta: consome o que o broker recebeu e grava paradas, comunicação e produção.

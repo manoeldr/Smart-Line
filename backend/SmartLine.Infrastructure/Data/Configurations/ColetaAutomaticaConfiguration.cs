@@ -68,22 +68,6 @@ public class CondicaoRegraConfiguration : IEntityTypeConfiguration<CondicaoRegra
     }
 }
 
-public class DispositivoIotConfiguration : IEntityTypeConfiguration<DispositivoIot>
-{
-    public void Configure(EntityTypeBuilder<DispositivoIot> b)
-    {
-        b.HasOne(d => d.MaquinaLinha).WithMany()
-            .HasForeignKey(d => d.MaquinaLinhaId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Um WISE por máquina, por enquanto. Se um dia forem vários, basta tirar o IsUnique.
-        b.HasIndex(d => d.MaquinaLinhaId).IsUnique();
-
-        // É pelo IP que a mensagem MQTT encontra a máquina: não pode repetir.
-        b.HasIndex(d => d.EnderecoIp).IsUnique();
-    }
-}
-
 public class AcompanhamentoConfiguration : IEntityTypeConfiguration<Acompanhamento>
 {
     public void Configure(EntityTypeBuilder<Acompanhamento> b)
@@ -108,6 +92,14 @@ public class AcompanhamentoConfiguration : IEntityTypeConfiguration<Acompanhamen
             .IsUnique()
             .HasFilter("\"FinalizadoEm\" IS NULL")
             .HasDatabaseName("IX_Acompanhamentos_MaquinaLinhaId_EmAndamento");
+
+        // Um WISE mede uma máquina por vez: o mesmo IP não pode estar em duas coletas em andamento.
+        // Depois de finalizada, a coleta guarda o IP só como histórico e o WISE fica livre.
+        b.Property(a => a.EnderecoIpWise).HasMaxLength(45);
+        b.HasIndex(a => a.EnderecoIpWise)
+            .IsUnique()
+            .HasFilter("\"FinalizadoEm\" IS NULL AND \"EnderecoIpWise\" IS NOT NULL")
+            .HasDatabaseName("IX_Acompanhamentos_EnderecoIpWise_EmAndamento");
     }
 }
 

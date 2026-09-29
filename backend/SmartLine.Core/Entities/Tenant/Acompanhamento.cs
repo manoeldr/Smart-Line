@@ -27,6 +27,23 @@ public class Acompanhamento
     /// </summary>
     public int TempoDeteccaoParadaSegundos { get; set; }
 
+    /// <summary>
+    /// IP do WISE que mede esta máquina (forma canônica, ver
+    /// <c>EnderecoRede.Normalizar</c>), informado ao iniciar. O WISE fica
+    /// associado à máquina só enquanto a coleta está em andamento: ao
+    /// finalizar ele fica livre para ir para outra máquina. Não há cadastro
+    /// de WISE; o histórico de qual WISE mediu cada coleta fica aqui.
+    /// Nulo só em coletas sem WISE (reservado para o Automático).
+    /// </summary>
+    public string? EnderecoIpWise { get; set; }
+
+    /// <summary>
+    /// Última mensagem recebida do WISE durante a coleta, anotada no máximo
+    /// uma vez por minuto. A retomada usa como evidência de até quando a
+    /// máquina estava comunicando.
+    /// </summary>
+    public DateTime? UltimaMensagemWiseEm { get; set; }
+
     /// <summary>Em andamento enquanto não foi finalizado.</summary>
     public bool EmAndamento => FinalizadoEm is null;
 

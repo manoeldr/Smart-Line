@@ -19,20 +19,17 @@ public class ColetaIotController : ControllerBase
 {
     private readonly IAcompanhamentoService _acompanhamentos;
     private readonly IEntradasWiseService _entradas;
-    private readonly ILocalizadorColetaIot _localizador;
     private readonly ColetaIotService _coleta;
     private readonly BrokerMqttService _broker;
 
     public ColetaIotController(
         IAcompanhamentoService acompanhamentos,
         IEntradasWiseService entradas,
-        ILocalizadorColetaIot localizador,
         ColetaIotService coleta,
         BrokerMqttService broker)
     {
         _acompanhamentos = acompanhamentos;
         _entradas = entradas;
-        _localizador = localizador;
         _coleta = coleta;
         _broker = broker;
     }
@@ -65,50 +62,24 @@ public class ColetaIotController : ControllerBase
     }
 
     /// <summary>
-    /// WISE da máquina (conectado, desconectado ou não cadastrado) e as 8
-    /// entradas ao vivo, com os textos da máquina. Serve o Configurar medição e
-    /// o Validar entradas; funciona sem coleta ligada.
-    /// </summary>
-    [HttpGet("maquina/{maquinaLinhaId:guid}/wise")]
-    public async Task<IActionResult> WiseDaMaquina(Guid maquinaLinhaId, CancellationToken cancellationToken)
-    {
-        var maquinaId = await _localizador.MaquinaDoCatalogoAsync(maquinaLinhaId, cancellationToken);
-        if (maquinaId is null)
-            return NotFound();
-
-        var wise = await _localizador.WiseDaMaquinaAsync(maquinaLinhaId, cancellationToken);
-        var textos = await _entradas.ObterAsync(maquinaId.Value, cancellationToken) ?? EntradasAoVivo.TextosPadrao();
-        var leitura = wise is { Ativo: true } ? _coleta.LeiturasDoWise(wise.EnderecoIp) : null;
-
-        return Ok(new SituacaoWiseDto(
-            EntradasAoVivo.Situacao(wise, _broker.IpsConectados()),
-            wise?.DispositivoId,
-            wise?.Nome,
-            wise?.EnderecoIp,
-            leitura?.UltimaMensagemUtc ?? wise?.UltimaMensagemEm,
-            EntradasAoVivo.Montar(textos, leitura)));
-    }
-
-    /// <summary>
-    /// Liga a coleta numa máquina. Uma por chamada; várias podem rodar ao mesmo
-    /// tempo. O motor começa a acompanhar em até um segundo.
+    /// Liga a coleta numa máquina com o WISE informado (pelo IP). Uma por
+    /// chamada; várias podem rodar ao mesmo tempo. O motor começa a acompanhar
+    /// em até um segundo. O WISE fica associado à máquina até finalizar.
     /// </summary>
     [HttpPost("iniciar")]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> Iniciar([FromBody] IniciarAcompanhamentoRequest request, CancellationToken cancellationToken)
     {
         // Sem WISE conectado a coleta começaria já sem comunicação: melhor avisar agora.
-        var wise = await _localizador.WiseDaMaquinaAsync(request.MaquinaLinhaId, cancellationToken);
-        switch (EntradasAoVivo.Situacao(wise, _broker.IpsConectados()))
+        // IP vazio ou inválido fica para o serviço, que explica o que falta.
+        var enderecoIp = EnderecoRede.Normalizar(request.EnderecoIpWise);
+        if (enderecoIp is not null && !_broker.IpsConectados().Contains(enderecoIp))
         {
-            case SituacaoConexaoWise.NaoCadastrado:
-                return BadRequest(new { mensagem = "Esta máquina não tem WISE ativo cadastrado." });
-            case SituacaoConexaoWise.Desconectado:
-                return BadRequest(new
-                {
-                    mensagem = $"O WISE desta máquina (IP {wise!.EnderecoIp}) está desconectado. " +
-                               "Verifique energia, rede e a configuração MQTT do WISE antes de iniciar."
-                });
+            return BadRequest(new
+            {
+                mensagem = $"O WISE {enderecoIp} não está conectado ao SmartLine. Verifique energia, rede e a " +
+                           "configuração MQTT do WISE antes de iniciar (o teste de ping fica em Configuração → Dispositivos IoT)."
+            });
         }
 
         var resultado = await _acompanhamentos.IniciarAsync(ObterUsuarioId(), request, cancellationToken);

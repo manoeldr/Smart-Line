@@ -110,9 +110,9 @@ public class RetomadaColetaService : IRetomadaColetaService
         var candidatos = new List<DateTime> { iniciadoEm };
         candidatos.AddRange(canais.Where(c => c.UltimoValorEm is not null).Select(c => c.UltimoValorEm!.Value));
 
-        var ultimaMensagem = await _context.DispositivosIot
-            .Where(d => d.MaquinaLinhaId == maquinaLinhaId && d.UltimaMensagemEm != null)
-            .Select(d => d.UltimaMensagemEm)
+        var ultimaMensagem = await _context.Acompanhamentos
+            .Where(a => a.Id == acompanhamentoId)
+            .Select(a => a.UltimaMensagemWiseEm)
             .FirstOrDefaultAsync(cancellationToken);
         if (ultimaMensagem is { } m) candidatos.Add(m);
 

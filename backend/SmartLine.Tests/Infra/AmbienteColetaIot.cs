@@ -19,8 +19,9 @@ namespace SmartLine.Tests.Infra;
 /// <summary>
 /// O motor da coleta montado como no app (mesmos serviços, escopo por
 /// operação), sobre banco em arquivo. Duas enchedoras numa linha, cada uma com
-/// seu WISE: <see cref="MaquinaA"/> no IP <see cref="IpA"/> e
-/// <see cref="MaquinaB"/> no <see cref="IpB"/>. Nenhuma coleta iniciada.
+/// seu WISE: <see cref="MaquinaA"/> com o IP <see cref="IpA"/> e
+/// <see cref="MaquinaB"/> com o <see cref="IpB"/> (informados ao iniciar a
+/// coleta, que é quando o WISE fica associado à máquina). Nenhuma coleta iniciada.
 /// </summary>
 internal sealed class AmbienteColetaIot : IAsyncDisposable
 {
@@ -44,15 +45,13 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
             var catalogo = new Maquina { Id = Guid.NewGuid(), Nome = "Enchedora", Ativo = true };
             db.AddRange(cliente, linha, catalogo,
                 new Usuario { Id = Usuario, Nome = "Auditor", Login = "auditor", SenhaHash = "x", Nivel = NivelUsuario.Auditor });
-            foreach (var (maquina, ip) in new[] { (MaquinaA, IpA), (MaquinaB, IpB) })
+            foreach (var maquina in new[] { MaquinaA, MaquinaB })
             {
-                db.AddRange(
-                    new MaquinaLinha
-                    {
-                        Id = maquina, LinhaId = linha.Id, MaquinaId = catalogo.Id, VelocidadeNominal = 36000, Ativo = true,
-                        TempoDeteccaoParadaSegundos = tempoDeteccaoParadaSegundos
-                    },
-                    new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = maquina, Nome = $"WISE {ip}", EnderecoIp = ip });
+                db.Add(new MaquinaLinha
+                {
+                    Id = maquina, LinhaId = linha.Id, MaquinaId = catalogo.Id, VelocidadeNominal = 36000, Ativo = true,
+                    TempoDeteccaoParadaSegundos = tempoDeteccaoParadaSegundos
+                });
             }
             db.SaveChanges();
         }
@@ -103,11 +102,15 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
         await Servico.StopAsync(CancellationToken.None);
     }
 
-    public async Task<Guid> IniciarColetaAsync(Guid maquina)
+    /// <summary>WISE de sempre da máquina: <see cref="IpA"/> na A, <see cref="IpB"/> na B.</summary>
+    public string IpDa(Guid maquina) => maquina == MaquinaA ? IpA : IpB;
+
+    /// <param name="ip">WISE informado ao iniciar; nulo = o de sempre da máquina.</param>
+    public async Task<Guid> IniciarColetaAsync(Guid maquina, string? ip = null)
     {
         await using var escopo = _servicos.CreateAsyncScope();
         var r = await escopo.ServiceProvider.GetRequiredService<IAcompanhamentoService>()
-            .IniciarAsync(Usuario, new IniciarAcompanhamentoRequest(maquina, null, null, CanaisPadrao));
+            .IniciarAsync(Usuario, new IniciarAcompanhamentoRequest(maquina, ip ?? IpDa(maquina), null, null, CanaisPadrao));
         Assert.True(r.Sucesso, r.Erro);
         return r.Iniciado!.AcompanhamentoId;
     }
@@ -174,10 +177,17 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
     /// <summary>Última leitura de produção da sessão (a de maior hora).</summary>
     public static Producao UltimaLeitura(Sessao sessao) => sessao.Producoes.OrderBy(p => p.Hora).Last();
 
-    public DateTime? UltimaMensagemDoWise(string ip)
+    public async Task<IReadOnlyList<WiseEmMedicao>> WisesEmMedicaoAsync()
+    {
+        await using var escopo = _servicos.CreateAsyncScope();
+        return await escopo.ServiceProvider.GetRequiredService<ILocalizadorColetaIot>().WisesEmMedicaoAsync();
+    }
+
+    /// <summary>Última mensagem anotada na coleta.</summary>
+    public DateTime? UltimaMensagemDoWise(Guid acompanhamento)
     {
         using var db = Banco.NovoContexto();
-        return db.DispositivosIot.Single(d => d.EnderecoIp == ip).UltimaMensagemEm;
+        return db.Acompanhamentos.Single(a => a.Id == acompanhamento).UltimaMensagemWiseEm;
     }
 
     public List<PeriodoSemComunicacao> Periodos(Guid maquina)

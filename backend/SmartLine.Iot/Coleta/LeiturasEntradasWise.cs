@@ -17,9 +17,9 @@ public sealed record LeituraEntradas(
     IReadOnlyDictionary<CanalWise, bool> Estados);
 
 /// <summary>
-/// Últimas leituras de cada WISE, por IP, cadastrado ou não e com ou sem
-/// coleta ligada. Serve para conferir a fiação antes de iniciar: o técnico vê
-/// o contador subir e o sensor mudar. Não participa da coleta.
+/// Últimas leituras de cada WISE, por IP, em medição ou livre. Serve para
+/// conferir a fiação antes de iniciar: o técnico vê o contador subir e o
+/// sensor mudar. Não participa da coleta.
 /// </summary>
 /// <remarks>
 /// Uma mensagem pode trazer só parte das entradas; cada entrada guarda o seu

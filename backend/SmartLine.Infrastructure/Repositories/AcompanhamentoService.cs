@@ -38,7 +38,8 @@ public class AcompanhamentoService : IAcompanhamentoService
         var ml = await _context.MaquinasLinha
             .FirstOrDefaultAsync(x => x.Id == request.MaquinaLinhaId, cancellationToken);
 
-        var erro = await ValidarAsync(ml, request, cancellationToken);
+        var enderecoIp = EnderecoRede.Normalizar(request.EnderecoIpWise);
+        var erro = await ValidarAsync(ml, request, enderecoIp, cancellationToken);
         if (erro is not null)
             return new ResultadoIniciarAcompanhamento(null, erro);
 
@@ -49,6 +50,7 @@ public class AcompanhamentoService : IAcompanhamentoService
             MaquinaLinhaId = ml!.Id,
             UsuarioId = usuarioId,
             IniciadoEm = agora,
+            EnderecoIpWise = enderecoIp,
             TempoDeteccaoParadaSegundos = ml.TempoDeteccaoParadaSegundos,
             Canais = request.Canais.Select(c => new AcompanhamentoCanal
             {
@@ -71,11 +73,11 @@ public class AcompanhamentoService : IAcompanhamentoService
         }
         catch (DbUpdateException)
         {
-            // Índice único "um acompanhamento em andamento por máquina": outra estação
-            // iniciou nesta máquina entre a validação e a gravação.
+            // Índices únicos "um acompanhamento em andamento por máquina" e "um por WISE":
+            // outra estação iniciou nesta máquina, ou com este WISE, entre a validação e a gravação.
             _context.ChangeTracker.Clear();
             return new ResultadoIniciarAcompanhamento(null,
-                "Outra estação iniciou medição nesta máquina agora há pouco. Atualize e tente de novo.");
+                "Outra estação iniciou uma medição nesta máquina ou com este WISE agora há pouco. Atualize e tente de novo.");
         }
 
         return new ResultadoIniciarAcompanhamento(
@@ -85,13 +87,16 @@ public class AcompanhamentoService : IAcompanhamentoService
     private async Task<string?> ValidarAsync(
         MaquinaLinha? ml,
         IniciarAcompanhamentoRequest request,
+        string? enderecoIp,
         CancellationToken cancellationToken)
     {
         if (ml is null || !ml.Ativo)
             return "Máquina não encontrada ou inativa.";
 
-        if (!await _context.DispositivosIot.AnyAsync(d => d.Ativo && d.MaquinaLinhaId == ml.Id, cancellationToken))
-            return "Nenhum WISE ativo vinculado a esta máquina.";
+        if (string.IsNullOrWhiteSpace(request.EnderecoIpWise))
+            return "Informe o IP do WISE instalado nesta máquina.";
+        if (enderecoIp is null)
+            return $"IP do WISE inválido: \"{request.EnderecoIpWise.Trim()}\". Use o formato 192.168.10.21.";
 
         // Só esta máquina: as outras da linha continuam livres (inclusive para o Manual).
         var ocupada =
@@ -99,6 +104,21 @@ public class AcompanhamentoService : IAcompanhamentoService
             || await _context.Sessoes.AnyAsync(s => s.Status == StatusSessao.EmAndamento && s.MaquinaLinhaId == ml.Id, cancellationToken);
         if (ocupada)
             return "Já existe uma medição em andamento nesta máquina.";
+
+        // Um WISE mede uma máquina por vez: fica livre quando a outra coleta for finalizada.
+        var emUso = await _context.Acompanhamentos
+            .AsNoTracking()
+            .Where(a => a.FinalizadoEm == null && a.EnderecoIpWise == enderecoIp)
+            .Select(a => new
+            {
+                Maquina = a.MaquinaLinha.Maquina.Nome,
+                Linha = a.MaquinaLinha.Linha.Nome,
+                Cliente = a.MaquinaLinha.Linha.Cliente.Nome
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (emUso is not null)
+            return $"O WISE {enderecoIp} está em uso na medição da {emUso.Maquina} ({emUso.Linha} · {emUso.Cliente}). " +
+                   "Finalize aquela medição antes de usar este WISE aqui.";
 
         // A validação dos canais e das regras é a mesma que o coletor vai usar: montar a
         // configuração de verdade garante que o que foi aceito aqui roda lá.
@@ -190,6 +210,7 @@ public class AcompanhamentoService : IAcompanhamentoService
                 Usuario = a.Usuario.Nome,
                 a.IniciadoEm,
                 a.TempoDeteccaoParadaSegundos,
+                a.EnderecoIpWise,
                 Canais = a.Canais.OrderBy(c => c.Canal).Select(c => new { c.Canal, c.Multiplicador }).ToList()
             })
             .ToListAsync(cancellationToken);
@@ -197,11 +218,6 @@ public class AcompanhamentoService : IAcompanhamentoService
         var resumos = new List<ColetaIotResumoDto>();
         foreach (var a in acompanhamentos.OrderBy(a => a.Cliente).ThenBy(a => a.Linha).ThenBy(a => a.Ordem))
         {
-            var ip = await _context.DispositivosIot
-                .Where(d => d.MaquinaLinhaId == a.MaquinaLinhaId)
-                .Select(d => d.EnderecoIp)
-                .FirstOrDefaultAsync(cancellationToken);
-
             var sessao = await _context.Sessoes
                 .AsNoTracking()
                 .Where(s => s.AcompanhamentoId == a.Id && s.Status == StatusSessao.EmAndamento)
@@ -235,7 +251,7 @@ public class AcompanhamentoService : IAcompanhamentoService
                 a.Id, a.MaquinaLinhaId, a.Maquina, a.LinhaId, a.Linha, a.Cliente,
                 a.UsuarioId, a.Usuario, a.IniciadoEm, a.TempoDeteccaoParadaSegundos,
                 a.Canais.Select(c => new CanalMedicaoRequest(c.Canal, c.Multiplicador)).ToList(),
-                ip,
+                a.EnderecoIpWise,
                 sessao?.Id, sessao?.Inicio, sessao?.VelocidadeNominal ?? 0,
                 ultimaLeitura?.Quantidade ?? 0, ultimaLeitura?.Refugo ?? 0, ultimaLeitura?.Hora,
                 parada is null ? null : new ParadaAbertaDto(parada.Id, parada.Inicio, parada.MotivoId, parada.Motivo, parada.Tipo ?? TipoParada.Interna),

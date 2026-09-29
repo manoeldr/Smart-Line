@@ -13,7 +13,7 @@ using SmartLine.Infrastructure.Repositories;
 namespace SmartLine.Tests.Infra;
 
 /// <summary>
-/// Uma Enchedora com WISE, numa linha, com coleta iniciada às 11:00 UTC por um
+/// Uma Enchedora numa linha, com coleta iniciada às 11:00 UTC (WISE <see cref="IpWise"/>) por um
 /// auditor, lendo S2 (×1), S3 e os quatro sensores de estado. Banco em memória
 /// com o esquema real e relógio simulado.
 /// </summary>
@@ -27,6 +27,9 @@ internal sealed class CenarioColeta : IDisposable
     public Guid MaquinaCatalogo { get; } = Guid.NewGuid();
     public Guid MaquinaLinha { get; } = Guid.NewGuid();
     public Guid Acompanhamento { get; }
+
+    /// <summary>WISE informado ao iniciar a coleta.</summary>
+    public const string IpWise = "192.168.10.21";
     public Guid Sessao { get; }
 
     public CenarioColeta()
@@ -39,14 +42,13 @@ internal sealed class CenarioColeta : IDisposable
                 cliente, linha,
                 new Maquina { Id = MaquinaCatalogo, Nome = "Enchedora", Ativo = true },
                 new Usuario { Id = Usuario, Nome = "Auditor", Login = "auditor", SenhaHash = "x", Nivel = NivelUsuario.Auditor },
-                new MaquinaLinha { Id = MaquinaLinha, LinhaId = linha.Id, MaquinaId = MaquinaCatalogo, VelocidadeNominal = 36000, Ativo = true },
-                new DispositivoIot { Id = Guid.NewGuid(), MaquinaLinhaId = MaquinaLinha, Nome = "WISE", EnderecoIp = "192.168.10.21" });
+                new MaquinaLinha { Id = MaquinaLinha, LinhaId = linha.Id, MaquinaId = MaquinaCatalogo, VelocidadeNominal = 36000, Ativo = true });
             db.SaveChanges();
         }
 
         using (var db = Banco.NovoContexto())
         {
-            var r = Servico(db).IniciarAsync(Usuario, new IniciarAcompanhamentoRequest(MaquinaLinha, null, null,
+            var r = Servico(db).IniciarAsync(Usuario, new IniciarAcompanhamentoRequest(MaquinaLinha, IpWise, null, null,
             [
                 new(CanalWise.S2), new(CanalWise.S3), new(CanalWise.S1),
                 new(CanalWise.S4), new(CanalWise.S7), new(CanalWise.S8)

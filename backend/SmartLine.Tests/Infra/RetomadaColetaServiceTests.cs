@@ -60,6 +60,21 @@ public class RetomadaColetaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UltimaMensagemAnotadaNaColeta_ContaComoEvidencia()
+    {
+        using (var db = _c.Banco.NovoContexto())
+        {
+            db.Acompanhamentos.Single().UltimaMensagemWiseEm = Em(1200);
+            db.SaveChanges();
+        }
+        Reiniciar(Em(3600));
+
+        var r = Assert.Single(await Retomar());
+
+        Assert.Equal(Em(1200), r.SemComunicacaoDesdeUtc);
+    }
+
+    [Fact]
     public async Task JaEstavaSemComunicacao_MantemOPeriodoOriginal()
     {
         await _c.Registrar(new ComunicacaoPerdida(Em(300)));

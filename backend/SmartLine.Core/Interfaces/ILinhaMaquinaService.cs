@@ -24,7 +24,6 @@ public record MaquinaLinhaConfDto(
     bool MedeProducao,
     bool Ativo,
     int TempoDeteccaoParadaSegundos,
-    string? EnderecoIpWise,
     bool RegrasPersonalizadas
 );
 
