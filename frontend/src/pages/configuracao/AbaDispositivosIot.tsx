@@ -1,6 +1,7 @@
 // Aba "Dispositivos IoT" da tela de Configurações — só Administrador e Desenvolvedor.
-// Instalação do Semi Automático: o WISE ligado na rede aparece em "Aguardando cadastro",
-// o técnico confere as entradas (Validar entradas) e associa o IP à máquina.
+// Acompanhamento dos WISE: o que está cadastrado, conectado e publicando. O cadastro é feito
+// na Medição (máquina selecionada -> Semi Auto -> IP); aqui dá para conferir as entradas,
+// editar e excluir, e ver os IPs que publicam sem cadastro.
 // No topo, a situação do broker MQTT embutido. Tudo se atualiza a cada 5 s.
 import { useEffect, useState } from 'react'
 import {
@@ -15,15 +16,15 @@ import ValidarEntradasModal from '../../modals/ValidarEntradasModal'
 import ConfirmModal from '../../components/ConfirmModal'
 import SituacaoWiseTexto from '../../components/iot/SituacaoWiseTexto'
 import { tempoDesde } from '../../utils/tempo'
-import { btnPrimarySm, btnPrimaryXs, btnSecondarySm, btnIcon, btnIconDanger } from '../../styles/buttons'
+import { btnSecondarySm, btnIcon, btnIconDanger } from '../../styles/buttons'
 import { badgeStatus } from '../../styles/badges'
 import { cardPadded } from '../../styles/cards'
 import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableBodyCellMuted, tableActionsCell } from '../../styles/tables'
 
 const INTERVALO_MS = 5000
 
-// Modal de cadastro: fechado, novo (com ou sem IP sugerido) ou editando.
-type Edicao = { dispositivo: DispositivoIotDto | null; ipSugerido?: string } | null
+// Modal de edição de um WISE já cadastrado.
+type Edicao = { dispositivo: DispositivoIotDto } | null
 
 export default function AbaDispositivosIot() {
   const [dispositivos, setDispositivos] = useState<DispositivoIotDto[]>([])
@@ -86,10 +87,6 @@ export default function AbaDispositivosIot() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Dispositivos IoT (WISE)</p>
-        <button onClick={() => setEdicao({ dispositivo: null })} className={`${btnPrimarySm} flex items-center gap-1.5`}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo WISE
-        </button>
       </div>
 
       {erro && (
@@ -112,7 +109,8 @@ export default function AbaDispositivosIot() {
         <div className={cardPadded}>
           <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-1">WISE aguardando cadastro</p>
           <p className="text-[10px] text-zinc-400 mb-3">
-            Estes IPs estão publicando no SmartLine, mas não estão associados a nenhuma máquina. As mensagens deles são ignoradas até o cadastro.
+            Estes IPs estão publicando no SmartLine, mas não estão associados a nenhuma máquina; as mensagens deles são ignoradas.
+            Para cadastrar: Medição, escolha a máquina, forma Semi Auto e informe o IP.
           </p>
           <table className={table}>
             <thead>
@@ -132,9 +130,6 @@ export default function AbaDispositivosIot() {
                   <td className={tableActionsCell}>
                     <button onClick={() => setValidando({ ip: w.enderecoIp, nome: 'WISE sem cadastro' })} className={btnSecondarySm}>
                       Validar entradas
-                    </button>
-                    <button onClick={() => setEdicao({ dispositivo: null, ipSugerido: w.enderecoIp })} className={btnPrimaryXs}>
-                      Cadastrar
                     </button>
                   </td>
                 </tr>
@@ -204,7 +199,6 @@ export default function AbaDispositivosIot() {
       {edicao && (
         <DispositivoIotModal
           dispositivo={edicao.dispositivo}
-          ipSugerido={edicao.ipSugerido}
           dispositivos={dispositivos}
           onFechar={() => setEdicao(null)}
           onSalvo={aoSalvar}

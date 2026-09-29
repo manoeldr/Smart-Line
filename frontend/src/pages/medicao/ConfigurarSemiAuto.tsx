@@ -1,6 +1,7 @@
 // Configuração da medição Semi Automática (WISE), dentro do modal "Configurar medição".
 // Mostra a situação do WISE da máquina (só em texto: conectado em verde, desconectado em
-// amarelo, não cadastrado em vermelho) e só deixa iniciar com ele conectado. O usuário escolhe
+// amarelo, não cadastrado em vermelho) e só deixa iniciar com ele conectado. O WISE é
+// cadastrado ali mesmo (só o IP; a máquina é a selecionada). O usuário escolhe
 // o que ler: contadores de produção (S2, S5, S6) e rejeito (S3), cada um com o seu
 // multiplicador opcional (garrafas por ciclo), e os sensores (S1, S4, S7, S8) liga/desliga.
 // Abre sempre no padrão: S2 e S3 sem multiplicador e os quatro sensores ligados.
@@ -10,10 +11,8 @@ import { coletaIotService } from '../../services/coletaIotService'
 import type { SituacaoWiseDto } from '../../services/dispositivoIotService'
 import { regrasClassificacaoService, type RegraDto } from '../../services/regrasClassificacaoService'
 import { mensagemErro } from '../../services/api'
-import SituacaoWiseTexto from '../../components/iot/SituacaoWiseTexto'
 import Switch from '../../components/Switch'
-import ValidarEntradasModal from '../../modals/ValidarEntradasModal'
-import { tempoDesde } from '../../utils/tempo'
+import WiseDaMaquina from '../../components/iot/WiseDaMaquina'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
 import { inputBase, inputMdFull, label, checkbox } from '../../styles/inputs'
 import { modalBody, modalFooter } from '../../styles/modals'
@@ -66,7 +65,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const [erroWise, setErroWise] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
   const [regras, setRegras] = useState<RegraDto[]>([])
-  const [validando, setValidando] = useState(false)
+  const [consultarWise, setConsultarWise] = useState(0)
 
   const [iniciando, setIniciando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -89,7 +88,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     atualizar()
     const id = setInterval(atualizar, INTERVALO_WISE_MS)
     return () => { ativo = false; clearInterval(id) }
-  }, [maquina.id])
+  }, [maquina.id, consultarWise])
 
   // Regras da máquina: para avisar quando um sensor desligado é usado por alguma.
   useEffect(() => {
@@ -186,30 +185,15 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           </div>
         )}
 
-        {/* WISE da máquina */}
-        <div className="border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 flex items-center justify-between gap-3">
-          <div className="text-xs min-w-0">
-            {!wise ? (
-              <p className="text-zinc-400">{erroWise ?? 'Consultando o WISE...'}</p>
-            ) : (
-              <>
-                <p className="text-zinc-500">
-                  WISE {wise.enderecoIp ? `${wise.enderecoIp} ` : ''}<SituacaoWiseTexto situacao={wise.situacao} />
-                </p>
-                <p className="text-[10px] text-zinc-400 mt-0.5">
-                  {wise.situacao === 'NaoCadastrado'
-                    ? 'Cadastre o WISE desta máquina em Configurações > Dispositivos IoT.'
-                    : wise.situacao === 'Desconectado'
-                      ? 'Verifique energia, rede e a configuração MQTT do WISE.'
-                      : `última mensagem ${tempoDesde(wise.ultimaMensagemUtc, agora)}`}
-                </p>
-              </>
-            )}
-          </div>
-          <button onClick={() => setValidando(true)} disabled={wise?.situacao !== 'Conectado'} className={btnSecondarySm}>
-            Validar entradas
-          </button>
-        </div>
+        {/* WISE da máquina (e o cadastro dele, se ainda não houver) */}
+        <WiseDaMaquina
+          maquinaLinhaId={maquina.id}
+          maquinaNome={maquina.maquinaNome}
+          wise={wise}
+          erroConsulta={erroWise}
+          agora={agora}
+          onAlterado={() => setConsultarWise(c => c + 1)}
+        />
 
         {/* Velocidade */}
         <div className="grid grid-cols-2 gap-3">
@@ -266,12 +250,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
         </button>
       </div>
 
-      <ValidarEntradasModal
-        open={validando}
-        subtitulo={`${maquina.maquinaNome}${wise?.enderecoIp ? ` · IP ${wise.enderecoIp}` : ''}`}
-        carregar={() => coletaIotService.wiseDaMaquina(maquina.id)}
-        onFechar={() => setValidando(false)}
-      />
     </>
   )
 }
