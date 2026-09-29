@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { configuracaoService, type ClienteConfDto, type LinhaConfDto, type MaquinaConfDto } from '../services/configuracaoService'
 import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
 import ConfirmModal from '../components/ConfirmModal'
+import MaquinaLinhaSemiModal from './MaquinaLinhaSemiModal'
 import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
 import { inputBase, label, checkbox } from '../styles/inputs'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
@@ -45,7 +46,7 @@ interface MaquinaLinhaStaged extends MaquinaLinhaConfDto {
 }
 
 // Item arrastável de máquina dentro de uma linha (drag and drop via @dnd-kit)
-function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; onRemover: () => void }) {
+function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: MaquinaLinhaStaged; onRemover: () => void; onConfigurarSemi?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -72,8 +73,20 @@ function SortableMaquinaItem({ item, onRemover }: { item: MaquinaLinhaStaged; on
           {item.velocidadeNominal} un/h {item.sobreVelocidade > 0 && `+ ${item.sobreVelocidade}%`}
           {!item.medeProducao && <span className="ml-1.5 text-amber-600 dark:text-amber-400">sem contagem de produção</span>}
         </p>
+        {!item.isNew && (
+          <p className="text-[10px] text-zinc-400">
+            Semi Auto: parada após {item.tempoDeteccaoParadaSegundos ?? 60} s
+            {' · '}{item.enderecoIpWise ? `WISE ${item.enderecoIpWise}` : 'sem WISE'}
+            {' · '}{item.regrasPersonalizadas ? <span className="text-blue-600 dark:text-blue-400">regras personalizadas</span> : 'regras do catálogo'}
+          </p>
+        )}
       </div>
       {item.critica && <span className={badgeCritica}>crítica</span>}
+      {onConfigurarSemi && (
+        <button onClick={onConfigurarSemi} title="Semi Automático: tempo de parada e regras desta máquina" className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">
+          Semi Auto
+        </button>
+      )}
       <button onClick={onRemover} className={btnIconDanger}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       </button>
@@ -108,6 +121,9 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
 
   // Confirmação de remoção (substitui o confirm() nativo do navegador)
   const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
+
+  // Semi Automático de uma máquina já salva na linha (grava na hora, pelo próprio modal)
+  const [semiItem, setSemiItem] = useState<MaquinaLinhaStaged | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -414,6 +430,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                                       key={item.id}
                                       item={item}
                                       onRemover={() => setAcaoPendente({ tipo: 'maquina', linhaId: linha.id, maquinaLinhaId: item.id })}
+                                      onConfigurarSemi={item.isNew ? undefined : () => setSemiItem(item)}
                                     />
                                   ))}
                                 </SortableContext>
@@ -548,6 +565,20 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       )}
 
       {/* Modal de confirmação — remover linha ou remover máquina */}
+      {semiItem && (
+        <MaquinaLinhaSemiModal
+          item={semiItem}
+          onFechar={() => setSemiItem(null)}
+          onSalvo={mudanca => {
+            setMaquinasPorLinha(prev => ({
+              ...prev,
+              [semiItem.linhaId]: (prev[semiItem.linhaId] ?? []).map(m => m.id === semiItem.id ? { ...m, ...mudanca } : m),
+            }))
+            setSemiItem(null)
+          }}
+        />
+      )}
+
       <ConfirmModal
         open={acaoPendente !== null}
         titulo={acaoPendente?.tipo === 'linha' ? 'Remover linha' : 'Remover máquina'}
