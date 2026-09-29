@@ -18,12 +18,18 @@ namespace SmartLine.API.Controllers;
 public class ColetaIotController : ControllerBase
 {
     private readonly IAcompanhamentoService _acompanhamentos;
+    private readonly IEntradasWiseService _entradas;
     private readonly ColetaIotService _coleta;
     private readonly BrokerMqttService _broker;
 
-    public ColetaIotController(IAcompanhamentoService acompanhamentos, ColetaIotService coleta, BrokerMqttService broker)
+    public ColetaIotController(
+        IAcompanhamentoService acompanhamentos,
+        IEntradasWiseService entradas,
+        ColetaIotService coleta,
+        BrokerMqttService broker)
     {
         _acompanhamentos = acompanhamentos;
+        _entradas = entradas;
         _coleta = coleta;
         _broker = broker;
     }
@@ -39,7 +45,8 @@ public class ColetaIotController : ControllerBase
     {
         var conectados = _broker.IpsConectados();
         var coletas = await _acompanhamentos.ListarEmAndamentoAsync(null, cancellationToken);
-        return Ok(coletas.Select(c => Montar(c, conectados)));
+        var textos = await TextosAsync(coletas, cancellationToken);
+        return Ok(coletas.Select(c => Montar(c, conectados, textos[c.MaquinaId])));
     }
 
     /// <summary>Coleta ligada numa máquina; 404 se a máquina não está em coleta.</summary>
@@ -47,7 +54,11 @@ public class ColetaIotController : ControllerBase
     public async Task<IActionResult> DaMaquina(Guid maquinaLinhaId, CancellationToken cancellationToken)
     {
         var coleta = (await _acompanhamentos.ListarEmAndamentoAsync(maquinaLinhaId, cancellationToken)).SingleOrDefault();
-        return coleta is null ? NotFound() : Ok(Montar(coleta, _broker.IpsConectados()));
+        if (coleta is null)
+            return NotFound();
+
+        var textos = await TextosAsync([coleta], cancellationToken);
+        return Ok(Montar(coleta, _broker.IpsConectados(), textos[coleta.MaquinaId]));
     }
 
     /// <summary>
@@ -87,7 +98,23 @@ public class ColetaIotController : ControllerBase
 
     // ── Apoio ───────────────────────────────────────────────────────
 
-    private ColetaIotPainelDto Montar(ColetaIotResumoDto coleta, IReadOnlySet<string> conectados)
+    /// <summary>Textos das entradas de cada máquina do catálogo envolvida (uma consulta por tipo de máquina).</summary>
+    private async Task<Dictionary<Guid, IReadOnlyDictionary<CanalWise, EntradaWiseDto>>> TextosAsync(
+        IEnumerable<ColetaIotResumoDto> coletas, CancellationToken cancellationToken)
+    {
+        var textos = new Dictionary<Guid, IReadOnlyDictionary<CanalWise, EntradaWiseDto>>();
+        foreach (var maquinaId in coletas.Select(c => c.MaquinaId).Distinct())
+        {
+            var entradas = await _entradas.ObterAsync(maquinaId, cancellationToken) ?? [];
+            textos[maquinaId] = entradas.ToDictionary(e => e.Canal);
+        }
+        return textos;
+    }
+
+    private ColetaIotPainelDto Montar(
+        ColetaIotResumoDto coleta,
+        IReadOnlySet<string> conectados,
+        IReadOnlyDictionary<CanalWise, EntradaWiseDto> textos)
     {
         // Nulo se o motor ainda não pegou esta coleta (acabou de ser iniciada).
         var situacao = _coleta.Situacao(coleta.MaquinaLinhaId);
@@ -98,7 +125,18 @@ public class ColetaIotController : ControllerBase
             ? []
             : MapaWise.Canais
                 .Where(d => d.Tipo == TipoCanal.Estado && lidos.Contains(d.Canal) && aoVivo.Sensores.ContainsKey(d.Canal))
-                .Select(d => new SensorAoVivoDto(d.Canal, d.Descricao, aoVivo.Sensores[d.Canal], d.EstaEmAlarme(aoVivo.Sensores[d.Canal])))
+                .Select(d =>
+                {
+                    var bruto = aoVivo.Sensores[d.Canal];
+                    var emAlarme = d.EstaEmAlarme(bruto);
+                    var texto = textos.GetValueOrDefault(d.Canal);
+                    return new SensorAoVivoDto(
+                        d.Canal,
+                        texto?.Nome ?? d.Descricao,
+                        bruto,
+                        emAlarme,
+                        (emAlarme ? texto?.TextoAtivo : texto?.TextoNormal) ?? d.Descricao);
+                })
                 .ToList();
 
         return new ColetaIotPainelDto(
@@ -135,5 +173,7 @@ public record ColetaIotPainelDto(
     IReadOnlyDictionary<CanalWise, uint> Contadores,
     bool WiseConectado);
 
+/// <param name="Nome">Nome da entrada (personalizável por máquina do catálogo).</param>
 /// <param name="ValorBruto">Como veio do WISE (sensores invertidos: true = sem presença).</param>
-public record SensorAoVivoDto(CanalWise Canal, string Descricao, bool ValorBruto, bool EmAlarme);
+/// <param name="Texto">O que o sensor está dizendo agora: o texto de ativo ou de normal (ex.: "Com garrafas na entrada").</param>
+public record SensorAoVivoDto(CanalWise Canal, string Nome, bool ValorBruto, bool EmAlarme, string Texto);

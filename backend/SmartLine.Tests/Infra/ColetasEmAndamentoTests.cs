@@ -34,6 +34,7 @@ public class ColetasEmAndamentoTests : IDisposable
         Assert.Null(r.ParadaAberta);
         Assert.Null(r.SemComunicacaoDesde);
         Assert.Equal(0, r.ParadasNaoClassificadas);
+        Assert.Equal(_c.MaquinaCatalogo, r.MaquinaId);
     }
 
     [Fact]

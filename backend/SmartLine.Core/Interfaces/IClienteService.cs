@@ -22,6 +22,15 @@ public record LinhaOverviewDto(
     IList<MaquinaLinhaOverviewDto> Maquinas
 );
 
+/// <param name="AcompanhamentoId">Coleta automática (Semi Automático) ligada na máquina; nulo no Manual ou sem sessão.</param>
+/// <param name="MotivoParadaAtual">Motivo da parada em curso; nulo se rodando ou parada sem motivo.</param>
+/// <param name="ParadasSemMotivo">Coleta automática: paradas da sessão do dia ainda sem motivo.</param>
+/// <param name="EnderecoIpWise">IP do WISE ativo da máquina, se houver.</param>
+/// <param name="SituacaoColeta">
+/// Coleta automática, preenchido pela API a partir do motor: Rodando, Parada,
+/// SemComunicacao ou AguardandoPrimeiraAmostra.
+/// </param>
+/// <param name="WiseConectado">Preenchido pela API (broker) quando a máquina tem WISE.</param>
 public record MaquinaLinhaOverviewDto(
     string Id,
     string LinhaId,
@@ -37,5 +46,11 @@ public record MaquinaLinhaOverviewDto(
     double? Oee,
     bool SessaoAtiva,
     string? SessaoAtivaId,
-    DateTime? UltimaSessaoFim
+    DateTime? UltimaSessaoFim,
+    string? AcompanhamentoId = null,
+    string? MotivoParadaAtual = null,
+    int ParadasSemMotivo = 0,
+    string? EnderecoIpWise = null,
+    string? SituacaoColeta = null,
+    bool? WiseConectado = null
 );

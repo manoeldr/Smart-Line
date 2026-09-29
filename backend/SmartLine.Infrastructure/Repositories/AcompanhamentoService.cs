@@ -180,6 +180,7 @@ public class AcompanhamentoService : IAcompanhamentoService
             {
                 a.Id,
                 a.MaquinaLinhaId,
+                a.MaquinaLinha.MaquinaId,
                 Maquina = a.MaquinaLinha.Maquina.Nome,
                 a.MaquinaLinha.LinhaId,
                 Linha = a.MaquinaLinha.Linha.Nome,
@@ -239,7 +240,8 @@ public class AcompanhamentoService : IAcompanhamentoService
                 ultimaLeitura?.Quantidade ?? 0, ultimaLeitura?.Refugo ?? 0, ultimaLeitura?.Hora,
                 parada is null ? null : new ParadaAbertaDto(parada.Id, parada.Inicio, parada.MotivoId, parada.Motivo, parada.Tipo ?? TipoParada.Interna),
                 semComunicacaoDesde,
-                naoClassificadas));
+                naoClassificadas,
+                a.MaquinaId));
         }
 
         return resumos;

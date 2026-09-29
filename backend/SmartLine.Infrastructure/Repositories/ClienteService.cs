@@ -73,6 +73,13 @@ public class ClienteService : IClienteService
                         .FirstOrDefaultAsync();
                 }
 
+                var enderecoIpWise = await _context.DispositivosIot
+                    .Where(d => d.MaquinaLinhaId == ml.Id && d.Ativo)
+                    .Select(d => d.EnderecoIp)
+                    .FirstOrDefaultAsync();
+                var paradaEmCurso = sessaoAtiva?.Paradas.FirstOrDefault(p => !p.Fim.HasValue);
+                var coletaAutomatica = sessaoAtiva?.AcompanhamentoId is not null;
+
                 var sessaoParaOee = sessaoAtiva ?? ultimaSessaoFinalizada;
                 var status = ResolverStatus(sessaoAtiva);
                 double? oee = null;
@@ -98,7 +105,11 @@ public class ClienteService : IClienteService
                     Oee: oee.HasValue ? Math.Round(oee.Value, 1) : null,
                     SessaoAtiva: sessaoAtiva is not null,
                     SessaoAtivaId: sessaoAtiva?.Id.ToString(),
-                    UltimaSessaoFim: ultimaSessaoFinalizada?.Fim
+                    UltimaSessaoFim: ultimaSessaoFinalizada?.Fim,
+                    AcompanhamentoId: sessaoAtiva?.AcompanhamentoId?.ToString(),
+                    MotivoParadaAtual: paradaEmCurso?.Motivo?.Nome,
+                    ParadasSemMotivo: coletaAutomatica ? sessaoAtiva!.Paradas.Count(p => p.MotivoId is null) : 0,
+                    EnderecoIpWise: enderecoIpWise
                 ));
             }
 

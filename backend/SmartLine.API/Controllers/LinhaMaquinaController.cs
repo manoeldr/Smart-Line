@@ -26,13 +26,17 @@ public class LinhaMaquinaController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Adicionar(Guid linhaId, [FromBody] AdicionarMaquinaLinhaRequest request)
     {
+        if (ErroTempoDeteccao(request.TempoDeteccaoParadaSegundos) is { } erro)
+            return BadRequest(new { mensagem = erro });
+
         var resultado = await _service.AdicionarMaquinaAsync(
             linhaId,
             request.MaquinaId,
             request.Critica,
             request.VelocidadeNominal,
             request.SobreVelocidade,
-            request.MedeProducao
+            request.MedeProducao,
+            request.TempoDeteccaoParadaSegundos
         );
         return Ok(resultado);
     }
@@ -40,16 +44,25 @@ public class LinhaMaquinaController : ControllerBase
     [HttpPut("{maquinaLinhaId}")]
     public async Task<IActionResult> Atualizar(Guid linhaId, Guid maquinaLinhaId, [FromBody] AtualizarMaquinaLinhaRequest request)
     {
+        if (ErroTempoDeteccao(request.TempoDeteccaoParadaSegundos) is { } erro)
+            return BadRequest(new { mensagem = erro });
+
         var resultado = await _service.AtualizarAsync(
             maquinaLinhaId,
             request.Critica,
             request.VelocidadeNominal,
             request.SobreVelocidade,
-            request.MedeProducao
+            request.MedeProducao,
+            request.TempoDeteccaoParadaSegundos
         );
         if (resultado is null) return NotFound();
         return Ok(resultado);
     }
+
+    private static string? ErroTempoDeteccao(int? segundos) =>
+        segundos is < LimitesTempoDeteccaoParada.MinimoSegundos or > LimitesTempoDeteccaoParada.MaximoSegundos
+            ? $"Tempo para detectar parada deve ficar entre {LimitesTempoDeteccaoParada.MinimoSegundos} e {LimitesTempoDeteccaoParada.MaximoSegundos} segundos."
+            : null;
 
     [HttpDelete("{maquinaLinhaId}")]
     public async Task<IActionResult> Remover(Guid linhaId, Guid maquinaLinhaId)
@@ -67,6 +80,9 @@ public class LinhaMaquinaController : ControllerBase
     }
 }
 
-public record AdicionarMaquinaLinhaRequest(Guid MaquinaId, bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true);
-public record AtualizarMaquinaLinhaRequest(bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true);
+/// <param name="TempoDeteccaoParadaSegundos">Z do Semi Automático (10 a 3600 s); nulo = 60 s.</param>
+public record AdicionarMaquinaLinhaRequest(Guid MaquinaId, bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true, int? TempoDeteccaoParadaSegundos = null);
+
+/// <param name="TempoDeteccaoParadaSegundos">Z do Semi Automático (10 a 3600 s); nulo = mantém o atual.</param>
+public record AtualizarMaquinaLinhaRequest(bool Critica, decimal VelocidadeNominal, decimal SobreVelocidade, bool MedeProducao = true, int? TempoDeteccaoParadaSegundos = null);
 public record ReordenarMaquinasRequest(IList<ReordenarItem> Itens);
