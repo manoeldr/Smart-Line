@@ -1,5 +1,5 @@
 // Teste de ping até um WISE, a partir do PC do SmartLine (4 pacotes, como o ping do Windows).
-// Separa problema de rede (não responde) de configuração MQTT (responde, mas não conecta).
+// Mostra "WISE conectado" se ele respondeu e "WISE desconectado" se não respondeu.
 import { useEffect, useState } from 'react'
 import { dispositivoIotService, type ResultadoPingDto } from '../services/dispositivoIotService'
 import { mensagemErro } from '../services/api'
@@ -10,10 +10,6 @@ import { table, tableHeadRow, tableHeadCell, tableBodyRow } from '../styles/tabl
 interface Props {
   // IP a testar; nulo = fechado
   ip: string | null
-  // Conexão MQTT do WISE agora (nula se não se sabe), para o diagnóstico
-  conectado: boolean | null
-  // Porta do broker, para orientar a configuração MQTT do WISE
-  porta: number | null
   onFechar: () => void
 }
 
@@ -22,7 +18,7 @@ export default function PingModal(props: Props) {
   return props.ip ? <Conteudo {...props} ip={props.ip} /> : null
 }
 
-function Conteudo({ ip, conectado, porta, onFechar }: Props & { ip: string }) {
+function Conteudo({ ip, onFechar }: Props & { ip: string }) {
   const [resultado, setResultado] = useState<ResultadoPingDto | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [tentativa, setTentativa] = useState(0)
@@ -94,7 +90,7 @@ function Conteudo({ ip, conectado, porta, onFechar }: Props & { ip: string }) {
                 )}
               </p>
 
-              <Diagnostico resultado={resultado} conectado={conectado} porta={porta} />
+              <Diagnostico resultado={resultado} />
             </>
           )}
         </div>
@@ -110,21 +106,9 @@ function Conteudo({ ip, conectado, porta, onFechar }: Props & { ip: string }) {
   )
 }
 
-function Diagnostico({ resultado, conectado, porta }: { resultado: ResultadoPingDto; conectado: boolean | null; porta: number | null }) {
-  const [cor, texto] =
-    resultado.recebidos === 0
-      ? ['text-red-600 dark:text-red-400',
-         'O WISE não respondeu. Verifique a energia, o cabo e o switch, se o IP está certo e se o computador do SmartLine está na mesma rede do WISE.']
-      : resultado.recebidos < resultado.enviados
-        ? ['text-amber-600 dark:text-amber-400',
-           'Houve perda de pacotes: a comunicação com o WISE está instável (cabo, switch ou rede sem fio).']
-        : conectado === false
-          ? ['text-amber-600 dark:text-amber-400',
-             'A rede está ok, mas o WISE não está conectado ao SmartLine. Confira a configuração MQTT no WISE: ' +
-             `servidor com o IP deste computador${porta ? ` e porta ${porta}` : ''}.`]
-          : conectado
-            ? ['text-green-600 dark:text-green-400', 'Rede ok e WISE conectado ao SmartLine.']
-            : ['text-green-600 dark:text-green-400', 'Rede ok: o WISE responde.']
-
-  return <p className={`text-xs ${cor}`}>{texto}</p>
+// Resultado em uma palavra: respondeu ao ping = conectado; não respondeu = desconectado.
+function Diagnostico({ resultado }: { resultado: ResultadoPingDto }) {
+  return resultado.recebidos > 0
+    ? <p className="text-xs font-medium text-green-600 dark:text-green-400">WISE conectado</p>
+    : <p className="text-xs font-medium text-red-600 dark:text-red-400">WISE desconectado</p>
 }

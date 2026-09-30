@@ -141,9 +141,6 @@ export default function AbaDispositivosIot() {
     }
   }
 
-  // Conexão do IP em teste de ping, para o diagnóstico. A lista traz todo WISE conectado:
-  // fora dela, não está conectado. Nula enquanto a lista não carregou.
-  const pingadoConectado = pingando && carregado ? wises.some(w => w.enderecoIp === pingando && w.conectado) : null
 
   function acoesDiagnostico(w: WiseDto) {
     return (
@@ -343,8 +340,6 @@ export default function AbaDispositivosIot() {
 
       <PingModal
         ip={pingando}
-        conectado={pingadoConectado}
-        porta={status?.porta ?? null}
         onFechar={() => setPingando(null)}
       />
 
