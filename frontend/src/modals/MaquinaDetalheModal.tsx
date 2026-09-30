@@ -242,9 +242,11 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
               </div>
 
               {/* Gráfico */}
-              <div className="h-64">
+              {/* select-none e sem contorno de foco: clicar no gráfico (ou perto dele) não marca
+                  área de seleção nem desenha a moldura azul do navegador */}
+              <div className="h-64 select-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*:focus]:outline-none">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={dadosGrafico}>
+                  <ComposedChart data={dadosGrafico} accessibilityLayer={false}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
                     <XAxis
                       dataKey="hora"
