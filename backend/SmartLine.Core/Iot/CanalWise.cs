@@ -74,7 +74,7 @@ public static class MapaWise
     [
         new(CanalWise.S1, TipoCanal.Estado,   FuncaoCanal.AcumuloMinimoEntrada, "Acúmulo mínimo na entrada",           NivelAlarme: true),
         new(CanalWise.S2, TipoCanal.Contador, FuncaoCanal.ContadorProducao,     "Contador de produção (entrada 1)",    NivelAlarme: null),
-        new(CanalWise.S3, TipoCanal.Contador, FuncaoCanal.ContadorRejeito,      "Contador de rejeito",                 NivelAlarme: null),
+        new(CanalWise.S3, TipoCanal.Contador, FuncaoCanal.ContadorRejeito,      "Contador de refugo",                  NivelAlarme: null),
         new(CanalWise.S4, TipoCanal.Estado,   FuncaoCanal.AcumuloSaida,         "Acúmulo na saída (caixas/pallets)",   NivelAlarme: false),
         new(CanalWise.S5, TipoCanal.Contador, FuncaoCanal.ContadorProducao,     "Contador de produção (entrada 2)",    NivelAlarme: null),
         new(CanalWise.S6, TipoCanal.Contador, FuncaoCanal.ContadorProducao,     "Contador de produção (entrada 3)",    NivelAlarme: null),

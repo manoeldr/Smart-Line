@@ -25,7 +25,7 @@ public static class TextosEntradasWise
     [
         new(CanalWise.S1, "Acúmulo mínimo na entrada",         "Abaixo do acúmulo mínimo",          "Acúmulo mínimo normal"),
         new(CanalWise.S2, "Contador de produção (entrada 1)",  null,                                null),
-        new(CanalWise.S3, "Contador de rejeito",               null,                                null),
+        new(CanalWise.S3, "Contador de refugo",                null,                                null),
         new(CanalWise.S4, "Acúmulo na saída (caixas/pallets)", "Saída de caixas/pallets bloqueada", "Saída de caixas/pallets livre"),
         new(CanalWise.S5, "Contador de produção (entrada 2)",  null,                                null),
         new(CanalWise.S6, "Contador de produção (entrada 3)",  null,                                null),

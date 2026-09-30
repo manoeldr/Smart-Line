@@ -1,5 +1,7 @@
 // Bloco da coleta Semi Automática no modal de detalhe da máquina: situação ao vivo, WISE,
 // produção da sessão, parada em curso, sensores em texto e canais lidos. Atualiza a cada 5 s.
+// Retrátil: fechado mostra só o cabeçalho (situação, quem iniciou, Finalizar); a escolha fica
+// guardada neste navegador. Começa fechado.
 // Não mostra nada se a máquina não está em coleta automática. Finalizar: quem iniciou,
 // Administrador ou Desenvolvedor (o backend confere de novo).
 import { useEffect, useState } from 'react'
@@ -13,6 +15,23 @@ import { dataHora, tempoDesde } from '../../utils/tempo'
 import { btnDangerSm } from '../../styles/buttons'
 
 const INTERVALO_MS = 5000
+const CHAVE_ABERTO = 'smartline.painelColetaIot.aberto'
+
+function lerAberto() {
+  try {
+    return localStorage.getItem(CHAVE_ABERTO) === '1'
+  } catch {
+    return false
+  }
+}
+
+function guardarAberto(aberto: boolean) {
+  try {
+    localStorage.setItem(CHAVE_ABERTO, aberto ? '1' : '0')
+  } catch {
+    // sem armazenamento: só não lembra na próxima vez
+  }
+}
 
 interface Props {
   maquinaLinhaId: string
@@ -26,6 +45,14 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
   const [confirmando, setConfirmando] = useState(false)
   const [finalizando, setFinalizando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [aberto, setAberto] = useState(lerAberto)
+
+  function alternar() {
+    setAberto(a => {
+      guardarAberto(!a)
+      return !a
+    })
+  }
 
   useEffect(() => {
     let ativo = true
@@ -70,12 +97,26 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
   return (
     <div className="mx-5 mt-4 border border-zinc-200 dark:border-zinc-800 flex-shrink-0">
       {/* Cabeçalho do bloco */}
-      <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
-        <p className="text-xs text-zinc-500">
-          <span className="font-medium text-zinc-900 dark:text-zinc-100">Coleta Semi Automática</span>
-          {' · '}<SituacaoColetaTexto situacao={painel.situacao} />
-          {' · '}iniciada por {c.usuario} em {dataHora(c.iniciadoEm)}
-        </p>
+      <div className={`px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between gap-3 ${aberto ? 'border-b border-zinc-200 dark:border-zinc-800' : ''}`}>
+        <button
+          type="button"
+          onClick={alternar}
+          aria-expanded={aberto}
+          title={aberto ? 'Recolher' : 'Ver detalhes da coleta'}
+          className="flex items-center gap-2 text-left text-xs text-zinc-500 min-w-0"
+        >
+          <svg
+            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={`flex-shrink-0 transition-transform ${aberto ? 'rotate-90' : ''}`}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <span>
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">Coleta Semi Automática</span>
+            {' · '}<SituacaoColetaTexto situacao={painel.situacao} />
+            {' · '}iniciada por {c.usuario} em {dataHora(c.iniciadoEm)}
+          </span>
+        </button>
         {podeFinalizar && (
           <button onClick={() => setConfirmando(true)} disabled={finalizando} className={btnDangerSm}>
             {finalizando ? 'Finalizando...' : 'Finalizar coleta'}
@@ -83,8 +124,10 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
         )}
       </div>
 
+      {erro && <p className="px-3 py-2 text-xs text-red-600 dark:text-red-400">{erro}</p>}
+
+      {aberto && (
       <div className="px-3 py-2.5 flex flex-col gap-2 text-xs">
-        {erro && <p className="text-red-600 dark:text-red-400">{erro}</p>}
 
         {/* Números principais */}
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-zinc-500">
@@ -93,7 +136,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
             {painel.ultimaMensagem && <span className="text-zinc-400"> · última mensagem {tempoDesde(painel.ultimaMensagem, agora)}</span>}
           </p>
           <p>Produção da sessão: <span className="font-medium text-zinc-900 dark:text-zinc-100">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>
-          <p>Rejeito: <span className="text-zinc-900 dark:text-zinc-100">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
+          <p>Refugo: <span className="text-zinc-900 dark:text-zinc-100">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
           {c.paradasNaoClassificadas > 0 && (
             <p className="text-amber-600 dark:text-amber-400">{c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada sem motivo' : 'paradas sem motivo'}</p>
           )}
@@ -138,6 +181,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
           )}
         </p>
       </div>
+      )}
 
       <ConfirmModal
         open={confirmando}

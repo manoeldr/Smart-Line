@@ -32,8 +32,11 @@ public class DashboardService : IDashboardService
                 .Include(s => s.Producoes)
                 .Include(s => s.Paradas)
                     .ThenInclude(p => p.Motivo)
+                // Finalizadas e em andamento: a coleta Semi Automática só fecha a sessão do dia à
+                // meia-noite, então sem as em andamento o dia corrente nunca aparecia. O OEE da
+                // sessão em andamento vai até agora (ver OeeService).
                 .Where(s => s.MaquinaLinhaId == ml.Id
-                    && s.Status == StatusSessao.Finalizada
+                    && (s.Status == StatusSessao.Finalizada || s.Status == StatusSessao.EmAndamento)
                     && s.Inicio >= inicio
                     && s.Inicio <= fim)
                 .ToListAsync();

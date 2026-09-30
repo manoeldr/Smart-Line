@@ -3,7 +3,7 @@
 // cada um (só em texto: conectado em verde, desconectado em amarelo, em uso em outra medição
 // em vermelho); só dá para iniciar com ele conectado e livre. O WISE fica associado à máquina
 // até finalizar a medição e depois fica livre para outra. O usuário escolhe
-// o que ler: contadores de produção (S2, S5, S6) e rejeito (S3), cada um com o seu
+// o que ler: contadores de produção (S2, S5, S6) e refugo (S3), cada um com o seu
 // multiplicador opcional (garrafas por ciclo), e os sensores (S1, S4, S7, S8) liga/desliga.
 // Abre sempre no padrão: S2 e S3 sem multiplicador e os quatro sensores ligados.
 import { useEffect, useState, type ReactNode } from 'react'
@@ -27,7 +27,7 @@ const SENSORES = ['S1', 'S4', 'S7', 'S8']
 const NOMES_PADRAO: Record<string, string> = {
   S1: 'Acúmulo mínimo na entrada',
   S2: 'Contador de produção (entrada 1)',
-  S3: 'Contador de rejeito',
+  S3: 'Contador de refugo',
   S4: 'Acúmulo na saída (caixas/pallets)',
   S5: 'Contador de produção (entrada 2)',
   S6: 'Contador de produção (entrada 3)',
@@ -210,7 +210,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           {semProducao && <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">Marque ao menos um contador de produção.</p>}
         </div>
         <div>
-          <label className="text-xs text-zinc-500 mb-1 block">Rejeito</label>
+          <label className="text-xs text-zinc-500 mb-1 block">Refugo</label>
           {CONTADORES_REJEITO.map(linhaContador)}
           {multiplicadorInvalido && (
             <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">Garrafas por ciclo deve ser um número inteiro maior que zero.</p>

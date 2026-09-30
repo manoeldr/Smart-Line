@@ -14,7 +14,7 @@ export const CANAIS_WISE = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
 export const TEXTOS_PADRAO_WISE: Record<string, TextoEntrada> = {
   S1: { nome: 'Acúmulo mínimo na entrada', ativo: 'Abaixo do acúmulo mínimo', normal: 'Acúmulo mínimo normal' },
   S2: { nome: 'Contador de produção (entrada 1)', ativo: null, normal: null },
-  S3: { nome: 'Contador de rejeito', ativo: null, normal: null },
+  S3: { nome: 'Contador de refugo', ativo: null, normal: null },
   S4: { nome: 'Acúmulo na saída (caixas/pallets)', ativo: 'Saída de caixas/pallets bloqueada', normal: 'Saída de caixas/pallets livre' },
   S5: { nome: 'Contador de produção (entrada 2)', ativo: null, normal: null },
   S6: { nome: 'Contador de produção (entrada 3)', ativo: null, normal: null },

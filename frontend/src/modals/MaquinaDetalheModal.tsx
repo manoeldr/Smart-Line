@@ -2,7 +2,7 @@
 // Mostra métricas da última sessão (ativa ou finalizada), gráfico dinâmico por hora
 // (produção em barra + campos extras selecionáveis em linha) e linha do tempo de eventos Marcha/Parada.
 // Só a linha do tempo tem scroll próprio — o resto (métricas, gráfico) fica fixo.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
@@ -39,6 +39,17 @@ function formatarDataHora(dataIso: string) {
 
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
 
+// As métricas vêm do que está gravado, e a coleta Semi Automática grava a produção a cada
+// 5 min, nos múltiplos do relógio (10:00, 10:05...). O modal aberto recarrega logo depois de
+// cada gravação (10 s de folga), sem piscar.
+const INTERVALO_GRAVACAO_MS = 5 * 60 * 1000
+const FOLGA_MS = 10 * 1000
+
+function msAteProximaAtualizacao(agora = Date.now()) {
+  const proxima = Math.ceil((agora - FOLGA_MS) / INTERVALO_GRAVACAO_MS) * INTERVALO_GRAVACAO_MS + FOLGA_MS
+  return Math.max(1000, proxima - agora)
+}
+
 export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, onColetaFinalizada }: Props) {
   const [dados, setDados] = useState<SessaoDetalheDto | null>(null)
   const [loading, setLoading] = useState(false)
@@ -52,17 +63,36 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
   const [historicoParada, setHistoricoParada] = useState<string | null>(null)
   const [recarregar, setRecarregar] = useState(0)
 
+  // Máquina cujos dados estão na tela: "Carregando..." só ao abrir (ou trocar de máquina).
+  // As atualizações depois disso (a cada gravação, ou depois de editar um motivo) trocam
+  // os números no lugar, sem esconder o conteúdo.
+  const carregadoPara = useRef<string | null>(null)
+
   useEffect(() => {
-    if (!open || !maquinaLinhaId) return
+    if (!open || !maquinaLinhaId) {
+      carregadoPara.current = null
+      return
+    }
+    let ativo = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+
     async function carregar() {
-      setLoading(true)
-      setErro(null)
-      setDados(null)
+      const primeira = carregadoPara.current !== maquinaLinhaId
+      if (primeira) {
+        setLoading(true)
+        setErro(null)
+        setDados(null)
+      }
       try {
         const data = await sessaoDetalheService.getUltimaSessaoDetalhe(maquinaLinhaId!)
+        if (!ativo) return
         setDados(data)
-        setCamposSelecionados(new Set())
+        setErro(null)
+        if (primeira) setCamposSelecionados(new Set())
+        carregadoPara.current = maquinaLinhaId
       } catch (e: unknown) {
+        // Numa atualização em segundo plano, uma falha só mantém o que já está na tela.
+        if (!ativo || !primeira) return
         const mensagem = e instanceof Error ? e.message : ''
         if (mensagem.includes('404')) {
           setErro(null)
@@ -70,10 +100,15 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
           setErro(mensagem || 'Erro ao carregar dados')
         }
       } finally {
-        setLoading(false)
+        if (ativo) {
+          if (primeira) setLoading(false)
+          timer = setTimeout(carregar, msAteProximaAtualizacao())
+        }
       }
     }
+
     carregar()
+    return () => { ativo = false; clearTimeout(timer) }
   }, [open, maquinaLinhaId, recarregar])
 
   function toggleCampo(id: string) {

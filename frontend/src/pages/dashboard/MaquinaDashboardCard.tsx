@@ -1,5 +1,5 @@
 // Card de resumo de OEE por máquina no Dashboard, agregando dados de todas as sessões
-// finalizadas dentro do período selecionado. Ao clicar, abre o MaquinaDetalheModal.
+// (finalizadas e em andamento) iniciadas dentro do período selecionado. Ao clicar, abre o MaquinaDetalheModal.
 import type { MaquinaDashboardDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
 import { cardPadded } from '../../styles/cards'
