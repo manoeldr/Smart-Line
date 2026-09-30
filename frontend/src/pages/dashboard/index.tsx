@@ -31,6 +31,17 @@ const OPCOES_VISAO: { valor: Visao; rotulo: string }[] = [
   { valor: 'linha', rotulo: 'Linha' },
 ]
 
+// A visão escolhida fica guardada neste navegador (F5 volta nela).
+const CHAVE_VISAO = 'smartline.dashboard.visao'
+
+function visaoGuardada(): Visao {
+  try {
+    return localStorage.getItem(CHAVE_VISAO) === 'linha' ? 'linha' : 'maquinas'
+  } catch {
+    return 'maquinas'
+  }
+}
+
 function formatarDataInput(data: Date) {
   return data.toISOString().slice(0, 10)
 }
@@ -48,7 +59,7 @@ export default function Dashboard() {
   const [dataInicio, setDataInicio] = useState(formatarDataInput(seteDiasAtras))
   const [dataFim, setDataFim] = useState(formatarDataInput(hoje))
 
-  const [visao, setVisao] = useState<Visao>('maquinas')
+  const [visao, setVisao] = useState<Visao>(visaoGuardada)
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [linhaGeral, setLinhaGeral] = useState<LinhaDashboardDto | null>(null)
   const [loadingDados, setLoadingDados] = useState(false)
@@ -115,6 +126,11 @@ export default function Dashboard() {
     return () => { ativo = false; clearTimeout(timer) }
   }, [linhaSelecionada, dataInicio, dataFim, visao])
 
+  function escolherVisao(v: Visao) {
+    setVisao(v)
+    try { localStorage.setItem(CHAVE_VISAO, v) } catch { /* sem armazenamento: só não lembra */ }
+  }
+
   function abrirDetalhe(maquinaLinhaId: string) {
     setMaquinaLinhaSelecionada(maquinaLinhaId)
     setModalOpen(true)
@@ -155,7 +171,7 @@ export default function Dashboard() {
             {OPCOES_VISAO.map(o => (
               <button
                 key={o.valor}
-                onClick={() => setVisao(o.valor)}
+                onClick={() => escolherVisao(o.valor)}
                 className={`h-9 w-24 -ml-px first:ml-0 text-center text-xs font-medium border transition-colors ${
                   visao === o.valor
                     ? 'relative bg-blue-600 text-white border-blue-600'
