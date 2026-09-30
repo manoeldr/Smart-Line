@@ -12,6 +12,23 @@ export interface CampoGraficoDto {
   pontos: PontoExtraDto[]
 }
 
+// Tempo parado dentro de uma hora (hora = início da hora), por tipo
+export interface ParadaPorHoraDto {
+  hora: string
+  internaMs: number
+  externaMs: number
+  planejadaMs: number
+}
+
+// Tempo parado e número de paradas de um motivo na sessão (maior primeiro)
+export interface ParadaPorMotivoDto {
+  motivoId: string | null
+  motivo: string
+  tipo: 'Interna' | 'Externa' | 'Planejada'
+  duracaoMs: number
+  quantidade: number
+}
+
 export interface PontoProducaoDto {
   hora: string
   quantidade: number
@@ -56,6 +73,9 @@ export interface SessaoDetalheDto {
   maquinaId?: string | null
   // No Semi Automático o gráfico de produção vem por hora (cada ponto no início da hora)
   tipoColeta?: 'Manual' | 'SemiAutomatico' | 'Automatico' | null
+  // Gráficos de paradas (a parada em curso conta até agora)
+  paradasPorHora?: ParadaPorHoraDto[] | null
+  paradasPorMotivo?: ParadaPorMotivoDto[] | null
 }
 
 export const sessaoDetalheService = {

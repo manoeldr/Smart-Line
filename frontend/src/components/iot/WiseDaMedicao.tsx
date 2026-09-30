@@ -24,10 +24,11 @@ export default function WiseDaMedicao({ ip, onChangeIp, wises, erroLista, agora 
   const podeCadastrar = ['Administrador', 'Desenvolvedor'].includes(usuario?.nivel ?? '')
   const cadastrados = (wises ?? []).filter(w => w.cadastrado)
 
+  // Desconectado não tem detalhe: a palavra "desconectado" em amarelo já diz tudo.
   function detalhe(w: WiseDto) {
     if (w.medicao) return `em medição na ${w.medicao.maquina} (${w.medicao.linha} · ${w.medicao.cliente}), iniciada por ${w.medicao.usuario}`
     if (w.conectado) return `última mensagem ${tempoDesde(w.ultimaMensagemUtc, agora)}`
-    return 'não está conectado: verifique energia, rede e a configuração MQTT do WISE'
+    return null
   }
 
   return (
@@ -65,7 +66,7 @@ export default function WiseDaMedicao({ ip, onChangeIp, wises, erroLista, agora 
                     {w.nome ? `${w.nome} · ` : ''}{w.enderecoIp}
                   </span>{' '}
                   <SituacaoWiseTexto situacao={situacao} />
-                  <span className="block text-[10px] text-zinc-400 truncate">{detalhe(w)}</span>
+                  {detalhe(w) && <span className="block text-[10px] text-zinc-400 truncate">{detalhe(w)}</span>}
                 </span>
               </button>
             )

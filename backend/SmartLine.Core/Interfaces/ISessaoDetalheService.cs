@@ -29,8 +29,19 @@ public record SessaoDetalheDto(
     // Máquina do catálogo: de onde vêm os motivos para editar o motivo de uma parada
     string? MaquinaId = null,
     // "Manual" ou "SemiAutomatico": no Semi o gráfico de produção é por hora (ver PorHora)
-    string? TipoColeta = null
+    string? TipoColeta = null,
+    // Gráficos de paradas (a parada em curso conta até agora)
+    IList<ParadaPorHoraDto>? ParadasPorHora = null,
+    IList<ParadaPorMotivoDto>? ParadasPorMotivo = null
 );
+
+/// <summary>Tempo parado dentro de uma hora (Hora = início da hora), por tipo.</summary>
+public record ParadaPorHoraDto(DateTime Hora, double InternaMs, double ExternaMs, double PlanejadaMs);
+
+/// <summary>Tempo parado e número de paradas de um motivo na sessão (maior primeiro).</summary>
+/// <param name="MotivoId">Nulo = paradas sem motivo (contam como Interna).</param>
+/// <param name="Tipo">Interna, Externa ou Planejada (sem motivo = Interna).</param>
+public record ParadaPorMotivoDto(string? MotivoId, string Motivo, string Tipo, double DuracaoMs, int Quantidade);
 
 public record CampoGraficoDto(
     string CampoMaquinaId,

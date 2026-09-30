@@ -4,9 +4,9 @@
 // Só a linha do tempo tem scroll próprio — o resto (métricas, gráfico) fica fixo.
 import { useEffect, useRef, useState } from 'react'
 import {
-  ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { sessaoDetalheService, type SessaoDetalheDto } from '../services/sessaoDetalheService'
+import { sessaoDetalheService, type ParadaPorHoraDto, type ParadaPorMotivoDto, type SessaoDetalheDto } from '../services/sessaoDetalheService'
 import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
 import { badgeAtivaVerde } from '../styles/badges'
 import { metricaBox, metricaValor, metricaLabel } from '../styles/cards'
@@ -39,6 +39,21 @@ function formatarDataHora(dataIso: string) {
 
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
 
+type TipoGrafico = 'producao' | 'paradasHora' | 'paradasMotivo'
+
+const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
+  { valor: 'producao', rotulo: 'Produção' },
+  { valor: 'paradasHora', rotulo: 'Paradas por hora' },
+  { valor: 'paradasMotivo', rotulo: 'Paradas por motivo' },
+]
+
+// Mesmas cores da linha do tempo: interna vermelho, externa amarelo, planejada laranja.
+const CORES_TIPO_PARADA = { Interna: '#ef4444', Externa: '#facc15', Planejada: '#f97316' } as const
+
+function minutos(ms: number) {
+  return Math.round(ms / 6000) / 10 // 1 casa decimal
+}
+
 // As métricas vêm do que está gravado, e a coleta Semi Automática grava a produção a cada
 // 5 min, nos múltiplos do relógio (10:00, 10:05...). O modal aberto recarrega logo depois de
 // cada gravação (10 s de folga), sem piscar.
@@ -55,6 +70,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
+  const [grafico, setGrafico] = useState<TipoGrafico>('producao')
 
   // Editar o motivo de uma parada da linha do tempo (Manual ou Semi Automático) e ver o histórico
   const { usuario } = useAuth()
@@ -219,88 +235,112 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                 <MetricaCard label="MTBF" valor={dados.mtbfMs !== null ? formatarHoras(dados.mtbfMs) : '—'} />
               </div>
 
-              {/* Seletor de campos do gráfico */}
+              {/* Gráfico: produção por hora, paradas por hora ou paradas por motivo */}
               <div className="mb-3">
-                <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Gráfico por hora</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-[10px] px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">Produção (sempre visível)</span>
-                  {dados.camposExtras.map((campo, i) => (
-                    <button
-                      key={campo.campoMaquinaId}
-                      onClick={() => toggleCampo(campo.campoMaquinaId)}
-                      className={`text-[10px] px-2 py-1 border transition-colors ${
-                        camposSelecionados.has(campo.campoMaquinaId)
-                          ? 'text-white border-transparent'
-                          : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                      }`}
-                      style={camposSelecionados.has(campo.campoMaquinaId) ? { backgroundColor: CORES_LINHA[i % CORES_LINHA.length] } : {}}
-                    >
-                      {campo.nome}{campo.unidade ? ` (${campo.unidade})` : ''}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Gráfico</p>
+                  <div className="flex">
+                    {OPCOES_GRAFICO.map(o => (
+                      <button
+                        key={o.valor}
+                        onClick={() => setGrafico(o.valor)}
+                        className={`h-7 px-3 -ml-px first:ml-0 text-[11px] font-medium border transition-colors ${
+                          grafico === o.valor
+                            ? 'relative bg-blue-600 text-white border-blue-600'
+                            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                        }`}
+                      >
+                        {o.rotulo}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {grafico === 'producao' && (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">Produção (sempre visível)</span>
+                    {dados.camposExtras.map((campo, i) => (
+                      <button
+                        key={campo.campoMaquinaId}
+                        onClick={() => toggleCampo(campo.campoMaquinaId)}
+                        className={`text-[10px] px-2 py-1 border transition-colors ${
+                          camposSelecionados.has(campo.campoMaquinaId)
+                            ? 'text-white border-transparent'
+                            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                        }`}
+                        style={camposSelecionados.has(campo.campoMaquinaId) ? { backgroundColor: CORES_LINHA[i % CORES_LINHA.length] } : {}}
+                      >
+                        {campo.nome}{campo.unidade ? ` (${campo.unidade})` : ''}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Gráfico */}
               {/* select-none e sem contorno de foco: clicar no gráfico (ou perto dele) não marca
                   área de seleção nem desenha a moldura azul do navegador */}
               <div className="h-64 select-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*:focus]:outline-none">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={dadosGrafico} accessibilityLayer={false}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-                    <XAxis
-                      dataKey="hora"
-                      interval={0}
-                      tick={({ x, y, payload, index }) => {
-                        // Hora em andamento: horário em azul e negrito, como a barra tracejada
-                        const atual = dadosGrafico[index]?.parcial === true
-                        return (
-                          <text
-                            x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
-                            fill={atual ? '#1961c0' : '#71717a'}
-                            fontWeight={atual ? 700 : 400}
-                          >
-                            {payload.value}
-                          </text>
-                        )
-                      }}
-                    />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
-                    <Tooltip
-                      labelFormatter={(rotulo, itens) => {
-                        const ponto = itens?.[0]?.payload as Record<string, string | number | boolean> | undefined
-                        return ponto?.parcial
-                          ? `Em andamento: ${rotulo}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min`
-                          : rotulo
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar yAxisId="left" dataKey="Produção" fill="#1961c0">
-                      {dadosGrafico.map((ponto, i) => (
-                        <Cell
-                          key={i}
-                          fill={ponto.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
-                          stroke={ponto.parcial ? '#1961c0' : 'none'}
-                          strokeWidth={ponto.parcial ? 1.5 : 0}
-                          strokeDasharray={ponto.parcial ? '4 3' : undefined}
-                        />
-                      ))}
-                    </Bar>
-                    {dados.camposExtras
-                      .filter(c => camposSelecionados.has(c.campoMaquinaId))
-                      .map((campo, i) => (
-                        <Line
-                          key={campo.campoMaquinaId}
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey={campo.nome}
-                          stroke={CORES_LINHA[i % CORES_LINHA.length]}
-                          strokeWidth={2}
-                        />
-                      ))}
-                  </ComposedChart>
-                </ResponsiveContainer>
+                {grafico === 'producao' ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={dadosGrafico} accessibilityLayer={false}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                      <XAxis
+                        dataKey="hora"
+                        interval={0}
+                        tick={({ x, y, payload, index }) => {
+                          // Hora em andamento: horário em azul e negrito, como a barra tracejada
+                          const atual = dadosGrafico[index]?.parcial === true
+                          return (
+                            <text
+                              x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
+                              fill={atual ? '#1961c0' : '#71717a'}
+                              fontWeight={atual ? 700 : 400}
+                            >
+                              {payload.value}
+                            </text>
+                          )
+                        }}
+                      />
+                      <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
+                      <Tooltip
+                        labelFormatter={(rotulo, itens) => {
+                          const ponto = itens?.[0]?.payload as Record<string, string | number | boolean> | undefined
+                          return ponto?.parcial
+                            ? `Em andamento: ${rotulo}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min`
+                            : rotulo
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar yAxisId="left" dataKey="Produção" fill="#1961c0">
+                        {dadosGrafico.map((ponto, i) => (
+                          <Cell
+                            key={i}
+                            fill={ponto.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
+                            stroke={ponto.parcial ? '#1961c0' : 'none'}
+                            strokeWidth={ponto.parcial ? 1.5 : 0}
+                            strokeDasharray={ponto.parcial ? '4 3' : undefined}
+                          />
+                        ))}
+                      </Bar>
+                      {dados.camposExtras
+                        .filter(c => camposSelecionados.has(c.campoMaquinaId))
+                        .map((campo, i) => (
+                          <Line
+                            key={campo.campoMaquinaId}
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey={campo.nome}
+                            stroke={CORES_LINHA[i % CORES_LINHA.length]}
+                            strokeWidth={2}
+                          />
+                        ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                ) : grafico === 'paradasHora' ? (
+                  <GraficoParadasPorHora horas={dados.paradasPorHora ?? []} />
+                ) : (
+                  <GraficoParadasPorMotivo motivos={dados.paradasPorMotivo ?? []} />
+                )}
               </div>
             </div>
 
@@ -376,5 +416,65 @@ function MetricaCard({ label, valor, destaque }: { label: string; valor: string;
       </p>
       <p className={metricaLabel}>{label}</p>
     </div>
+  )
+}
+
+// Minutos parados em cada hora da sessão, empilhados por tipo (a hora 14:00 = das 14:00 às 14:59).
+function GraficoParadasPorHora({ horas }: { horas: ParadaPorHoraDto[] }) {
+  if (horas.length === 0) return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nesta sessão</p>
+
+  const dadosHoras = horas.map(h => ({
+    hora: formatarHora(h.hora),
+    Interna: minutos(h.internaMs),
+    Externa: minutos(h.externaMs),
+    Planejada: minutos(h.planejadaMs),
+  }))
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={dadosHoras} accessibilityLayer={false}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+        <XAxis dataKey="hora" interval={0} tick={{ fontSize: 10 }} />
+        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} />
+        <Tooltip formatter={valor => `${valor} min`} />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Bar dataKey="Interna" stackId="paradas" fill={CORES_TIPO_PARADA.Interna} />
+        <Bar dataKey="Externa" stackId="paradas" fill={CORES_TIPO_PARADA.Externa} />
+        <Bar dataKey="Planejada" stackId="paradas" fill={CORES_TIPO_PARADA.Planejada} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// Tempo parado por motivo, do maior para o menor (Pareto), na cor do tipo do motivo.
+function GraficoParadasPorMotivo({ motivos }: { motivos: ParadaPorMotivoDto[] }) {
+  if (motivos.length === 0) return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nesta sessão</p>
+
+  const dadosMotivos = motivos.map(m => ({
+    motivo: m.motivo,
+    tipo: m.tipo,
+    minutos: minutos(m.duracaoMs),
+    quantidade: m.quantidade,
+  }))
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={dadosMotivos} layout="vertical" accessibilityLayer={false} margin={{ left: 8, right: 24 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={false} />
+        <XAxis type="number" tick={{ fontSize: 10 }} unit=" min" />
+        <YAxis type="category" dataKey="motivo" width={170} interval={0} tick={{ fontSize: 10 }} />
+        <Tooltip
+          formatter={(valor, _nome, item) => {
+            const q = (item?.payload as { quantidade?: number } | undefined)?.quantidade ?? 0
+            return [`${valor} min · ${q} ${q === 1 ? 'parada' : 'paradas'}`, 'Tempo parado']
+          }}
+        />
+        <Bar dataKey="minutos" name="Tempo parado">
+          {dadosMotivos.map((m, i) => (
+            <Cell key={i} fill={CORES_TIPO_PARADA[m.tipo]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   )
 }

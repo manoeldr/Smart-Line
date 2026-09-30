@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
@@ -19,6 +20,69 @@ public class SessaoDetalheService : ISessaoDetalheService
             .OrderBy(g => g.Key)
             .Select(g => new PontoProducaoDto(g.Key, g.Sum(p => p.Quantidade)))
             .ToList();
+
+    /// <summary>
+    /// Tempo parado por hora da sessão, por tipo: uma entrada por hora, do início da sessão até
+    /// o fim (ou agora), inclusive as horas sem parada. Uma parada que atravessa horas entra
+    /// em cada uma com o pedaço dela; a parada em curso conta até agora.
+    /// </summary>
+    public static List<ParadaPorHoraDto> ParadasPorHora(IEnumerable<Parada> paradas, DateTime inicioSessao, DateTime fimSessao)
+    {
+        var horas = new SortedDictionary<DateTime, double[]>(); // [interna, externa, planejada]
+        for (var h = InicioDaHora(inicioSessao); h < fimSessao; h = h.AddHours(1))
+            horas[h] = new double[3];
+
+        foreach (var parada in paradas)
+        {
+            var inicio = parada.Inicio < inicioSessao ? inicioSessao : parada.Inicio;
+            var fim = parada.Fim ?? fimSessao;
+            if (fim > fimSessao) fim = fimSessao;
+            var indice = parada.TipoEfetivo() switch
+            {
+                TipoParada.Externa => 1,
+                TipoParada.Planejada => 2,
+                _ => 0
+            };
+
+            for (var h = InicioDaHora(inicio); h < fim; h = h.AddHours(1))
+            {
+                var trecho = (Min(fim, h.AddHours(1)) - Max(inicio, h)).TotalMilliseconds;
+                if (trecho <= 0) continue;
+                if (!horas.TryGetValue(h, out var tempos))
+                    horas[h] = tempos = new double[3];
+                tempos[indice] += trecho;
+            }
+        }
+
+        return horas
+            .Select(h => new ParadaPorHoraDto(h.Key, Math.Round(h.Value[0]), Math.Round(h.Value[1]), Math.Round(h.Value[2])))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Tempo parado e quantidade de paradas por motivo, do maior tempo para o menor. Sem motivo
+    /// fica num grupo só ("Sem motivo", Interna). A parada em curso conta até <paramref name="agora"/>.
+    /// </summary>
+    public static List<ParadaPorMotivoDto> ParadasPorMotivo(IEnumerable<Parada> paradas, DateTime agora) =>
+        paradas
+            .GroupBy(p => p.MotivoId)
+            .Select(g =>
+            {
+                var primeira = g.First();
+                return new ParadaPorMotivoDto(
+                    g.Key?.ToString(),
+                    primeira.Motivo?.Nome ?? "Sem motivo",
+                    primeira.TipoEfetivo().ToString(),
+                    Math.Round(g.Sum(p => Math.Max(0, ((p.Fim ?? agora) - p.Inicio).TotalMilliseconds))),
+                    g.Count());
+            })
+            .OrderByDescending(m => m.DuracaoMs)
+            .ThenBy(m => m.Motivo)
+            .ToList();
+
+    private static DateTime InicioDaHora(DateTime t) => new(t.Year, t.Month, t.Day, t.Hour, 0, 0, t.Kind);
+    private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
+    private static DateTime Max(DateTime a, DateTime b) => a > b ? a : b;
 
     private static DateTime FimDaHora(DateTime t)
     {
@@ -136,6 +200,9 @@ public class SessaoDetalheService : ISessaoDetalheService
             }
         }
 
+        // Gráficos de paradas: a parada em curso conta até agora (como no OEE).
+        var agoraGraficos = DateTime.UtcNow;
+
         // Timeline de eventos (Marcha/Parada)
         var eventos = new List<EventoTimelineDto>();
 
@@ -192,7 +259,9 @@ public class SessaoDetalheService : ISessaoDetalheService
             PontosProducao: pontosProducao,
             Eventos: eventos,
             MaquinaId: maquinaLinha.MaquinaId.ToString(),
-            TipoColeta: sessao.TipoColeta.ToString()
+            TipoColeta: sessao.TipoColeta.ToString(),
+            ParadasPorHora: ParadasPorHora(sessao.Paradas, sessao.Inicio, sessao.Fim ?? agoraGraficos),
+            ParadasPorMotivo: ParadasPorMotivo(sessao.Paradas, agoraGraficos)
         );
     }
 }
