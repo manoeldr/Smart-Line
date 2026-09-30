@@ -1,5 +1,7 @@
 // Tela de Dashboard — seleciona uma linha e um período de datas,
-// mostra cards com OEE agregado de cada máquina. Clicar num card abre o modal de detalhes.
+// mostra cards com OEE agregado de cada máquina (sessões finalizadas e em andamento; as em
+// andamento aparecem "ao vivo" com a situação agora). Atualiza sozinha a cada 5 min.
+// Clicar num card abre o modal de detalhes.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
@@ -9,6 +11,16 @@ import MaquinaDashboardCard from './MaquinaDashboardCard'
 import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
+
+// A coleta Semi Automática grava a produção nos múltiplos de 5 min do relógio (10:00, 10:05...):
+// a tela recarrega logo depois (10 s de folga).
+const INTERVALO_GRAVACAO_MS = 5 * 60 * 1000
+const FOLGA_MS = 10 * 1000
+
+function msAteProximaAtualizacao(agora = Date.now()) {
+  const proxima = Math.ceil((agora - FOLGA_MS) / INTERVALO_GRAVACAO_MS) * INTERVALO_GRAVACAO_MS + FOLGA_MS
+  return Math.max(1000, proxima - agora)
+}
 
 function formatarDataInput(data: Date) {
   return data.toISOString().slice(0, 10)
@@ -30,6 +42,7 @@ export default function Dashboard() {
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [loadingDados, setLoadingDados] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [maquinaLinhaSelecionada, setMaquinaLinhaSelecionada] = useState<string | null>(null)
@@ -49,23 +62,40 @@ export default function Dashboard() {
     carregar()
   }, [clienteId])
 
+  // "Carregando..." só ao trocar linha ou período; depois disso a tela se atualiza sozinha,
+  // no lugar, logo depois de cada gravação da produção do Semi Automático (a cada 5 min).
   useEffect(() => {
     if (!linhaSelecionada) return
+    let ativo = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let primeira = true
+
     async function carregarDados() {
-      setLoadingDados(true)
-      setErro(null)
+      if (primeira) {
+        setLoadingDados(true)
+        setErro(null)
+      }
       try {
         const inicioIso = new Date(dataInicio + 'T00:00:00').toISOString()
         const fimIso = new Date(dataFim + 'T23:59:59').toISOString()
         const data = await dashboardService.getDashboardLinha(linhaSelecionada, inicioIso, fimIso)
+        if (!ativo) return
         setDados(data)
+        setErro(null)
+        setAtualizadoEm(new Date())
       } catch (e: unknown) {
-        setErro(e instanceof Error ? e.message : 'Erro ao carregar dashboard')
+        // Numa atualização em segundo plano, uma falha só mantém o que já está na tela.
+        if (ativo && primeira) setErro(e instanceof Error ? e.message : 'Erro ao carregar dashboard')
       } finally {
-        setLoadingDados(false)
+        if (ativo) {
+          if (primeira) setLoadingDados(false)
+          primeira = false
+          timer = setTimeout(carregarDados, msAteProximaAtualizacao())
+        }
       }
     }
     carregarDados()
+    return () => { ativo = false; clearTimeout(timer) }
   }, [linhaSelecionada, dataInicio, dataFim])
 
   function abrirDetalhe(maquinaLinhaId: string) {
@@ -101,6 +131,12 @@ export default function Dashboard() {
           <label className="text-xs text-zinc-500">Data fim</label>
           <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={inputMd} />
         </div>
+
+        {atualizadoEm && (
+          <p className="ml-auto text-[10px] text-zinc-400 self-center">
+            Atualiza sozinho a cada 5 min · última às {atualizadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
       </div>
 
       {/* Grid de cards */}

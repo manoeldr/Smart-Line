@@ -102,6 +102,8 @@ public class DashboardService : IDashboardService
                 oeeMedio = (disponibilidadeMedia / 100) * (performanceMedia.Value / 100) * (qualidadeMedia / 100) * 100;
             }
 
+            var emAndamento = sessoes.FirstOrDefault(s => s.Status == StatusSessao.EmAndamento);
+
             resultado.Add(new MaquinaDashboardDto(
                 MaquinaLinhaId: ml.Id.ToString(),
                 MaquinaNome: ml.Maquina.Nome,
@@ -114,7 +116,11 @@ public class DashboardService : IDashboardService
                 Refugo: refugoTotal,
                 NumSessoes: sessoes.Count,
                 TempoRodandoMs: somaTempoRodando,
-                TempoParadoMs: somaTempoParado
+                TempoParadoMs: somaTempoParado,
+                AoVivo: emAndamento is not null,
+                SituacaoAoVivo: emAndamento is null ? null
+                    : emAndamento.Paradas.Any(p => p.Fim is null) ? "Parada" : "Rodando",
+                AcompanhamentoId: emAndamento?.AcompanhamentoId?.ToString()
             ));
         }
 

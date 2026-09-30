@@ -1,4 +1,5 @@
 import { api } from './api'
+import type { SituacaoColeta } from './coletaIotService'
 
 export interface MaquinaDashboardDto {
   maquinaLinhaId: string
@@ -13,6 +14,10 @@ export interface MaquinaDashboardDto {
   numSessoes: number
   tempoRodandoMs: number
   tempoParadoMs: number
+  // Sessão em andamento no período (Manual ou Semi Automático) e a situação dela agora
+  aoVivo: boolean
+  situacaoAoVivo: SituacaoColeta | null
+  acompanhamentoId: string | null
 }
 
 export const dashboardService = {

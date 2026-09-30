@@ -22,5 +22,28 @@ public class DashboardColetaTests : IDisposable
             .GetDashboardLinhaAsync(linhaId, T0.UtcDateTime.AddHours(-1), T0.UtcDateTime.AddDays(1)));
 
         Assert.Equal((1, 500, 7), (maquina.NumSessoes, maquina.Producao, maquina.Refugo));
+        Assert.Equal((true, "Rodando", _c.Acompanhamento.ToString()), (maquina.AoVivo, maquina.SituacaoAoVivo, maquina.AcompanhamentoId));
+    }
+
+    [Fact]
+    public async Task ParadaAberta_AoVivoParada_EDepoisDeFinalizarNaoEMaisAoVivo()
+    {
+        await _c.Registrar(new SmartLine.Core.Coleta.ParadaIniciada(Em(600), SmartLine.Core.Coleta.ClassificacaoParada.NaoClassificada));
+
+        Assert.Equal((true, "Parada"), await AoVivo());
+
+        await using (var db = _c.Banco.NovoContexto())
+            await _c.Servico(db).FinalizarAsync(_c.Acompanhamento, _c.Usuario, false);
+
+        Assert.Equal((false, (string?)null), await AoVivo());
+    }
+
+    private async Task<(bool, string?)> AoVivo()
+    {
+        await using var db = _c.Banco.NovoContexto();
+        var linhaId = db.MaquinasLinha.Single(m => m.Id == _c.MaquinaLinha).LinhaId;
+        var m = Assert.Single(await new DashboardService(db, new OeeService())
+            .GetDashboardLinhaAsync(linhaId, T0.UtcDateTime.AddHours(-1), T0.UtcDateTime.AddDays(1)));
+        return (m.AoVivo, m.SituacaoAoVivo);
     }
 }
