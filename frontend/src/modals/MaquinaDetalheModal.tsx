@@ -246,7 +246,23 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={dadosGrafico}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-                    <XAxis dataKey="hora" tick={{ fontSize: 10 }} />
+                    <XAxis
+                      dataKey="hora"
+                      interval={0}
+                      tick={({ x, y, payload, index }) => {
+                        // Hora em andamento: horário em azul e negrito, como a barra tracejada
+                        const atual = dadosGrafico[index]?.parcial === true
+                        return (
+                          <text
+                            x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
+                            fill={atual ? '#1961c0' : '#71717a'}
+                            fontWeight={atual ? 700 : 400}
+                          >
+                            {payload.value}
+                          </text>
+                        )
+                      }}
+                    />
                     <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
                     <Tooltip
