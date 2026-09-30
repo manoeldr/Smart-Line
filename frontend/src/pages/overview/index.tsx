@@ -38,7 +38,10 @@ export default function Overview() {
   const { clienteId, usuario } = useAuth()
   const podeClassificar = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(usuario?.nivel ?? '')
   const [linhas, setLinhas] = useState<Linha[]>([])
-  const [loading, setLoading] = useState(true)
+  // Cliente cujas linhas estão na tela: "Carregando..." só enquanto ele não bate com o
+  // selecionado. A atualização a cada 30 s é silenciosa — trocar a tela inteira por
+  // "Carregando..." desmontava o detalhe da máquina aberto, que piscava fechando e abrindo.
+  const [clienteCarregado, setClienteCarregado] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   // Finalização de sessão de outro usuário (Admin/Desenvolvedor, via Overview)
@@ -59,21 +62,22 @@ export default function Overview() {
 
   useEffect(() => {
     if (!clienteId) return
+    let ativo = true
     async function carregar() {
-      setLoading(true)
-      setErro(null)
       try {
         const data = await linhaService.getLinhasByCliente(clienteId!)
+        if (!ativo) return
         setLinhas(data)
+        setClienteCarregado(clienteId)
+        setErro(null)
       } catch (e: unknown) {
-        setErro(e instanceof Error ? e.message : 'Erro ao carregar linhas')
-      } finally {
-        setLoading(false)
+        // Com as linhas já na tela, uma falha na atualização só mantém o que estava.
+        if (ativo) setErro(e instanceof Error ? e.message : 'Erro ao carregar linhas')
       }
     }
     carregar()
     const id = setInterval(carregar, 30000)
-    return () => clearInterval(id)
+    return () => { ativo = false; clearInterval(id) }
   }, [clienteId, recarregar])
 
   useEffect(() => {
@@ -158,7 +162,9 @@ export default function Overview() {
     )
   }
 
-  if (loading) {
+  const carregado = clienteCarregado === clienteId
+
+  if (!carregado && !erro) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
         Carregando...
@@ -166,7 +172,7 @@ export default function Overview() {
     )
   }
 
-  if (erro) {
+  if (!carregado) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-red-400">
         Erro ao carregar linhas: {erro}

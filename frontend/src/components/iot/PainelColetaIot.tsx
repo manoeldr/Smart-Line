@@ -33,9 +33,10 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
       try {
         const p = await coletaIotService.painelDaMaquina(maquinaLinhaId)
         if (ativo) setPainel(p)
-      } catch {
-        // 404 = máquina sem coleta automática: o bloco simplesmente não aparece
-        if (ativo) setPainel(null)
+      } catch (e) {
+        // 404 = máquina sem coleta automática: o bloco não aparece. Qualquer outra falha
+        // (rede, backend ocupado) mantém o último painel, em vez de sumir e voltar.
+        if (ativo && e instanceof Error && e.message === 'Erro 404') setPainel(null)
       } finally {
         if (ativo) setAgora(new Date())
       }
