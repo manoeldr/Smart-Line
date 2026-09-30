@@ -57,19 +57,31 @@ public class RegistradorColetaTests : IDisposable
     }
 
     [Fact]
-    public async Task Reclassificada_FechaUmTrecho_EAbreOutroNoMesmoInstante()
+    public async Task Reclassificada_DaOMotivoAParadaSemMotivo_SemAbrirOutra()
+    {
+        var falta = FaltaGarrafas;
+        await _c.Registrar(new ParadaIniciada(Em(60), ClassificacaoParada.NaoClassificada));
+
+        await _c.Registrar(new ParadaReclassificada(Em(200), falta));
+
+        var p = Assert.Single(_c.Paradas());
+        Assert.Equal((Em(60), (DateTime?)null, falta.MotivoParadaId, falta.RegraId), (p.Inicio, p.Fim, p.MotivoId, p.RegraClassificacaoId));
+        var h = Assert.Single(p.HistoricoClassificacao);
+        Assert.Equal(((Guid?)null, falta.MotivoParadaId, (Guid?)null, Em(200)), (h.MotivoAnteriorId, h.MotivoNovoId, h.UsuarioId, h.AlteradoEm));
+    }
+
+    [Fact]
+    public async Task Reclassificada_ParadaQueJaTemMotivo_FicaComOPrimeiro()
     {
         var falta = FaltaGarrafas;
         await _c.Registrar(new ParadaIniciada(Em(60), falta));
 
-        await _c.Registrar(new ParadaReclassificada(Em(200), ClassificacaoParada.NaoClassificada));
+        await _c.Registrar(new ParadaReclassificada(Em(200), SaidaGarrafas));
+        await _c.Registrar(new ParadaReclassificada(Em(250), ClassificacaoParada.NaoClassificada));
 
-        var paradas = _c.Paradas();
-        Assert.Equal(2, paradas.Count);
-        Assert.Equal((Em(60), Em(200), falta.MotivoParadaId), (paradas[0].Inicio, paradas[0].Fim!.Value, paradas[0].MotivoId));
-        Assert.Equal(Em(200), paradas[1].Inicio);
-        Assert.Null(paradas[1].Fim);
-        Assert.Null(paradas[1].MotivoId);
+        var p = Assert.Single(_c.Paradas());
+        Assert.Equal(falta.MotivoParadaId, p.MotivoId);
+        Assert.Single(p.HistoricoClassificacao);
     }
 
     [Fact]
@@ -170,7 +182,7 @@ public class RegistradorColetaTests : IDisposable
     // ── Ponta a ponta: amostras → máquina de estados → registrador ─
 
     [Fact]
-    public async Task PontaAPonta_FaltaDeGarrafasQueSeResolveComMaquinaAindaParada()
+    public async Task PontaAPonta_FaltaDeGarrafasQueSeResolveComMaquinaAindaParada_FicaUmaParadaSo()
     {
         var estado = new EstadoMaquinaIot(await _c.Configuracao());
         uint s2 = 1000;
@@ -195,17 +207,11 @@ public class RegistradorColetaTests : IDisposable
         await Enviar(220);
         s2 += 100; await Enviar(300);                                              // voltou a produzir
 
-        var paradas = _c.Paradas();
-        Assert.Equal(2, paradas.Count);
-
-        var falta = paradas[0];
-        Assert.Equal((Em(60), Em(200)), (falta.Inicio, falta.Fim!.Value));
+        // Uma parada só, com a primeira causa, até a produção voltar (o sensor normalizar
+        // antes não abre uma parada "sem motivo" colada nela).
+        var falta = Assert.Single(_c.Paradas());
+        Assert.Equal((Em(60), Em(300)), (falta.Inicio, falta.Fim!.Value));
         Assert.Equal("Falta de garrafas na entrada", falta.Motivo!.Nome);
         Assert.Equal(TipoParada.Externa, falta.TipoEfetivo());
-
-        var semCausa = paradas[1];
-        Assert.Equal((Em(200), Em(300)), (semCausa.Inicio, semCausa.Fim!.Value));
-        Assert.Null(semCausa.MotivoId); // pendente de classificação, conta como Interna
-        Assert.Equal(TipoParada.Interna, semCausa.TipoEfetivo());
     }
 }

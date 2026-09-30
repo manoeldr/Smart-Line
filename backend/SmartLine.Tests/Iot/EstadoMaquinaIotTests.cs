@@ -236,18 +236,35 @@ public class EstadoMaquinaIotTests
     }
 
     [Fact]
-    public void CausaMudaDuranteAParada_Reclassifica()
+    public void CausaResolvidaOuOutraCausa_DuranteAParada_FicaAPrimeira()
     {
         var estado = Rodando();
         SemProduzir(estado, 80, 180, faltaGarrafas: true); // parada externa desde 60 s
+        var primeira = estado.ClassificacaoAtual;
 
-        // Falta resolvida, mas a máquina segue parada.
-        var eventos = estado.Processar(Amostra(200, s2: 1300, faltaGarrafas: false));
+        // Falta resolvida, mas a máquina segue parada (o sensor normaliza antes da produção voltar).
+        Assert.Empty(estado.Processar(Amostra(200, s2: 1300)));
+        // Outra causa aparece com a máquina ainda parada.
+        Assert.Empty(estado.Processar(Amostra(220, s2: 1300, saidaGarrafasBloqueada: true)));
+        Assert.Empty(estado.Verificar(Em(230)));
 
-        var reclass = Assert.IsType<ParadaReclassificada>(Assert.Single(eventos));
+        Assert.False(primeira!.EhNaoClassificada);
+        Assert.Equal(primeira, estado.ClassificacaoAtual);
+    }
+
+    [Fact]
+    public void ParadaSemMotivo_GanhaACausaQuandoUmSensorAlarma_EDepoisNaoTrocaMais()
+    {
+        var estado = Rodando();
+        SemProduzir(estado, 80, 180); // parada sem causa desde 60 s
+        Assert.True(estado.ClassificacaoAtual!.EhNaoClassificada);
+
+        var reclass = Assert.IsType<ParadaReclassificada>(Assert.Single(estado.Processar(Amostra(200, s2: 1300, faltaGarrafas: true))));
         Assert.Equal(Em(200), reclass.InstanteUtc);
-        Assert.True(reclass.Classificacao.EhNaoClassificada);
-        Assert.Same(ClassificacaoParada.NaoClassificada, estado.ClassificacaoAtual);
+        Assert.False(reclass.Classificacao.EhNaoClassificada);
+
+        Assert.Empty(estado.Processar(Amostra(220, s2: 1300)));
+        Assert.Equal(reclass.Classificacao, estado.ClassificacaoAtual);
     }
 
     [Fact]

@@ -38,8 +38,12 @@ public enum SituacaoMaquina
 /// amostra que mostrou produção de novo.
 /// </para>
 /// <para>
-/// <b>Classificação</b> é refeita a cada amostra e a cada verificação enquanto
-/// a máquina está parada; se mudar, sai <see cref="ParadaReclassificada"/>.
+/// <b>Classificação</b>: uma parada é uma só, com a <b>primeira causa</b>
+/// identificada. Enquanto está sem motivo, a classificação é refeita a cada
+/// amostra e a cada verificação; quando alguma regra bater, sai
+/// <see cref="ParadaReclassificada"/> e a causa fica até a máquina voltar a
+/// produzir (o sensor normalizar antes da produção voltar, ou outra causa
+/// aparecer, não troca o motivo).
 /// </para>
 /// <para>
 /// <b>Sem comunicação</b> fecha a parada em curso no instante da última
@@ -289,10 +293,11 @@ public sealed class EstadoMaquinaIot
             ClassificacaoAtual = classificacao;
             eventos.Add(new ParadaIniciada(_inicioParadaUtc, classificacao));
         }
-        else if (Situacao == SituacaoMaquina.Parada)
+        else if (Situacao == SituacaoMaquina.Parada && ClassificacaoAtual is not { EhNaoClassificada: false })
         {
+            // Só a parada ainda sem motivo é reclassificada: a primeira causa fica até o fim.
             var classificacao = Classificar(agora);
-            if (classificacao != ClassificacaoAtual)
+            if (!classificacao.EhNaoClassificada)
             {
                 ClassificacaoAtual = classificacao;
                 eventos.Add(new ParadaReclassificada(agora, classificacao));

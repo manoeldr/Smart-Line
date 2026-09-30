@@ -28,8 +28,9 @@ public sealed record ParadaIniciada(DateTime InstanteUtc, ClassificacaoParada Cl
     : EventoColeta(InstanteUtc);
 
 /// <summary>
-/// A causa mudou com a máquina ainda parada. O registrador fecha a parada
-/// atual e abre outra neste mesmo instante, com a nova classificação.
+/// A parada que estava sem motivo ganhou uma causa com a máquina ainda parada.
+/// O registrador dá o motivo à parada aberta (é a mesma parada, não abre outra),
+/// se ninguém a classificou antes.
 /// </summary>
 public sealed record ParadaReclassificada(DateTime InstanteUtc, ClassificacaoParada Classificacao)
     : EventoColeta(InstanteUtc);

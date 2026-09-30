@@ -47,9 +47,9 @@ public class RegistradorColeta : IRegistradorColeta
                     break;
 
                 case ParadaReclassificada e:
-                    // Mesma parada física, causa nova: fecha um trecho e abre outro no mesmo instante.
-                    FecharParadaAberta(sessao, e.InstanteUtc);
-                    AbrirParada(sessao, e.InstanteUtc, e.Classificacao);
+                    // Mesma parada física: ganha o motivo, sem abrir outra (na linha do tempo, uma
+                    // parada nunca vem colada noutra sem marcha no meio).
+                    ClassificarParadaAberta(sessao, e.InstanteUtc, e.Classificacao);
                     break;
 
                 case ParadaEncerrada e:
@@ -260,6 +260,36 @@ public class RegistradorColeta : IRegistradorColeta
         }
 
         return parada;
+    }
+
+    /// <summary>
+    /// Dá à parada aberta a causa que o sensor identificou, se ela ainda está sem
+    /// motivo. Se já tem (a primeira causa, ou alguém classificou à mão), fica como está.
+    /// </summary>
+    private void ClassificarParadaAberta(Sessao sessao, DateTime instante, ClassificacaoParada classificacao)
+    {
+        var aberta = sessao.Paradas.FirstOrDefault(p => p.Fim is null);
+        if (aberta is null)
+        {
+            // Evento de início perdido (não deveria acontecer): registra a parada a partir daqui.
+            AbrirParada(sessao, instante, classificacao);
+            return;
+        }
+
+        if (aberta.MotivoId is not null || classificacao.EhNaoClassificada)
+            return;
+
+        aberta.MotivoId = classificacao.MotivoParadaId;
+        aberta.RegraClassificacaoId = classificacao.RegraId;
+        _context.HistoricosClassificacaoParada.Add(new HistoricoClassificacaoParada
+        {
+            Id = Guid.NewGuid(),
+            ParadaId = aberta.Id,
+            MotivoAnteriorId = null,
+            MotivoNovoId = classificacao.MotivoParadaId,
+            UsuarioId = null,
+            AlteradoEm = instante < aberta.Inicio ? aberta.Inicio : instante
+        });
     }
 
     private static void FecharParadaAberta(Sessao sessao, DateTime instante)
