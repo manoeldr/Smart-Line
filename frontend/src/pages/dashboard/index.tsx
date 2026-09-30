@@ -1,13 +1,15 @@
 // Tela de Dashboard — seleciona uma linha e um período de datas,
 // mostra cards com OEE agregado de cada máquina (sessões finalizadas e em andamento; as em
 // andamento aparecem "ao vivo" com a situação agora). Atualiza sozinha a cada 5 min.
-// Clicar num card abre o modal de detalhes.
+// Clicar num card abre o modal de detalhes. A visão "Linha" junta a linha inteira: OEE pela
+// máquina crítica e as paradas somadas de todas as máquinas.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
-import { dashboardService, type MaquinaDashboardDto } from '../../services/dashboardService'
+import { dashboardService, type LinhaDashboardDto, type MaquinaDashboardDto } from '../../services/dashboardService'
 import type { Linha } from '../../types'
 import MaquinaDashboardCard from './MaquinaDashboardCard'
+import LinhaGeral from './LinhaGeral'
 import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
@@ -21,6 +23,13 @@ function msAteProximaAtualizacao(agora = Date.now()) {
   const proxima = Math.ceil((agora - FOLGA_MS) / INTERVALO_GRAVACAO_MS) * INTERVALO_GRAVACAO_MS + FOLGA_MS
   return Math.max(1000, proxima - agora)
 }
+
+type Visao = 'maquinas' | 'linha'
+
+const OPCOES_VISAO: { valor: Visao; rotulo: string }[] = [
+  { valor: 'maquinas', rotulo: 'Máquinas' },
+  { valor: 'linha', rotulo: 'Linha' },
+]
 
 function formatarDataInput(data: Date) {
   return data.toISOString().slice(0, 10)
@@ -39,7 +48,9 @@ export default function Dashboard() {
   const [dataInicio, setDataInicio] = useState(formatarDataInput(seteDiasAtras))
   const [dataFim, setDataFim] = useState(formatarDataInput(hoje))
 
+  const [visao, setVisao] = useState<Visao>('maquinas')
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
+  const [linhaGeral, setLinhaGeral] = useState<LinhaDashboardDto | null>(null)
   const [loadingDados, setLoadingDados] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null)
@@ -62,7 +73,7 @@ export default function Dashboard() {
     carregar()
   }, [clienteId])
 
-  // "Carregando..." só ao trocar linha ou período; depois disso a tela se atualiza sozinha,
+  // "Carregando..." só ao trocar linha, período ou visão; depois disso a tela se atualiza sozinha,
   // no lugar, logo depois de cada gravação da produção do Semi Automático (a cada 5 min).
   useEffect(() => {
     if (!linhaSelecionada) return
@@ -78,9 +89,15 @@ export default function Dashboard() {
       try {
         const inicioIso = new Date(dataInicio + 'T00:00:00').toISOString()
         const fimIso = new Date(dataFim + 'T23:59:59').toISOString()
-        const data = await dashboardService.getDashboardLinha(linhaSelecionada, inicioIso, fimIso)
-        if (!ativo) return
-        setDados(data)
+        if (visao === 'linha') {
+          const data = await dashboardService.getLinhaGeral(linhaSelecionada, inicioIso, fimIso)
+          if (!ativo) return
+          setLinhaGeral(data)
+        } else {
+          const data = await dashboardService.getDashboardLinha(linhaSelecionada, inicioIso, fimIso)
+          if (!ativo) return
+          setDados(data)
+        }
         setErro(null)
         setAtualizadoEm(new Date())
       } catch (e: unknown) {
@@ -96,7 +113,7 @@ export default function Dashboard() {
     }
     carregarDados()
     return () => { ativo = false; clearTimeout(timer) }
-  }, [linhaSelecionada, dataInicio, dataFim])
+  }, [linhaSelecionada, dataInicio, dataFim, visao])
 
   function abrirDetalhe(maquinaLinhaId: string) {
     setMaquinaLinhaSelecionada(maquinaLinhaId)
@@ -132,6 +149,25 @@ export default function Dashboard() {
           <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={inputMd} />
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-zinc-500">Visão</label>
+          <div className="flex">
+            {OPCOES_VISAO.map(o => (
+              <button
+                key={o.valor}
+                onClick={() => setVisao(o.valor)}
+                className={`h-9 w-24 -ml-px first:ml-0 text-center text-xs font-medium border transition-colors ${
+                  visao === o.valor
+                    ? 'relative bg-blue-600 text-white border-blue-600'
+                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {o.rotulo}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {atualizadoEm && (
           <p className="ml-auto text-[10px] text-zinc-400 self-center">
             Atualiza sozinho a cada 5 min · última às {atualizadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -139,11 +175,15 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Grid de cards */}
+      {/* Grid de cards ou a visão geral da linha */}
       {loadingDados ? (
         <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Carregando...</div>
       ) : erro ? (
         <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro: {erro}</div>
+      ) : visao === 'linha' ? (
+        linhaGeral && linhaGeral.maquinas.length > 0
+          ? <LinhaGeral dados={linhaGeral} onAbrirMaquina={abrirDetalhe} />
+          : <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Nenhuma máquina nesta linha</div>
       ) : dados.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Nenhuma máquina nesta linha</div>
       ) : (

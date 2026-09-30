@@ -3,7 +3,10 @@ const BASE_URL = '/api'
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('token')
 
+  // no-store: os dados mudam a cada gravação e o navegador não pode reaproveitar uma resposta
+  // antiga (ex.: a página HTML que o backend devolvia antes de um endereço novo existir).
   const res = await fetch(`${BASE_URL}${path}`, {
+    cache: 'no-store',
     ...options,
     headers: {
       'Content-Type': 'application/json',

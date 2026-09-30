@@ -28,6 +28,11 @@ public class DashboardController : ControllerBase
         return Ok(resultado.Select(m => m.AcompanhamentoId is null ? m : m with { SituacaoAoVivo = SituacaoColeta(m) }));
     }
 
+    /// <summary>Visão da linha inteira: OEE pela máquina crítica e paradas somadas de todas as máquinas.</summary>
+    [HttpGet("linhas/{linhaId}/geral")]
+    public async Task<IActionResult> GetLinhaGeral(Guid linhaId, [FromQuery] DateTime inicio, [FromQuery] DateTime fim) =>
+        Ok(await _dashboardService.GetLinhaGeralAsync(linhaId, inicio, fim));
+
     /// <summary>Situação vista pelo motor; antes da primeira mensagem do WISE, aguardando.</summary>
     private string SituacaoColeta(MaquinaDashboardDto maquina)
     {

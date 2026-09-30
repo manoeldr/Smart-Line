@@ -22,7 +22,61 @@ export interface MaquinaDashboardDto {
   acompanhamentoId: string | null
 }
 
+// Visão geral da linha: OEE pela máquina crítica (a de pior OEE, se houver mais de uma; sem
+// crítica com sessão, a pior entre as que medem produção) e as paradas somadas de todas as
+// máquinas — sempre a sessão em andamento de cada máquina, senão a última do período.
+export interface MaquinaResumoLinhaDto {
+  maquinaLinhaId: string
+  nome: string
+  critica: boolean
+  referencia: boolean
+  temSessao: boolean
+  aoVivo: boolean
+  oee: number | null
+  producao: number
+  refugo: number
+  tempoParadoMs: number
+  numParadas: number
+}
+
+export interface TempoParadoMaquinaDto {
+  maquinaLinhaId: string
+  duracaoMs: number
+}
+
+export interface ParadaLinhaPorMotivoDto {
+  motivo: string
+  tipo: 'Interna' | 'Externa' | 'Planejada'
+  duracaoMs: number
+  quantidade: number
+  porMaquina: TempoParadoMaquinaDto[]
+}
+
+export interface ParadaLinhaPorHoraDto {
+  hora: string
+  porMaquina: TempoParadoMaquinaDto[]
+}
+
+export interface LinhaDashboardDto {
+  maquinaReferencia: string | null
+  referenciaCritica: boolean
+  oee: number | null
+  disponibilidade: number
+  performance: number | null
+  qualidade: number
+  producao: number
+  refugoTotal: number
+  tempoParadoTotalMs: number
+  numParadas: number
+  maquinas: MaquinaResumoLinhaDto[]
+  paradasPorMotivo: ParadaLinhaPorMotivoDto[]
+  paradasPorHora: ParadaLinhaPorHoraDto[]
+}
+
 export const dashboardService = {
   getDashboardLinha: (linhaId: string, inicio: string, fim: string) =>
     api.get<MaquinaDashboardDto[]>(`/dashboard/linhas/${linhaId}?inicio=${inicio}&fim=${fim}`),
+
+  getLinhaGeral: (linhaId: string, inicio: string, fim: string) =>
+    api.get<LinhaDashboardDto>(`/dashboard/linhas/${linhaId}/geral?inicio=${inicio}&fim=${fim}`),
 }
