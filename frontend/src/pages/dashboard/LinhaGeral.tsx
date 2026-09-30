@@ -8,6 +8,7 @@ import {
 import type { LinhaDashboardDto, MaquinaResumoLinhaDto, TempoParadoMaquinaDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
 import { cardPadded } from '../../styles/cards'
+import { areaGrafico } from '../../styles/graficos'
 
 interface Props {
   dados: LinhaDashboardDto
@@ -114,7 +115,7 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
             ))}
           </div>
         </div>
-        <div className="h-72 select-none">
+        <div className={`h-72 ${areaGrafico}`}>
           {grafico === 'paradasMotivo'
             ? <GraficoPorMotivo dados={dados} maquinas={maquinasComParada} cores={cores} />
             : <GraficoPorHora dados={dados} maquinas={maquinasComParada} cores={cores} />}

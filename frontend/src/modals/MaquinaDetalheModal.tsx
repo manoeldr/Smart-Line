@@ -10,6 +10,7 @@ import { sessaoDetalheService, type ParadaPorHoraDto, type ParadaPorMotivoDto, t
 import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
 import { badgeAtivaVerde } from '../styles/badges'
 import { metricaBox, metricaValor, metricaLabel } from '../styles/cards'
+import { areaGrafico } from '../styles/graficos'
 import PainelColetaIot from '../components/iot/PainelColetaIot'
 import EditarMotivoParadaModal from './EditarMotivoParadaModal'
 import HistoricoParadaModal from './HistoricoParadaModal'
@@ -278,7 +279,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
 
               {/* select-none e sem contorno de foco: clicar no gráfico (ou perto dele) não marca
                   área de seleção nem desenha a moldura azul do navegador */}
-              <div className="h-64 select-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_*:focus]:outline-none">
+              <div className={`h-64 ${areaGrafico}`}>
                 {grafico === 'producao' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={dadosGrafico} accessibilityLayer={false}>
