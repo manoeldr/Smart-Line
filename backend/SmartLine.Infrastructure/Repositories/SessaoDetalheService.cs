@@ -8,15 +8,16 @@ namespace SmartLine.Infrastructure.Repositories;
 public class SessaoDetalheService : ISessaoDetalheService
 {
     /// <summary>
-    /// Soma a produção de cada hora cheia. O ponto fica no fim da hora, como a leitura do
-    /// Manual (o produzido das 10:00 às 11:00 aparece às 11:00); a hora ainda em andamento
-    /// (ou cortada pela finalização) aparece na hora da última gravação dela.
+    /// Soma a produção de cada hora cheia. O ponto fica sempre na hora cheia do fim, como a
+    /// leitura do Manual: o produzido das 10:00 às 11:00 aparece às 11:00, mesmo que a última
+    /// gravação tenha sido antes (backend fora do ar, finalização). A hora ainda em andamento
+    /// também aparece na hora cheia em que termina, com o parcial até agora.
     /// </summary>
     public static List<PontoProducaoDto> PorHora(IEnumerable<PontoProducaoDto> pontos) =>
         pontos
             .GroupBy(p => FimDaHora(p.Hora))
             .OrderBy(g => g.Key)
-            .Select(g => new PontoProducaoDto(g.Max(p => p.Hora), g.Sum(p => p.Quantidade)))
+            .Select(g => new PontoProducaoDto(g.Key, g.Sum(p => p.Quantidade)))
             .ToList();
 
     private static DateTime FimDaHora(DateTime t)
