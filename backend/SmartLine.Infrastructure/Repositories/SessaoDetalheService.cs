@@ -8,14 +8,14 @@ namespace SmartLine.Infrastructure.Repositories;
 public class SessaoDetalheService : ISessaoDetalheService
 {
     /// <summary>
-    /// Soma a produção de cada hora cheia. O ponto fica sempre na hora cheia do fim, como a
-    /// leitura do Manual: o produzido das 10:00 às 11:00 aparece às 11:00, mesmo que a última
-    /// gravação tenha sido antes (backend fora do ar, finalização). A hora ainda em andamento
-    /// também aparece na hora cheia em que termina, com o parcial até agora.
+    /// Soma a produção de cada hora cheia e marca o ponto no <b>início</b> da hora: o produzido
+    /// das 14:00 às 14:59 aparece às 14:00, inclusive a hora ainda em andamento (com o parcial
+    /// até agora). Uma gravação exatamente na hora cheia (ex.: 15:00, que traz o produzido das
+    /// 14:55 às 15:00) é da hora que terminou.
     /// </summary>
     public static List<PontoProducaoDto> PorHora(IEnumerable<PontoProducaoDto> pontos) =>
         pontos
-            .GroupBy(p => FimDaHora(p.Hora))
+            .GroupBy(p => FimDaHora(p.Hora).AddHours(-1))
             .OrderBy(g => g.Key)
             .Select(g => new PontoProducaoDto(g.Key, g.Sum(p => p.Quantidade)))
             .ToList();
@@ -125,7 +125,16 @@ public class SessaoDetalheService : ISessaoDetalheService
         // Semi Automático: a produção é gravada a cada 5 min, o que daria uma barra a cada 5 min.
         // O gráfico fica por hora, como no Manual.
         if (sessao.TipoColeta == TipoColeta.SemiAutomatico)
+        {
             pontosProducao = PorHora(pontosProducao);
+            if (sessao.Status == StatusSessao.EmAndamento)
+            {
+                var agora = DateTime.UtcNow;
+                pontosProducao = pontosProducao
+                    .Select(p => p.Hora.AddHours(1) > agora ? p with { Parcial = true } : p)
+                    .ToList();
+            }
+        }
 
         // Timeline de eventos (Marcha/Parada)
         var eventos = new List<EventoTimelineDto>();
@@ -182,7 +191,8 @@ public class SessaoDetalheService : ISessaoDetalheService
             CamposExtras: camposExtras,
             PontosProducao: pontosProducao,
             Eventos: eventos,
-            MaquinaId: maquinaLinha.MaquinaId.ToString()
+            MaquinaId: maquinaLinha.MaquinaId.ToString(),
+            TipoColeta: sessao.TipoColeta.ToString()
         );
     }
 }

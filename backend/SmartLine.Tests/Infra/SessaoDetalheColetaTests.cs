@@ -45,12 +45,12 @@ public class SessaoDetalheColetaTests : IDisposable
         await using var db = _c.Banco.NovoContexto();
         var detalhe = (await new SessaoDetalheService(db, new OeeService()).GetUltimaSessaoDetalheAsync(_c.MaquinaLinha))!;
 
-        // 11:00–12:00 inteira às 12:00; a hora em andamento (12:00–13:00) também na hora cheia do fim.
-        Assert.Equal(new[] { (Em(3600), 1000), (Em(7200), 100) }, detalhe.PontosProducao.Select(p => (p.Hora, p.Quantidade)));
+        // 11:00–11:59 às 11:00 (a gravação das 12:00 é dessa hora); a hora em andamento às 12:00.
+        Assert.Equal(new[] { (Em(0), 1000), (Em(3600), 100) }, detalhe.PontosProducao.Select(p => (p.Hora, p.Quantidade)));
     }
 
     [Fact]
-    public void PorHora_SempreNaHoraCheiaDoFim_MesmoSemGravacaoNaHoraCheia()
+    public void PorHora_NoInicioDaHora_GravacaoNaHoraCheiaEDaHoraQueTerminou()
     {
         var t = new DateTime(2026, 9, 29, 10, 0, 0, DateTimeKind.Utc);
 
@@ -63,7 +63,7 @@ public class SessaoDetalheColetaTests : IDisposable
         ]);
 
         Assert.Equal(
-            new[] { (t.AddHours(1), 60), (t.AddHours(2), 90), (t.AddHours(3), 5), (t.AddHours(4), 7) },
+            new[] { (t, 60), (t.AddHours(1), 90), (t.AddHours(2), 5), (t.AddHours(3), 7) },
             pontos.Select(p => (p.Hora, p.Quantidade)));
     }
 }

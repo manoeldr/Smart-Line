@@ -4,7 +4,7 @@
 // Só a linha do tempo tem scroll próprio — o resto (métricas, gráfico) fica fixo.
 import { useEffect, useRef, useState } from 'react'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { sessaoDetalheService, type SessaoDetalheDto } from '../services/sessaoDetalheService'
 import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
@@ -145,9 +145,17 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
 
     const horariosOrdenados = Array.from(horarios).sort()
 
+    // Semi Automático: cada barra fica no início da hora (14:00 = das 14:00 às 14:59). A da hora
+    // ainda em andamento (marcada pela API) tem o parcial até agora: aparece tracejada e mais
+    // clara, e a dica explica.
+
     return horariosOrdenados.map(hora => {
-      const ponto: Record<string, string | number> = { hora: formatarHora(hora) }
       const producaoPonto = dados.pontosProducao.find(p => p.hora === hora)
+      const ponto: Record<string, string | number | boolean> = {
+        hora: formatarHora(hora),
+        fimDaHora: formatarHora(new Date(new Date(hora).getTime() + 3600000).toISOString()),
+        parcial: producaoPonto?.parcial === true,
+      }
       if (producaoPonto) ponto['Produção'] = producaoPonto.quantidade
 
       dados.camposExtras.forEach(campo => {
@@ -241,9 +249,26 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                     <XAxis dataKey="hora" tick={{ fontSize: 10 }} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
-                    <Tooltip />
+                    <Tooltip
+                      labelFormatter={(rotulo, itens) => {
+                        const ponto = itens?.[0]?.payload as Record<string, string | number | boolean> | undefined
+                        return ponto?.parcial
+                          ? `Em andamento: ${rotulo}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min`
+                          : rotulo
+                      }}
+                    />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar yAxisId="left" dataKey="Produção" fill="#1961c0" />
+                    <Bar yAxisId="left" dataKey="Produção" fill="#1961c0">
+                      {dadosGrafico.map((ponto, i) => (
+                        <Cell
+                          key={i}
+                          fill={ponto.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
+                          stroke={ponto.parcial ? '#1961c0' : 'none'}
+                          strokeWidth={ponto.parcial ? 1.5 : 0}
+                          strokeDasharray={ponto.parcial ? '4 3' : undefined}
+                        />
+                      ))}
+                    </Bar>
                     {dados.camposExtras
                       .filter(c => camposSelecionados.has(c.campoMaquinaId))
                       .map((campo, i) => (

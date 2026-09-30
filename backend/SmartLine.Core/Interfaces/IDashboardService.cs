@@ -5,10 +5,16 @@ public interface IDashboardService
     Task<IList<MaquinaDashboardDto>> GetDashboardLinhaAsync(Guid linhaId, DateTime inicio, DateTime fim);
 }
 
-/// <param name="AoVivo">A máquina tem uma sessão em andamento no período (Manual ou Semi Automático).</param>
+/// <summary>
+/// Card de uma máquina no Dashboard: valores exatos de uma sessão — a em andamento, se houver,
+/// senão a última iniciada no período (a mesma do detalhe da máquina). Sem sessão, tudo zero.
+/// </summary>
+/// <param name="SessaoInicio">Início da sessão mostrada; nulo se não há sessão no período.</param>
+/// <param name="SessaoFim">Fim da sessão mostrada; nulo se em andamento ou sem sessão.</param>
+/// <param name="AoVivo">A sessão mostrada está em andamento (Manual ou Semi Automático).</param>
 /// <param name="SituacaoAoVivo">
-/// Com sessão em andamento: Rodando ou Parada (parada aberta). No Semi Automático a API troca
-/// pela situação do motor da coleta (inclui SemComunicacao e AguardandoPrimeiraAmostra).
+/// Em andamento: Rodando ou Parada (parada aberta). No Semi Automático a API troca pela
+/// situação do motor da coleta (inclui SemComunicacao e AguardandoPrimeiraAmostra).
 /// </param>
 /// <param name="AcompanhamentoId">Coleta Semi Automática da sessão em andamento, se houver.</param>
 public record MaquinaDashboardDto(
@@ -21,9 +27,10 @@ public record MaquinaDashboardDto(
     double Qualidade,
     int Producao,
     int Refugo,
-    int NumSessoes,
     double TempoRodandoMs,
     double TempoParadoMs,
+    DateTime? SessaoInicio = null,
+    DateTime? SessaoFim = null,
     bool AoVivo = false,
     string? SituacaoAoVivo = null,
     string? AcompanhamentoId = null

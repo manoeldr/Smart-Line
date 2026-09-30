@@ -11,7 +11,9 @@ export interface MaquinaDashboardDto {
   qualidade: number
   producao: number
   refugo: number
-  numSessoes: number
+  // Sessão mostrada no card: a em andamento, se houver, senão a última do período (nulas sem sessão)
+  sessaoInicio: string | null
+  sessaoFim: string | null
   tempoRodandoMs: number
   tempoParadoMs: number
   // Sessão em andamento no período (Manual ou Semi Automático) e a situação dela agora

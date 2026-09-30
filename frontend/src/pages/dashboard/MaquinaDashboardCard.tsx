@@ -1,5 +1,6 @@
-// Card de resumo de OEE por máquina no Dashboard, agregando dados de todas as sessões
-// (finalizadas e em andamento) iniciadas dentro do período selecionado. Ao clicar, abre o MaquinaDetalheModal.
+// Card de OEE por máquina no Dashboard com os valores exatos de uma sessão (não média): a em
+// andamento, se houver, senão a última iniciada no período — a mesma que o MaquinaDetalheModal
+// mostra ao clicar.
 import type { MaquinaDashboardDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
 import { cardPadded } from '../../styles/cards'
@@ -9,9 +10,16 @@ interface Props {
   dados: MaquinaDashboardDto
 }
 
+// Mesmo formato do detalhe da máquina: "1h 25m".
 function formatarHoras(ms: number) {
-  const horas = ms / 3600000
-  return horas.toFixed(1) + 'h'
+  const horas = Math.floor(ms / 3600000)
+  const minutos = Math.floor((ms % 3600000) / 60000)
+  return `${horas}h ${minutos}m`
+}
+
+function formatarInicio(iso: string | null) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function MaquinaDashboardCard({ dados }: Props) {
@@ -40,7 +48,7 @@ export default function MaquinaDashboardCard({ dados }: Props) {
       {/* OEE grande */}
       <div className="mb-4">
         <p className={`text-4xl font-medium ${oeeColor}`}>{dados.oee}%</p>
-        <p className="text-xs text-zinc-400">OEE médio</p>
+        <p className="text-xs text-zinc-400">OEE</p>
       </div>
 
       {/* Disponibilidade / Performance / Qualidade */}
@@ -56,11 +64,11 @@ export default function MaquinaDashboardCard({ dados }: Props) {
         <Indicador valor={dados.refugo.toLocaleString('pt-BR')} rotulo="Refugo total" />
       </div>
 
-      {/* Tempo rodando / parado / sessões */}
+      {/* Tempo rodando / parado / início da sessão */}
       <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
         <Indicador valor={formatarHoras(dados.tempoRodandoMs)} rotulo="rodando" />
         <Indicador valor={formatarHoras(dados.tempoParadoMs)} rotulo="parado" />
-        <Indicador valor={String(dados.numSessoes)} rotulo="sessões" />
+        <Indicador valor={formatarInicio(dados.sessaoInicio)} rotulo="início da sessão" />
       </div>
     </div>
   )

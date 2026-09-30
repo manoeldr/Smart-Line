@@ -27,7 +27,9 @@ public record SessaoDetalheDto(
     IList<PontoProducaoDto> PontosProducao,
     IList<EventoTimelineDto> Eventos,
     // Máquina do catálogo: de onde vêm os motivos para editar o motivo de uma parada
-    string? MaquinaId = null
+    string? MaquinaId = null,
+    // "Manual" ou "SemiAutomatico": no Semi o gráfico de produção é por hora (ver PorHora)
+    string? TipoColeta = null
 );
 
 public record CampoGraficoDto(
@@ -39,7 +41,8 @@ public record CampoGraficoDto(
 
 public record PontoExtraDto(DateTime Hora, decimal Valor);
 
-public record PontoProducaoDto(DateTime Hora, int Quantidade);
+/// <param name="Parcial">Semi Automático: hora ainda em andamento (o valor ainda vai crescer).</param>
+public record PontoProducaoDto(DateTime Hora, int Quantidade, bool Parcial = false);
 
 public record EventoTimelineDto(
     string Tipo,

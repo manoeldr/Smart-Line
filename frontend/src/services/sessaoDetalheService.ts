@@ -15,6 +15,8 @@ export interface CampoGraficoDto {
 export interface PontoProducaoDto {
   hora: string
   quantidade: number
+  // Semi Automático: hora ainda em andamento (o valor ainda vai crescer)
+  parcial?: boolean
 }
 
 export interface EventoTimelineDto {
@@ -52,6 +54,8 @@ export interface SessaoDetalheDto {
   eventos: EventoTimelineDto[]
   // Máquina do catálogo (motivos de parada)
   maquinaId?: string | null
+  // No Semi Automático o gráfico de produção vem por hora (cada ponto no início da hora)
+  tipoColeta?: 'Manual' | 'SemiAutomatico' | 'Automatico' | null
 }
 
 export const sessaoDetalheService = {

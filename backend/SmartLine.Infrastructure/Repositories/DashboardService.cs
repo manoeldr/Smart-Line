@@ -16,6 +16,11 @@ public class DashboardService : IDashboardService
         _oeeService = oeeService;
     }
 
+    /// <summary>
+    /// Um card por máquina com os valores exatos de UMA sessão (não média): a em andamento,
+    /// se houver, senão a última iniciada no período — a mesma que o detalhe da máquina
+    /// mostra (ver <see cref="SessaoDetalheService"/>), com o mesmo cálculo de OEE.
+    /// </summary>
     public async Task<IList<MaquinaDashboardDto>> GetDashboardLinhaAsync(Guid linhaId, DateTime inicio, DateTime fim)
     {
         var maquinasLinha = await _context.MaquinasLinha
@@ -28,20 +33,18 @@ public class DashboardService : IDashboardService
 
         foreach (var ml in maquinasLinha)
         {
-            var sessoes = await _context.Sessoes
+            var sessao = await _context.Sessoes
                 .Include(s => s.Producoes)
                 .Include(s => s.Paradas)
                     .ThenInclude(p => p.Motivo)
-                // Finalizadas e em andamento: a coleta Semi Automática só fecha a sessão do dia à
-                // meia-noite, então sem as em andamento o dia corrente nunca aparecia. O OEE da
-                // sessão em andamento vai até agora (ver OeeService).
                 .Where(s => s.MaquinaLinhaId == ml.Id
-                    && (s.Status == StatusSessao.Finalizada || s.Status == StatusSessao.EmAndamento)
                     && s.Inicio >= inicio
                     && s.Inicio <= fim)
-                .ToListAsync();
+                .OrderByDescending(s => s.Status == StatusSessao.EmAndamento ? 1 : 0)
+                .ThenByDescending(s => s.Inicio)
+                .FirstOrDefaultAsync();
 
-            if (sessoes.Count == 0)
+            if (sessao is null)
             {
                 resultado.Add(new MaquinaDashboardDto(
                     MaquinaLinhaId: ml.Id.ToString(),
@@ -53,75 +56,32 @@ public class DashboardService : IDashboardService
                     Qualidade: 0,
                     Producao: 0,
                     Refugo: 0,
-                    NumSessoes: 0,
                     TempoRodandoMs: 0,
-                    TempoParadoMs: 0
-                ));
+                    TempoParadoMs: 0));
                 continue;
             }
 
-            double somaTempoDisponivel = 0;
-            double somaTempoRodando = 0;
-            double somaTempoParado = 0;
-            double somaDisponibilidadePonderada = 0;
-            double somaPerformancePonderada = 0;
-            double somaQualidadePonderada = 0;
-            int producaoTotal = 0;
-            int refugoTotal = 0;
-
-            foreach (var sessao in sessoes)
-            {
-                var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao);
-
-                somaTempoDisponivel += oee.TempoDisponivelMs;
-                somaTempoRodando += oee.TempoRodandoMs;
-                somaTempoParado += (oee.TempoInternoMs + oee.TempoExternoMs);
-                producaoTotal += oee.Producao;
-                refugoTotal += oee.Refugo;
-
-                // Pondera pelo tempo disponível de cada sessão
-                somaDisponibilidadePonderada += oee.Disponibilidade * oee.TempoDisponivelMs;
-                // Performance só existe quando a máquina mede produção — nesse caso, oee.Performance
-                // nunca vem nulo (garantido pelo OeeService quando medeProducao=true).
-                if (ml.MedeProducao)
-                {
-                    somaPerformancePonderada += (oee.Performance ?? 0) * oee.TempoDisponivelMs;
-                }
-                somaQualidadePonderada += oee.Qualidade * oee.TempoDisponivelMs;
-            }
-
-            var disponibilidadeMedia = somaTempoDisponivel > 0 ? somaDisponibilidadePonderada / somaTempoDisponivel : 0;
-            var qualidadeMedia = somaTempoDisponivel > 0 ? somaQualidadePonderada / somaTempoDisponivel : 0;
-
-            double? performanceMedia = null;
-            double? oeeMedio = null;
-
-            if (ml.MedeProducao)
-            {
-                performanceMedia = somaTempoDisponivel > 0 ? somaPerformancePonderada / somaTempoDisponivel : 0;
-                oeeMedio = (disponibilidadeMedia / 100) * (performanceMedia.Value / 100) * (qualidadeMedia / 100) * 100;
-            }
-
-            var emAndamento = sessoes.FirstOrDefault(s => s.Status == StatusSessao.EmAndamento);
+            var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao);
+            var emAndamento = sessao.Status == StatusSessao.EmAndamento;
 
             resultado.Add(new MaquinaDashboardDto(
                 MaquinaLinhaId: ml.Id.ToString(),
                 MaquinaNome: ml.Maquina.Nome,
                 Critica: ml.Critica,
-                Oee: oeeMedio.HasValue ? Math.Round(oeeMedio.Value, 1) : null,
-                Disponibilidade: Math.Round(disponibilidadeMedia, 1),
-                Performance: performanceMedia.HasValue ? Math.Round(performanceMedia.Value, 1) : null,
-                Qualidade: Math.Round(qualidadeMedia, 1),
-                Producao: producaoTotal,
-                Refugo: refugoTotal,
-                NumSessoes: sessoes.Count,
-                TempoRodandoMs: somaTempoRodando,
-                TempoParadoMs: somaTempoParado,
-                AoVivo: emAndamento is not null,
-                SituacaoAoVivo: emAndamento is null ? null
-                    : emAndamento.Paradas.Any(p => p.Fim is null) ? "Parada" : "Rodando",
-                AcompanhamentoId: emAndamento?.AcompanhamentoId?.ToString()
-            ));
+                Oee: oee.Oee,
+                Disponibilidade: oee.Disponibilidade,
+                Performance: oee.Performance,
+                Qualidade: oee.Qualidade,
+                Producao: oee.Producao,
+                Refugo: oee.Refugo,
+                TempoRodandoMs: oee.TempoRodandoMs,
+                TempoParadoMs: oee.TempoInternoMs + oee.TempoExternoMs,
+                SessaoInicio: sessao.Inicio,
+                SessaoFim: sessao.Fim,
+                AoVivo: emAndamento,
+                SituacaoAoVivo: !emAndamento ? null
+                    : sessao.Paradas.Any(p => p.Fim is null) ? "Parada" : "Rodando",
+                AcompanhamentoId: emAndamento ? sessao.AcompanhamentoId?.ToString() : null));
         }
 
         return resultado;
