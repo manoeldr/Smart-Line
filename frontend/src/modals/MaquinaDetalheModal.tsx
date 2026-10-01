@@ -267,7 +267,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                 </div>
                 {grafico === 'producao' && (
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-[10px] px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">Produção (sempre visível)</span>
+                    <span className="text-[10px] px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">Produção</span>
                     {dados.camposExtras.map((campo, i) => (
                       <button
                         key={campo.campoMaquinaId}

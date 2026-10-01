@@ -3,7 +3,7 @@
 // Cada máquina entra com a sessão em andamento, senão a última do período — a mesma dos cards.
 import { useState } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import type { LinhaDashboardDto, MaquinaResumoLinhaDto, TempoParadoMaquinaDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
@@ -89,9 +89,22 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
           <Indicador valor={dados.producao.toLocaleString('pt-BR')} rotulo="Produção da linha" />
-          <Indicador valor={dados.refugoTotal.toLocaleString('pt-BR')} rotulo="Refugo (todas as máquinas)" />
+          <Indicador valor={dados.refugoTotal.toLocaleString('pt-BR')} rotulo="Refugo (soma)" />
           <Indicador valor={formatarHoras(dados.tempoParadoTotalMs)} rotulo="Tempo parado (soma)" />
           <Indicador valor={dados.numParadas.toLocaleString('pt-BR')} rotulo="Paradas (soma)" />
+        </div>
+      </div>
+
+      {/* Produção da máquina de referência, ao lado das paradas de todas as máquinas */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      <div className={cardPadded}>
+        <div className="flex items-center justify-between gap-3 mb-3 min-h-7">
+          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+            Produção por hora{dados.maquinaReferencia && <span className="font-normal text-zinc-400"> · {dados.maquinaReferencia}</span>}
+          </p>
+        </div>
+        <div className={`h-72 ${areaGrafico}`}>
+          <GraficoProducao dados={dados} />
         </div>
       </div>
 
@@ -120,6 +133,7 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
             ? <GraficoPorMotivo dados={dados} maquinas={maquinasComParada} cores={cores} />
             : <GraficoPorHora dados={dados} maquinas={maquinasComParada} cores={cores} />}
         </div>
+      </div>
       </div>
 
       {/* Resumo de cada máquina — clicar abre o detalhe da máquina */}
@@ -158,7 +172,6 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
           <span className="inline-block w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: cor }} />
           <span className="text-zinc-900 dark:text-zinc-100">{m.nome}</span>
           {m.critica && <span className={badgeCritica}>crítica</span>}
-          {m.referencia && <span className="text-[9px] text-zinc-400">OEE da linha</span>}
           {m.aoVivo && <span className="text-[10px] text-green-600 dark:text-green-400">ao vivo</span>}
         </div>
       </td>
@@ -174,6 +187,66 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
         <td colSpan={5} className="text-right text-zinc-400">sem sessão no período</td>
       )}
     </tr>
+  )
+}
+
+// Produção por hora da máquina de referência, como no detalhe dela: cada barra no início da
+// hora; a hora em andamento tracejada, mais clara e com o horário em destaque.
+function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
+  if (dados.producaoPorHora.length === 0) {
+    return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma produção registrada ainda</p>
+  }
+
+  const pontos = dados.producaoPorHora.map(p => ({
+    hora: formatarHora(p.hora),
+    fimDaHora: formatarHora(new Date(new Date(p.hora).getTime() + 3600000).toISOString()),
+    parcial: p.parcial === true,
+    producao: p.quantidade,
+  }))
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={pontos} accessibilityLayer={false}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+        <XAxis
+          dataKey="hora"
+          interval={0}
+          tick={({ x, y, payload, index }) => {
+            const atual = pontos[index]?.parcial === true
+            return (
+              <text
+                x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
+                fill={atual ? '#1961c0' : '#71717a'}
+                fontWeight={atual ? 700 : 400}
+              >
+                {payload.value}
+              </text>
+            )
+          }}
+        />
+        <YAxis tick={{ fontSize: 10 }} width={50} />
+        <Tooltip
+          formatter={valor => [Number(valor).toLocaleString('pt-BR'), 'Produção']}
+          labelFormatter={(rotulo, itens) => {
+            const ponto = itens?.[0]?.payload as { parcial?: boolean; fimDaHora?: string } | undefined
+            return ponto?.parcial
+              ? `Em andamento: ${rotulo}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min`
+              : rotulo
+          }}
+        />
+        <Bar dataKey="producao" name="Produção" fill="#1961c0">
+          {pontos.map((p, i) => (
+            <Cell
+              key={i}
+              fill={p.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
+              stroke={p.parcial ? '#1961c0' : 'none'}
+              strokeWidth={p.parcial ? 1.5 : 0}
+              strokeDasharray={p.parcial ? '4 3' : undefined}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   )
 }
 
