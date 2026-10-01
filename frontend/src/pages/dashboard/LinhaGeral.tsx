@@ -233,9 +233,10 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
     fimDaHora: formatarHora(new Date(new Date(p.hora).getTime() + 3600000).toISOString()),
     parcial: p.parcial === true,
     producao: p.quantidade,
-    semComunicacao: p.semComunicacao ?? 0,
+    // Sem valor (não 0) nas horas sem produção sem comunicação: a dica não mostra "Sem comunicação: 0".
+    semComunicacao: p.semComunicacao ? p.semComunicacao : undefined,
   }))
-  const temSemComunicacao = pontos.some(p => p.semComunicacao > 0)
+  const temSemComunicacao = pontos.some(p => (p.semComunicacao ?? 0) > 0)
 
   return (
     <ResponsiveContainer width="100%" height="100%">

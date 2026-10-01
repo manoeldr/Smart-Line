@@ -403,7 +403,6 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                         {evento.tipo === 'SemComunicacao' && (
                           <p className="text-[11px] text-zinc-500 mt-0.5">
                             Fora do OEE
-                            {evento.motivoNome && <span className="block text-amber-600 dark:text-amber-400">{evento.motivoNome}</span>}
                           </p>
                         )}
                         {evento.tipo === 'Parada' && evento.paradaId && (

@@ -39,7 +39,7 @@ export interface PontoProducaoDto {
 }
 
 export interface EventoTimelineDto {
-  // SemComunicacao: WISE fora (fica fora do OEE); motivoNome avisa se a produção não foi recuperada
+  // SemComunicacao: WISE fora (fica fora do OEE)
   tipo: 'Marcha' | 'Parada' | 'SemComunicacao'
   horario: string
   motivoNome: string | null

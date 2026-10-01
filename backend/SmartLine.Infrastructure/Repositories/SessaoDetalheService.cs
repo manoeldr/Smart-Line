@@ -314,7 +314,7 @@ public class SessaoDetalheService : ISessaoDetalheService
             eventos.Add(new EventoTimelineDto(
                 "SemComunicacao",
                 inicioPeriodo,
-                periodo.ProducaoNaoRecuperada ? "produção não recuperada (o WISE reiniciou)" : null,
+                null,
                 null,
                 (ateQuando - inicioPeriodo).TotalMilliseconds,
                 null,
