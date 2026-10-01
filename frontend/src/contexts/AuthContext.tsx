@@ -26,6 +26,8 @@ export function useAuth() {
 function parseToken(token: string): Usuario | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
+    // Vencido: nem entra (vai direto para o login, sem tela cheia de erros).
+    if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) return null
     return {
       id: payload.sub,
       clienteId: payload.clienteId || null,

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { authService } from '../../services/authService'
+import { CHAVE_VOLTAR_APOS_LOGIN } from '../../services/api'
 import { btnPrimary } from '../../styles/buttons'
 import { inputMdFull, label } from '../../styles/inputs'
 
@@ -11,6 +12,8 @@ export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ login: '', senha: '' })
   const [erro, setErro] = useState<string | null>(null)
+  // Veio de uma sessão expirada (o login vale 8 h): avisa e, ao entrar, volta para onde estava.
+  const [expirou] = useState(() => new URLSearchParams(window.location.search).get('expirou') === '1')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,7 +24,12 @@ export default function Login() {
       const res = await authService.login(form)
       localStorage.setItem('token', res.token)
       login(res.token, res.usuario)
-      navigate('/overview')
+      let voltar: string | null = null
+      try {
+        voltar = sessionStorage.getItem(CHAVE_VOLTAR_APOS_LOGIN)
+        sessionStorage.removeItem(CHAVE_VOLTAR_APOS_LOGIN)
+      } catch { /* sem armazenamento */ }
+      navigate(voltar && voltar.startsWith('/') && !voltar.startsWith('/login') ? voltar : '/overview', { replace: true })
     } catch (err: unknown) {
       setErro(err instanceof Error ? err.message : 'Erro ao fazer login')
     } finally {
@@ -45,6 +53,11 @@ export default function Login() {
         </div>
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
           <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-5">Entrar na sua conta</h1>
+          {expirou && (
+            <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-3 py-2 rounded-sm mb-4">
+              Sua sessão expirou. Entre de novo para continuar de onde parou.
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={label}>Login</label>

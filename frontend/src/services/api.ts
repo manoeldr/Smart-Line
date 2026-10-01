@@ -15,6 +15,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     },
   })
 
+  // Login expirado (o token vale 8 h) ou inválido: volta para o login, guardando onde estava
+  // para retornar depois de entrar. O próprio login responde 401 com senha errada: esse segue.
+  if (res.status === 401 && path !== '/auth/login') {
+    sairPorSessaoExpirada()
+    // Nunca resolve: a página vai ser trocada; assim nenhuma tela mostra erro no meio do caminho.
+    return new Promise<T>(() => {})
+  }
+
   if (!res.ok) {
     const erro = await res.text()
     throw new Error(erro || `Erro ${res.status}`)
@@ -22,6 +30,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (res.status === 204) return undefined as T
   return res.json()
+}
+
+// Chave com o endereço a voltar depois do login (usada pela tela de login).
+export const CHAVE_VOLTAR_APOS_LOGIN = 'smartline.voltarAposLogin'
+
+let saindo = false
+function sairPorSessaoExpirada() {
+  if (saindo || window.location.pathname === '/login') return
+  saindo = true
+  try {
+    sessionStorage.setItem(CHAVE_VOLTAR_APOS_LOGIN, window.location.pathname + window.location.search)
+  } catch { /* sem armazenamento: volta para o Overview */ }
+  localStorage.removeItem('token')
+  localStorage.removeItem('clienteId')
+  window.location.replace('/login?expirou=1')
 }
 
 export const api = {
