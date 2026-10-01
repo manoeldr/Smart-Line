@@ -73,8 +73,8 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
       <div className="flex items-center justify-between mb-1.5">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         <div className="flex items-center gap-1">
+          {maquina.critica && <span className={badgeCritica}>Crítica</span>}
           {iot && <span className={badgeIot} title="Coleta Semi Automática (WISE)">IoT</span>}
-          {maquina.critica && <span className={badgeCritica}>crítica</span>}
         </div>
       </div>
       {/* Nome */}

@@ -202,7 +202,7 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
         <div className="flex items-center gap-2">
           <span className="inline-block w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: cor }} />
           <span className="text-zinc-900 dark:text-zinc-100">{m.nome}</span>
-          {m.critica && <span className={badgeCritica}>crítica</span>}
+          {m.critica && <span className={badgeCritica}>Crítica</span>}
           {m.aoVivo && <span className="text-[10px] text-green-600 dark:text-green-400">ao vivo</span>}
         </div>
       </td>

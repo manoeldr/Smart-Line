@@ -36,7 +36,7 @@ export default function MaquinaDashboardCard({ dados }: Props) {
 
       {/* Header: a etiqueta "crítica" fica no canto, fora do fluxo, para os cards
           críticos e os demais ficarem com tudo na mesma altura lado a lado */}
-      {dados.critica && <span className={`${badgeCritica} absolute top-3 right-3`}>crítica</span>}
+      {dados.critica && <span className={`${badgeCritica} absolute top-3 right-3`}>Crítica</span>}
       {/* Sessão em andamento: situação agora, no canto (fora do fluxo, o card não muda de tamanho) */}
       {dados.aoVivo && (
         <span className="absolute top-3 left-3 text-[10px] text-zinc-400" title="Sessão em andamento">

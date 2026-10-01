@@ -81,7 +81,7 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
           </p>
         )}
       </div>
-      {item.critica && <span className={badgeCritica}>crítica</span>}
+      {item.critica && <span className={badgeCritica}>Crítica</span>}
       {onConfigurarSemi && (
         <button onClick={onConfigurarSemi} title="Semi Automático: tempo de parada e regras desta máquina" className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">
           Semi Auto

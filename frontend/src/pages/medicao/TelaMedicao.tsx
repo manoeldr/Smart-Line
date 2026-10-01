@@ -338,7 +338,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
             {maquina.maquinaNome}
             {maquina.critica && (
-              <span className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">crítica</span>
+              <span className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">Crítica</span>
             )}
           </p>
         </div>
