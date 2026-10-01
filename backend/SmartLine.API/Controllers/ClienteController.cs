@@ -58,8 +58,8 @@ public class ClienteController : ControllerBase
 
     /// <summary>Dias com sessão, para marcar no calendário do filtro por data.</summary>
     [HttpGet("{id}/datas-com-sessao")]
-    public async Task<IActionResult> GetDatasComSessao(Guid id) =>
-        Ok(await _clienteService.GetDatasComSessaoAsync(id));
+    public async Task<IActionResult> GetDatasComSessao(Guid id, [FromQuery] Guid? linhaId) =>
+        Ok(await _clienteService.GetDatasComSessaoAsync(id, linhaId));
 
     [HttpGet("{id}/linhas")]
     public async Task<IActionResult> GetLinhas(Guid id)

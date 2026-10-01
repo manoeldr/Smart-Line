@@ -14,6 +14,8 @@ import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
+import CampoData from '../../components/CampoData'
+import { clienteService } from '../../services/clienteService'
 
 // A coleta Semi Automática grava a produção nos múltiplos de 5 min do relógio (10:00, 10:05...):
 // a tela recarrega logo depois (10 s de folga).
@@ -61,6 +63,8 @@ export default function Dashboard() {
   const [dataFim, setDataFim] = useState(formatarDataInput(hoje))
 
   const [visao, setVisao] = useState<Visao>(visaoGuardada)
+  // Dias com sessão na linha escolhida: bolinha azul nos calendários de início e fim
+  const [datasComSessao, setDatasComSessao] = useState<string[]>([])
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [linhaGeral, setLinhaGeral] = useState<LinhaDashboardDto | null>(null)
   const [loadingDados, setLoadingDados] = useState(false)
@@ -84,6 +88,16 @@ export default function Dashboard() {
     }
     carregar()
   }, [clienteId])
+
+  // Dias com sessão da linha escolhida, para os calendários (uma consulta ao trocar de linha).
+  useEffect(() => {
+    if (!clienteId || !linhaSelecionada) return
+    let ativo = true
+    clienteService.getDatasComSessao(clienteId, linhaSelecionada)
+      .then(datas => { if (ativo) setDatasComSessao(datas) })
+      .catch(() => { if (ativo) setDatasComSessao([]) })
+    return () => { ativo = false }
+  }, [clienteId, linhaSelecionada])
 
   // "Carregando..." só ao trocar linha, período ou visão; depois disso a tela se atualiza sozinha,
   // no lugar, logo depois de cada gravação da produção do Semi Automático (a cada 5 min).
@@ -157,12 +171,12 @@ export default function Dashboard() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs text-zinc-500">Data início</label>
-          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className={inputMd} />
+          <CampoData valor={dataInicio} onChange={setDataInicio} datasComSessao={datasComSessao} max={dataFim} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs text-zinc-500">Data fim</label>
-          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={inputMd} />
+          <CampoData valor={dataFim} onChange={setDataFim} datasComSessao={datasComSessao} min={dataInicio} />
         </div>
 
         <div className="flex flex-col gap-1.5">

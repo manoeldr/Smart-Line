@@ -37,11 +37,12 @@ public class ClienteService : IClienteService
         return new ClienteDto(c.Id.ToString(), c.Nome, c.Estado, c.Ativo);
     }
 
-    public async Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId)
+    public async Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId, Guid? linhaId = null)
     {
         var sessoes = await _context.Sessoes
             .AsNoTracking()
             .Where(s => s.MaquinaLinha.Linha.ClienteId == clienteId)
+            .Where(s => linhaId == null || s.MaquinaLinha.LinhaId == linhaId)
             .Select(s => new { s.Inicio, s.Fim })
             .ToListAsync();
 

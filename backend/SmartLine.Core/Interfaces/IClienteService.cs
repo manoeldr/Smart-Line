@@ -8,9 +8,10 @@ public interface IClienteService
 
     /// <summary>
     /// Dias (no fuso deste computador, "yyyy-MM-dd") em que alguma máquina do cliente teve sessão,
-    /// Manual ou Semi Automático; a sessão que atravessa dias conta em todos eles.
+    /// Manual ou Semi Automático; a sessão que atravessa dias conta em todos eles. Com
+    /// <paramref name="linhaId"/>, só as máquinas daquela linha.
     /// </summary>
-    Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId);
+    Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId, Guid? linhaId = null);
 }
 
 public record ClienteDto(
