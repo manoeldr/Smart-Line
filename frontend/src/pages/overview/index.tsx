@@ -184,6 +184,9 @@ export default function Overview() {
     )
   }
 
+  // Todas as linhas com o mesmo número de colunas: os cards ficam do mesmo tamanho na tela toda.
+  const colunas = Math.max(1, ...linhas.map(l => l.maquinas.length))
+
   return (
     <div className="p-4 flex flex-col gap-3">
       {semMotivo > 0 && dataFiltro === null && (
@@ -215,6 +218,7 @@ export default function Overview() {
             dataFiltro={dataFiltro}
             onFinalizarMaquina={handleFinalizarClick}
             onAbrirMaquina={setDetalhe}
+            colunas={colunas}
           />
         ))
       )}

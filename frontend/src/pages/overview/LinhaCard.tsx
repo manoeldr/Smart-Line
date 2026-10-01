@@ -1,5 +1,7 @@
 // Card de linha no Overview — agrupa os MaquinaCard de todas as máquinas daquela linha,
-// exibidas em sequência (com setas indicando o fluxo de produção).
+// exibidas em sequência (com setas indicando o fluxo de produção). Todas as linhas usam o
+// mesmo número de colunas (o da linha com mais máquinas), para os cards terem sempre o mesmo
+// tamanho de uma linha para outra.
 import type { Linha } from '../../types'
 import MaquinaCard from './MaquinaCard'
 import { cardBase, cardHeader } from '../../styles/cards'
@@ -10,9 +12,11 @@ interface Props {
   dataFiltro: string | null
   onFinalizarMaquina?: (maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) => void
   onAbrirMaquina?: (maquinaLinhaId: string) => void
+  // Colunas da tela inteira: o número de máquinas da linha mais comprida
+  colunas: number
 }
 
-export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina, onAbrirMaquina }: Props) {
+export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina, onAbrirMaquina, colunas }: Props) {
   const temSessao = linha.maquinas.some(m => m.sessaoAtiva)
   const temDados = filtroAtivo ? linha.maquinas.some(m => m.oee !== null) : temSessao
   const badgeText = filtroAtivo
@@ -47,25 +51,32 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarM
       ) : (
         /* Fluxo de máquinas */
         <div className="p-3 flex items-stretch w-full gap-2">
-          {linha.maquinas
+          {[...linha.maquinas]
             .sort((a, b) => a.ordem - b.ordem)
             .map((maquina, index) => (
-              <div key={maquina.id} className="flex items-center flex-1 min-w-0">
+              <div key={maquina.id} className="flex items-stretch flex-1 basis-0 min-w-0">
+                <div className="flex-1 min-w-0">
                 <MaquinaCard
                   maquina={maquina}
                   filtroAtivo={filtroAtivo}
                   onFinalizar={onFinalizarMaquina ? () => onFinalizarMaquina(maquina.id, maquina.maquinaNome, maquina.medeProducao) : undefined}
                   onAbrir={onAbrirMaquina ? () => onAbrirMaquina(maquina.id) : undefined}
                 />
-                {index < linha.maquinas.length - 1 && (
-                  <div className="w-5 flex-shrink-0 flex items-center justify-center text-zinc-300 dark:text-zinc-600">
+                </div>
+                {/* Seta para a próxima máquina; a última guarda o mesmo espaço */}
+                <div className="w-5 flex-shrink-0 flex items-center justify-center text-zinc-300 dark:text-zinc-600">
+                  {index < linha.maquinas.length - 1 && (
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
+          {/* Linha com menos máquinas: colunas vazias para os cards ficarem do mesmo tamanho */}
+          {Array.from({ length: Math.max(0, colunas - linha.maquinas.length) }, (_, i) => (
+            <div key={`vazio-${i}`} className="flex-1 basis-0 min-w-0" aria-hidden />
+          ))}
         </div>
       )}
     </div>
