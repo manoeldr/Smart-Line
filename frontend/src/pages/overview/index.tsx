@@ -195,7 +195,7 @@ export default function Overview() {
             onClick={() => setSemMotivoAberto(true)}
             className="h-8 px-3 border border-amber-300 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
           >
-            Paradas sem motivo ({semMotivo})
+            Paradas sem classificação ({semMotivo})
           </button>
         </div>
       )}

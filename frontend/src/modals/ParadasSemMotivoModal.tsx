@@ -1,5 +1,5 @@
 // Paradas sem motivo das coletas automáticas do cliente: lista com filtros (linha, máquina,
-// período) e o botão Classificar em cada uma. Aberto pelo botão "Paradas sem motivo" do Overview.
+// período) e o botão Classificar em cada uma. Aberto pelo botão "Paradas sem classificação" do Overview.
 import { useEffect, useState } from 'react'
 import type { Linha } from '../types'
 import { paradaColetaService, type ParadaColetaDto } from '../services/paradaColetaService'
@@ -81,7 +81,7 @@ function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado }: 
     <div className={modalOverlay}>
       <div className={`${modalPanel} w-[820px] max-h-[90vh]`}>
         <div className={modalHeader}>
-          <p className={modalTitle}>Paradas sem motivo</p>
+          <p className={modalTitle}>Paradas sem classificação</p>
           <p className={modalSubtitle}>Paradas das coletas automáticas que os sensores não explicaram. Enquanto ninguém classificar, contam como internas.</p>
         </div>
 
@@ -117,7 +117,7 @@ function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado }: 
           {!paradas ? (
             !erro && <p className="text-xs text-zinc-400">Carregando...</p>
           ) : paradas.length === 0 ? (
-            <p className="text-xs text-zinc-400">Nenhuma parada sem motivo neste período.</p>
+            <p className="text-xs text-zinc-400">Nenhuma parada sem classificação neste período.</p>
           ) : (
             <table className={table}>
               <thead>

@@ -16,11 +16,24 @@ export function useTheme() {
   return ctx
 }
 
+// O tema escolhido fica guardado neste navegador (F5 e próximas visitas voltam nele). O
+// index.html aplica a classe antes do React subir, para a tela não piscar clara.
+const CHAVE_TEMA = 'smartline.tema'
+
+function temaGuardado(): Theme {
+  try {
+    return localStorage.getItem(CHAVE_TEMA) === 'dark' ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>(temaGuardado)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
+    try { localStorage.setItem(CHAVE_TEMA, theme) } catch { /* sem armazenamento: só não lembra */ }
   }, [theme])
 
   function toggleTheme() {

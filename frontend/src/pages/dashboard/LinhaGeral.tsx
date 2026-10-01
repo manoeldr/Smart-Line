@@ -3,7 +3,7 @@
 // Cada máquina entra com a sessão em andamento, senão a última do período — a mesma dos cards.
 import { useState } from 'react'
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import type { LinhaDashboardDto, MaquinaResumoLinhaDto, TempoParadoMaquinaDto } from '../../services/dashboardService'
 import { badgeCritica } from '../../styles/badges'
@@ -22,8 +22,20 @@ const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
   { valor: 'paradasHora', rotulo: 'Paradas por hora' },
 ]
 
-// Uma cor por máquina, na ordem da linha (diferentes das cores dos tipos de parada).
-const CORES_MAQUINA = ['#2563eb', '#14b8a6', '#8b5cf6', '#ec4899', '#84cc16', '#06b6d4', '#64748b', '#a16207']
+const CHAVE_GRAFICO = 'smartline.dashboard.graficoParadas'
+const CHAVE_OCULTAS = 'smartline.dashboard.maquinasOcultas'
+
+function lerGuardado(chave: string): string | null {
+  try { return localStorage.getItem(chave) } catch { return null }
+}
+
+function guardar(chave: string, valor: string) {
+  try { localStorage.setItem(chave, valor) } catch { /* sem armazenamento: só não lembra */ }
+}
+
+// Uma cor por máquina, na ordem da linha (paleta categórica validada para daltonismo; a cor
+// segue a máquina, não a posição no gráfico). A tabela abaixo repete os valores em texto.
+const CORES_MAQUINA = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
 
 function formatarHoras(ms: number) {
   const horas = Math.floor(ms / 3600000)
@@ -58,7 +70,26 @@ function minutosPorMaquina(porMaquina: TempoParadoMaquinaDto[]) {
 }
 
 export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
-  const [grafico, setGrafico] = useState<TipoGrafico>('paradasMotivo')
+  // Gráfico escolhido e máquinas escondidas (clicar no nome da legenda esconde/mostra) ficam
+  // guardados neste navegador: o F5 volta com eles.
+  const [grafico, setGraficoEstado] = useState<TipoGrafico>(() =>
+    lerGuardado(CHAVE_GRAFICO) === 'paradasHora' ? 'paradasHora' : 'paradasMotivo')
+  const [ocultas, setOcultas] = useState<Set<string>>(() => {
+    try { return new Set<string>(JSON.parse(lerGuardado(CHAVE_OCULTAS) ?? '[]')) } catch { return new Set() }
+  })
+
+  function setGrafico(tipo: TipoGrafico) {
+    setGraficoEstado(tipo)
+    guardar(CHAVE_GRAFICO, tipo)
+  }
+
+  function alternarMaquina(maquinaLinhaId: string) {
+    const novo = new Set(ocultas)
+    if (novo.has(maquinaLinhaId)) novo.delete(maquinaLinhaId)
+    else novo.add(maquinaLinhaId)
+    setOcultas(novo)
+    guardar(CHAVE_OCULTAS, JSON.stringify([...novo]))
+  }
 
   const cores = Object.fromEntries(dados.maquinas.map((m, i) => [m.maquinaLinhaId, CORES_MAQUINA[i % CORES_MAQUINA.length]]))
   // Só as máquinas que pararam aparecem nos gráficos e na legenda.
@@ -130,8 +161,8 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
         </div>
         <div className={`h-72 ${areaGrafico}`}>
           {grafico === 'paradasMotivo'
-            ? <GraficoPorMotivo dados={dados} maquinas={maquinasComParada} cores={cores} />
-            : <GraficoPorHora dados={dados} maquinas={maquinasComParada} cores={cores} />}
+            ? <GraficoPorMotivo dados={dados} maquinas={maquinasComParada} cores={cores} ocultas={ocultas} onAlternar={alternarMaquina} />
+            : <GraficoPorHora dados={dados} maquinas={maquinasComParada} cores={cores} ocultas={ocultas} onAlternar={alternarMaquina} />}
         </div>
       </div>
       </div>
@@ -254,12 +285,25 @@ interface GraficoProps {
   dados: LinhaDashboardDto
   maquinas: MaquinaResumoLinhaDto[]
   cores: Record<string, string>
+  ocultas: Set<string>
+  onAlternar: (maquinaLinhaId: string) => void
+}
+
+// Legenda clicável: o nome da máquina esconde/mostra a série dela (escondida fica em cinza).
+function legendaClicavel(onAlternar: (maquinaLinhaId: string) => void) {
+  return {
+    wrapperStyle: { fontSize: 11, cursor: 'pointer', userSelect: 'none' as const },
+    onClick: (item: { dataKey?: unknown }) => {
+      if (typeof item.dataKey === 'string') onAlternar(item.dataKey)
+    },
+  }
 }
 
 const semParadas = <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nas máquinas da linha</p>
 
-// Tempo parado por motivo (maior primeiro), somado das máquinas e empilhado por máquina.
-function GraficoPorMotivo({ dados, maquinas, cores }: GraficoProps) {
+// Tempo parado por motivo (maior primeiro), uma barra por máquina lado a lado: o tamanho de
+// cada barra é o tempo daquela máquina (empilhado dava a entender que a última parou o total).
+function GraficoPorMotivo({ dados, maquinas, cores, ocultas, onAlternar }: GraficoProps) {
   if (dados.paradasPorMotivo.length === 0) return semParadas
 
   const linhas = dados.paradasPorMotivo.map(m => ({
@@ -270,22 +314,22 @@ function GraficoPorMotivo({ dados, maquinas, cores }: GraficoProps) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={linhas} layout="vertical" accessibilityLayer={false} margin={{ left: 8, right: 24 }}>
+      <BarChart data={linhas} layout="vertical" accessibilityLayer={false} margin={{ left: 8, right: 24 }} barGap={2}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 10 }} unit=" min" />
         <YAxis type="category" dataKey="motivo" width={170} interval={0} tick={{ fontSize: 10 }} />
-        <Tooltip formatter={valor => `${valor} min`} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Tooltip formatter={valor => `${valor} min`} cursor={{ fill: 'rgba(161, 161, 170, 0.12)' }} />
+        <Legend {...legendaClicavel(onAlternar)} />
         {maquinas.map(m => (
-          <Bar key={m.maquinaLinhaId} dataKey={m.maquinaLinhaId} name={m.nome} stackId="maquinas" fill={cores[m.maquinaLinhaId]} />
+          <Bar key={m.maquinaLinhaId} dataKey={m.maquinaLinhaId} name={m.nome} fill={cores[m.maquinaLinhaId]} radius={[0, 4, 4, 0]} maxBarSize={14} hide={ocultas.has(m.maquinaLinhaId)} />
         ))}
       </BarChart>
     </ResponsiveContainer>
   )
 }
 
-// Minutos parados em cada hora (a hora 14:00 = das 14:00 às 14:59), empilhados por máquina.
-function GraficoPorHora({ dados, maquinas, cores }: GraficoProps) {
+// Minutos parados em cada hora (a hora 14:00 = das 14:00 às 14:59), uma linha por máquina.
+function GraficoPorHora({ dados, maquinas, cores, ocultas, onAlternar }: GraficoProps) {
   if (dados.paradasPorHora.length === 0) return semParadas
 
   const linhas = dados.paradasPorHora.map(h => ({
@@ -295,16 +339,26 @@ function GraficoPorHora({ dados, maquinas, cores }: GraficoProps) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={linhas} accessibilityLayer={false}>
+      <LineChart data={linhas} accessibilityLayer={false} margin={{ right: 12 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
         <XAxis dataKey="hora" interval={0} tick={{ fontSize: 10 }} />
-        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} />
+        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} allowDecimals={false} />
         <Tooltip formatter={valor => `${valor} min`} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Legend {...legendaClicavel(onAlternar)} />
         {maquinas.map(m => (
-          <Bar key={m.maquinaLinhaId} dataKey={m.maquinaLinhaId} name={m.nome} stackId="maquinas" fill={cores[m.maquinaLinhaId]} />
+          <Line
+            hide={ocultas.has(m.maquinaLinhaId)}
+            key={m.maquinaLinhaId}
+            dataKey={m.maquinaLinhaId}
+            name={m.nome}
+            type="monotone"
+            stroke={cores[m.maquinaLinhaId]}
+            strokeWidth={2}
+            dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
+            activeDot={{ r: 5 }}
+          />
         ))}
-      </BarChart>
+      </LineChart>
     </ResponsiveContainer>
   )
 }

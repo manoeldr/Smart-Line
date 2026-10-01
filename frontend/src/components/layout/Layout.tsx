@@ -8,6 +8,7 @@ import Watcher from '../SessaoGlobal/Watcher'
 import { clienteService } from '../../services/clienteService'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Cliente } from '../../types'
+import { useManterRolagem } from '../../hooks/useManterRolagem'
 
 export default function Layout() {
   const { usuario, clienteId, setClienteId } = useAuth()
@@ -18,6 +19,9 @@ export default function Layout() {
   const [clienteAtual, setClienteAtual] = useState<Cliente | null>(null)
   const [filtroAnchor, setFiltroAnchor] = useState<RefObject<HTMLButtonElement | null> | null>(null)
   const seletorAnchorRef = useRef<HTMLButtonElement>(null)
+  // Área que rola: o F5 volta na mesma posição
+  const areaRolagemRef = useRef<HTMLDivElement>(null)
+  useManterRolagem(areaRolagemRef)
   const datasComSessao: string[] = []
 
   useEffect(() => {
@@ -57,7 +61,7 @@ export default function Layout() {
           onOpenFiltro={handleOpenFiltro}
           onOpenSeletor={() => setSeletorOpen(prev => !prev)}
         />
-        <div className="flex-1 overflow-y-auto">
+        <div ref={areaRolagemRef} className="flex-1 overflow-y-auto">
           <Outlet context={{ dataFiltro, setDataFiltro, filtroOpen, setFiltroOpen }} />
         </div>
       </main>
