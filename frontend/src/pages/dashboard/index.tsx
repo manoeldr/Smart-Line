@@ -11,6 +11,7 @@ import type { Linha } from '../../types'
 import MaquinaDashboardCard from './MaquinaDashboardCard'
 import LinhaGeral from './LinhaGeral'
 import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
 
@@ -66,8 +67,8 @@ export default function Dashboard() {
   const [erro, setErro] = useState<string | null>(null)
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null)
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [maquinaLinhaSelecionada, setMaquinaLinhaSelecionada] = useState<string | null>(null)
+  // Máquina com o detalhe aberto: fica na URL (?maquina=) para o F5 reabrir o modal.
+  const [maquinaLinhaSelecionada, setMaquinaLinhaSelecionada] = useParametroUrl('maquina')
 
   useEffect(() => {
     if (!clienteId) return
@@ -133,7 +134,6 @@ export default function Dashboard() {
 
   function abrirDetalhe(maquinaLinhaId: string) {
     setMaquinaLinhaSelecionada(maquinaLinhaId)
-    setModalOpen(true)
   }
 
   return (
@@ -213,9 +213,9 @@ export default function Dashboard() {
       )}
 
       <MaquinaDetalheModal
-        open={modalOpen}
+        open={maquinaLinhaSelecionada !== null}
         maquinaLinhaId={maquinaLinhaSelecionada}
-        onFechar={() => setModalOpen(false)}
+        onFechar={() => setMaquinaLinhaSelecionada(null)}
       />
     </div>
   )

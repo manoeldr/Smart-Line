@@ -1,6 +1,7 @@
 // Aba "Usuários" da tela de Configurações — acesso exclusivo do Administrador/Desenvolvedor.
 // CRUD completo: nome, login, senha, nível de acesso e cliente vinculado (opcional).
 import { useEffect, useState } from 'react'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { configuracaoService, type UsuarioConfDto } from '../../services/configuracaoService'
 import type { ClienteConfDto } from '../../services/configuracaoService'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -18,13 +19,24 @@ export default function AbaUsuarios() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<UsuarioConfDto | null>(null)
+  // Usuário em edição na URL (?editar=) para o F5 reabrir o modal.
+  const [, setEditarId] = useParametroUrl('editar')
   const [form, setForm] = useState({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '' })
   const [salvando, setSalvando] = useState(false)
 
   // Confirmação de desativação (substitui o confirm() nativo do navegador)
   const [usuarioParaDeletar, setUsuarioParaDeletar] = useState<string | null>(null)
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    carregar().then(lista => {
+      const id = new URLSearchParams(window.location.search).get('editar')
+      const u = id ? lista.find(x => x.id === id) : undefined
+      if (u) abrirEditar(u)
+      else if (id) setEditarId(null)
+    })
+    // Só ao abrir a aba: reabre o modal que estava aberto antes do F5.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function carregar() {
     setLoading(true)
@@ -35,7 +47,13 @@ export default function AbaUsuarios() {
       ])
       setUsuarios(u)
       setClientes(c)
+      return u
     } finally { setLoading(false) }
+  }
+
+  function fecharModal() {
+    setModalOpen(false)
+    setEditarId(null)
   }
 
   function abrirNovo() {
@@ -48,6 +66,7 @@ export default function AbaUsuarios() {
     setEditando(u)
     setForm({ nome: u.nome, login: u.login, senha: '', nivel: u.nivel, clienteId: u.clienteId ?? '' })
     setModalOpen(true)
+    setEditarId(u.id)
   }
 
   async function salvar() {
@@ -66,7 +85,7 @@ export default function AbaUsuarios() {
       } else {
         await configuracaoService.criarUsuario(data)
       }
-      setModalOpen(false)
+      fecharModal()
       await carregar()
     } finally { setSalvando(false) }
   }
@@ -135,7 +154,7 @@ export default function AbaUsuarios() {
               <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {editando ? 'Editar usuário' : 'Novo usuário'}
               </p>
-              <button onClick={() => setModalOpen(false)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+              <button onClick={fecharModal} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -167,7 +186,7 @@ export default function AbaUsuarios() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalOpen(false)} className={btnSecondarySm}>Cancelar</button>
+              <button onClick={fecharModal} className={btnSecondarySm}>Cancelar</button>
               <button onClick={salvar} disabled={!form.nome || !form.login || (!editando && !form.senha) || salvando} className={btnPrimary}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>

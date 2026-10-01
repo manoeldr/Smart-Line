@@ -3,6 +3,7 @@
 // Ao clicar em editar, abre o ConfiguracaoMaquinaModal com abas de Manual/Semi/Automático,
 // onde ficam os campos de coleta e motivos de parada daquela máquina.
 import { useEffect, useState } from 'react'
+import { useAlterarUrl, useParametroUrl } from '../../hooks/useParametroUrl'
 import { configuracaoService, type MaquinaConfDto } from '../../services/configuracaoService'
 import ConfiguracaoMaquinaModal from '../../modals/ConfiguracaoMaquinaModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -15,16 +16,31 @@ export default function AbaMaquinas() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<MaquinaConfDto | null>(null)
+  // Máquina em edição na URL (?editar=) para o F5 reabrir o modal.
+  const [, setEditarId] = useParametroUrl('editar')
+  const alterarUrl = useAlterarUrl()
 
   // Confirmação de desativação (substitui o confirm() nativo do navegador)
   const [maquinaParaDeletar, setMaquinaParaDeletar] = useState<string | null>(null)
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    carregar().then(lista => {
+      const id = new URLSearchParams(window.location.search).get('editar')
+      const m = id ? lista.find(x => x.id === id) : undefined
+      if (m) abrirEditar(m)
+      else if (id) setEditarId(null)
+    })
+    // Só ao abrir a aba: reabre o modal que estava aberto antes do F5.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function carregar() {
     setLoading(true)
-    try { setMaquinas(await configuracaoService.getMaquinas()) }
-    finally { setLoading(false) }
+    try {
+      const lista = await configuracaoService.getMaquinas()
+      setMaquinas(lista)
+      return lista
+    } finally { setLoading(false) }
   }
 
   function abrirNovo() {
@@ -35,6 +51,12 @@ export default function AbaMaquinas() {
   function abrirEditar(m: MaquinaConfDto) {
     setEditando(m)
     setModalOpen(true)
+    setEditarId(m.id)
+  }
+
+  function fecharModal() {
+    setModalOpen(false)
+    alterarUrl({ editar: null, abaMaquina: null })
   }
 
   async function confirmarDeletar() {
@@ -93,7 +115,7 @@ export default function AbaMaquinas() {
       <ConfiguracaoMaquinaModal
         open={modalOpen}
         maquina={editando}
-        onFechar={() => setModalOpen(false)}
+        onFechar={fecharModal}
         onSalvo={carregar}
       />
 

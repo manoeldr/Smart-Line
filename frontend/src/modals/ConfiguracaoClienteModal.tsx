@@ -15,6 +15,7 @@ import { configuracaoService, type ClienteConfDto, type LinhaConfDto, type Maqui
 import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linhaMaquinaService'
 import ConfirmModal from '../components/ConfirmModal'
 import MaquinaLinhaSemiModal from './MaquinaLinhaSemiModal'
+import { useAlterarUrl } from '../hooks/useParametroUrl'
 import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
 import { inputBase, label, checkbox } from '../styles/inputs'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
@@ -122,7 +123,18 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
 
   // Semi Automático de uma máquina já salva na linha (grava na hora, pelo próprio modal)
-  const [semiItem, setSemiItem] = useState<MaquinaLinhaStaged | null>(null)
+  const [semiItem, setSemiItemEstado] = useState<MaquinaLinhaStaged | null>(null)
+
+  // Linha expandida e "Semi Auto" aberto ficam na URL (?linha=, ?semi=) para o F5 reabri-los.
+  const alterarUrl = useAlterarUrl()
+  function setSemiItem(item: MaquinaLinhaStaged | null) {
+    setSemiItemEstado(item)
+    alterarUrl({ semi: item?.id ?? null })
+  }
+  function fechar() {
+    alterarUrl({ linha: null, semi: null })
+    onFechar()
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -142,8 +154,29 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       const todas = await configuracaoService.getLinhas()
       const doCliente = todas.filter(l => l.clienteId === cliente.id && l.ativo)
       setLinhas(doCliente.map(l => ({ ...l, isNew: false, isDeleted: false })))
+
+      // Depois do F5: expande de novo a linha que estava aberta e reabre o "Semi Auto".
+      const url = new URLSearchParams(window.location.search)
+      const linhaUrl = doCliente.find(l => l.id === url.get('linha'))
+      if (linhaUrl) await expandirLinha(linhaUrl.id, url.get('semi'))
+      else alterarUrl({ linha: null, semi: null })
     } finally {
       setLoadingLinhas(false)
+    }
+  }
+
+  // Expande uma linha que já existe no banco, carregando as máquinas dela (e reabre o "Semi Auto").
+  async function expandirLinha(linhaId: string, semiId: string | null) {
+    setLinhaExpandida(linhaId)
+    setLoadingMaquinas(linhaId)
+    try {
+      const maquinas = (await linhaMaquinaService.getMaquinas(linhaId)).map(m => ({ ...m, isNew: false, isDeleted: false }))
+      setMaquinasPorLinha(prev => ({ ...prev, [linhaId]: maquinas }))
+      const item = semiId ? maquinas.find(m => m.id === semiId) : undefined
+      if (item) setSemiItemEstado(item)
+      else if (semiId) alterarUrl({ semi: null })
+    } finally {
+      setLoadingMaquinas(null)
     }
   }
 
@@ -151,9 +184,11 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   async function toggleExpandirLinha(linha: LinhaStaged) {
     if (linhaExpandida === linha.id) {
       setLinhaExpandida(null)
+      alterarUrl({ linha: null })
       return
     }
     setLinhaExpandida(linha.id)
+    alterarUrl({ linha: linha.isNew ? null : linha.id })
     if (!maquinasPorLinha[linha.id]) {
       if (linha.isNew) {
         setMaquinasPorLinha(prev => ({ ...prev, [linha.id]: [] }))
@@ -323,7 +358,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       }
 
       onSalvo()
-      onFechar()
+      fechar()
     } finally {
       salvandoRef.current = false
       setSalvando(false)
@@ -343,7 +378,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
             <p className={modalTitle}>
               {somenteLinhas ? cliente.nome : 'Editar cliente'}
             </p>
-            <button onClick={onFechar} disabled={salvando} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40">
+            <button onClick={fechar} disabled={salvando} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -453,7 +488,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
           </div>
 
           <div className={modalFooter}>
-            <button onClick={onFechar} disabled={salvando} className={btnSecondarySm}>
+            <button onClick={fechar} disabled={salvando} className={btnSecondarySm}>
               Cancelar
             </button>
             <button onClick={salvarTudo} disabled={(!somenteLinhas && !form.nome) || salvando} className={btnPrimary}>

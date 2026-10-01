@@ -1,7 +1,7 @@
 // Tela de Configurações — navegação por abas.
 // Visibilidade das abas por nível: Administrador e Desenvolvedor veem tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
 // Dispositivos IoT (WISE do Semi Automático) é só Administrador e Desenvolvedor, como no backend.
-import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
 import AbaClientes from './AbaClientes'
@@ -16,10 +16,8 @@ export default function Configuracao() {
   const { usuario } = useAuth()
   const nivel = usuario?.nivel ?? ''
 
-  const [abaAtiva, setAbaAtiva] = useState<Aba>(() => {
-    if (nivel === 'Auditor') return 'clientes'
-    return 'usuarios'
-  })
+  // Aba na URL (?aba=) para o F5 voltar nela. Trocar de aba limpa o resto (modais da outra aba).
+  const [params, setParams] = useSearchParams()
 
   const abas: { id: Aba; label: string; niveis: string[] }[] = [
     { id: 'usuarios', label: 'Usuários', niveis: ['Administrador', 'Desenvolvedor'] },
@@ -30,6 +28,9 @@ export default function Configuracao() {
   ]
 
   const abasVisiveis = abas.filter(a => a.niveis.includes(nivel))
+  const abaUrl = params.get('aba')
+  const abaAtiva: Aba = abasVisiveis.find(a => a.id === abaUrl)?.id ?? (nivel === 'Auditor' ? 'clientes' : 'usuarios')
+  const setAbaAtiva = (aba: Aba) => setParams({ aba }, { replace: true })
 
   if (abasVisiveis.length === 0) {
     return (

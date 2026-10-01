@@ -15,6 +15,7 @@ import PainelColetaIot from '../components/iot/PainelColetaIot'
 import EditarMotivoParadaModal from './EditarMotivoParadaModal'
 import HistoricoParadaModal from './HistoricoParadaModal'
 import { useAuth } from '../contexts/AuthContext'
+import { useParametroUrl } from '../hooks/useParametroUrl'
 
 interface Props {
   open: boolean
@@ -76,8 +77,16 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
   // Editar o motivo de uma parada da linha do tempo (Manual ou Semi Automático) e ver o histórico
   const { usuario } = useAuth()
   const podeEditarMotivo = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(usuario?.nivel ?? '')
-  const [editandoParada, setEditandoParada] = useState<string | null>(null)
-  const [historicoParada, setHistoricoParada] = useState<string | null>(null)
+  // Na URL (?editarParada=, ?historicoParada=) para o F5 reabrir junto com o detalhe.
+  const [editandoParada, setEditandoParada] = useParametroUrl('editarParada')
+  const [historicoParada, setHistoricoParada] = useParametroUrl('historicoParada')
+
+  // Fechar o detalhe fecha também o que estava aberto dentro dele.
+  function fechar() {
+    setEditandoParada(null)
+    setHistoricoParada(null)
+    onFechar()
+  }
   const [recarregar, setRecarregar] = useState(0)
 
   // Máquina cujos dados estão na tela: "Carregando..." só ao abrir (ou trocar de máquina).
@@ -199,7 +208,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
               </p>
             )}
           </div>
-          <button onClick={onFechar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <button onClick={fechar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -208,7 +217,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
         {maquinaLinhaId && (
           <PainelColetaIot
             maquinaLinhaId={maquinaLinhaId}
-            onFinalizada={() => { onColetaFinalizada?.(); onFechar() }}
+            onFinalizada={() => { onColetaFinalizada?.(); fechar() }}
           />
         )}
 

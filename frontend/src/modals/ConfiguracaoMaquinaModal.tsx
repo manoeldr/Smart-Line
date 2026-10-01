@@ -4,6 +4,7 @@
 // com a configuração específica de cada modo de coleta.
 // Segue o padrão "staged changes": campos e motivos só são persistidos no banco ao clicar em Salvar.
 import { useState, useEffect, useRef } from 'react'
+import { useParametroUrl } from '../hooks/useParametroUrl'
 import { configuracaoService, type MaquinaConfDto, type CampoMaquinaDto } from '../services/configuracaoService'
 import { maquinaService, type MotivoParadaDto } from '../services/maquinaService'
 import ConfirmModal from '../components/ConfirmModal'
@@ -44,7 +45,10 @@ interface MotivoStaged extends MotivoParadaDto {
 type AcaoPendente = { tipo: 'campo'; id: string } | { tipo: 'motivo'; id: string } | null
 
 export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSalvo }: Props) {
-  const [abaModal, setAbaModal] = useState<AbaModal>('manual')
+  // Aba na URL (?abaMaquina=) para o F5 voltar nela; quem fecha o modal limpa (AbaMaquinas).
+  const [abaUrl, setAbaUrl] = useParametroUrl('abaMaquina')
+  const abaModal: AbaModal = abaUrl === 'semi' || abaUrl === 'auto' ? abaUrl : 'manual'
+  const setAbaModal = (a: AbaModal) => setAbaUrl(a === 'manual' ? null : a)
   const [form, setForm] = useState({
     nome: maquina?.nome ?? '',
     descricao: maquina?.descricao ?? ''

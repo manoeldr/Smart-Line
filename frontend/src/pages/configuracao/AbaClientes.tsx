@@ -2,6 +2,7 @@
 // Administrador/Desenvolvedor: CRUD completo de clientes.
 // Auditor: visão restrita, só pode gerenciar as Linhas dentro do modal (não edita nome/estado nem cria/exclui clientes).
 import { useEffect, useState } from 'react'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { useAuth } from '../../contexts/AuthContext'
 import { configuracaoService, type ClienteConfDto } from '../../services/configuracaoService'
 import ConfiguracaoClienteModal from '../../modals/ConfiguracaoClienteModal'
@@ -30,16 +31,30 @@ export default function AbaClientes() {
   // Modal completo de edição (dados + linhas + máquinas) — ConfiguracaoClienteModal
   const [modalEditarOpen, setModalEditarOpen] = useState(false)
   const [editando, setEditando] = useState<ClienteConfDto | null>(null)
+  // Cliente em edição na URL (?editar=) para o F5 reabrir o modal.
+  const [, setEditarId] = useParametroUrl('editar')
 
   // Confirmação de desativação (substitui o confirm() nativo do navegador)
   const [clienteParaDeletar, setClienteParaDeletar] = useState<string | null>(null)
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    carregar().then(lista => {
+      const id = new URLSearchParams(window.location.search).get('editar')
+      const c = id ? lista.find(x => x.id === id) : undefined
+      if (c) abrirEditar(c)
+      else if (id) setEditarId(null)
+    })
+    // Só ao abrir a aba: reabre o modal que estava aberto antes do F5.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function carregar() {
     setLoading(true)
-    try { setClientes(await configuracaoService.getClientes()) }
-    finally { setLoading(false) }
+    try {
+      const lista = await configuracaoService.getClientes()
+      setClientes(lista)
+      return lista
+    } finally { setLoading(false) }
   }
 
   function abrirNovo() {
@@ -50,6 +65,7 @@ export default function AbaClientes() {
   function abrirEditar(c: ClienteConfDto) {
     setEditando(c)
     setModalEditarOpen(true)
+    setEditarId(c.id)
   }
 
   async function salvarNovo() {
@@ -163,7 +179,7 @@ export default function AbaClientes() {
         open={modalEditarOpen}
         cliente={editando}
         somenteLinhas={somenteLinhas}
-        onFechar={() => setModalEditarOpen(false)}
+        onFechar={() => { setModalEditarOpen(false); setEditarId(null) }}
         onSalvo={carregar}
       />
 

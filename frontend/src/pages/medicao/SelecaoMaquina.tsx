@@ -12,6 +12,7 @@ import { configuracaoService, type CampoMaquinaDto } from '../../services/config
 import type { Linha, MaquinaLinha } from '../../types'
 import Switch from '../../components/Switch'
 import ConfigurarSemiAuto from './ConfigurarSemiAuto'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { btnPrimary, btnSecondarySm, btnToggle } from '../../styles/buttons'
 import { inputMdFull, label } from '../../styles/inputs'
 import { modalOverlay, modalPanel, modalHeader, modalTitle, modalSubtitle, modalBody, modalFooter } from '../../styles/modals'
@@ -41,7 +42,10 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const [linhaSelecionada, setLinhaSelecionada] = useState<Linha | null>(null)
   const [maquinaSelecionada, setMaquinaSelecionada] = useState<MaquinaLinha | null>(null)
   const [loadingLinhas, setLoadingLinhas] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
+  // "Configurar medição" aberto fica na URL (?configurar=<máquina>) para o F5 reabri-lo.
+  const [configurarUrl, setConfigurarUrl] = useParametroUrl('configurar')
+  const modalOpen = configurarUrl !== null && maquinaSelecionada?.id === configurarUrl
+  const setModalOpen = (aberto: boolean) => setConfigurarUrl(aberto && maquinaSelecionada ? maquinaSelecionada.id : null)
   const [recarregar, setRecarregar] = useState(0)
   const [sucesso, setSucesso] = useState<string | null>(null)
 
@@ -65,12 +69,26 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
       try {
         const data = await linhaService.getLinhasByCliente(clienteId!)
         setLinhas(data)
+
+        // Depois do F5 com o "Configurar medição" aberto: seleciona a linha e a máquina de novo
+        // (o modal reabre sozinho). Se a máquina já está em medição, só fecha.
+        const configurar = new URLSearchParams(window.location.search).get('configurar')
+        if (configurar) {
+          const linha = data.find(l => l.maquinas.some(m => m.id === configurar))
+          const maquina = linha?.maquinas.find(m => m.id === configurar)
+          if (linha && maquina && !maquina.sessaoAtiva) {
+            setLinhaSelecionada(linha)
+            selecionarMaquina(maquina)
+          } else {
+            setConfigurarUrl(null)
+          }
+        }
       } finally {
         setLoadingLinhas(false)
       }
     }
     carregar()
-  }, [clienteId, recarregar])
+  }, [clienteId, recarregar, setConfigurarUrl])
 
   function handleLinhaChange(linhaId: string) {
     const linha = linhas.find(l => l.id === linhaId) ?? null
@@ -78,8 +96,11 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setMaquinaSelecionada(null)
   }
 
-  async function handleMaquinaChange(maquinaId: string) {
-    const maquina = linhaSelecionada?.maquinas.find(m => m.id === maquinaId) ?? null
+  function handleMaquinaChange(maquinaId: string) {
+    selecionarMaquina(linhaSelecionada?.maquinas.find(m => m.id === maquinaId) ?? null)
+  }
+
+  async function selecionarMaquina(maquina: MaquinaLinha | null) {
     setMaquinaSelecionada(maquina)
     if (maquina) {
       // Velocidade nominal vem pré-preenchida da configuração da linha, mas é editável aqui

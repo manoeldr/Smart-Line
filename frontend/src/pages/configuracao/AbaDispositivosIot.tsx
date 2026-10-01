@@ -6,6 +6,7 @@
 // mesmo assim (ex.: WISE que ainda vai ser instalado). Abaixo da lista, os WISE que estão
 // publicando sem estar cadastrados. No topo, a situação do broker. Atualiza a cada 5 s.
 import { useEffect, useState } from 'react'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { dispositivoIotService, type ResultadoPingDto, type StatusColetaIotDto, type WiseDto } from '../../services/dispositivoIotService'
 import { mensagemErro } from '../../services/api'
 import ValidarEntradasModal from '../../modals/ValidarEntradasModal'
@@ -47,9 +48,10 @@ export default function AbaDispositivosIot() {
   const [erroAdicionar, setErroAdicionar] = useState<string | null>(null)
   const [adicionado, setAdicionado] = useState<string | null>(null)
 
-  const [validando, setValidando] = useState<string | null>(null)
-  const [pingando, setPingando] = useState<string | null>(null)
-  const [editando, setEditando] = useState<WiseDto | null>(null)
+  // Modais abertos na URL (?validar=, ?ping=, ?editar= com o IP) para o F5 reabri-los.
+  const [validando, setValidando] = useParametroUrl('validar')
+  const [pingando, setPingando] = useParametroUrl('ping')
+  const [editarIp, setEditarIp] = useParametroUrl('editar')
   const [removendo, setRemovendo] = useState<WiseDto | null>(null)
   const [erroRemover, setErroRemover] = useState<string | null>(null)
 
@@ -74,6 +76,8 @@ export default function AbaDispositivosIot() {
   }, [recarregar])
 
   const cadastrados = wises.filter(w => w.cadastrado)
+  const editando = editarIp ? cadastrados.find(w => w.enderecoIp === editarIp) ?? null : null
+  const setEditando = (w: WiseDto | null) => setEditarIp(w?.enderecoIp ?? null)
   const semCadastro = wises.filter(w => !w.cadastrado)
 
   const ipNovoTexto = novoIp.trim()

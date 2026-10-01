@@ -18,6 +18,7 @@ import { coletaIotService } from '../../services/coletaIotService'
 import { mensagemErro } from '../../services/api'
 import { paradaColetaService } from '../../services/paradaColetaService'
 import ParadasSemMotivoModal from '../../modals/ParadasSemMotivoModal'
+import { useParametroUrl } from '../../hooks/useParametroUrl'
 
 interface OutletContext {
   dataFiltro: string | null
@@ -53,12 +54,15 @@ export default function Overview() {
   const [erroAcao, setErroAcao] = useState<string | null>(null)
 
   // Detalhe da máquina clicada
-  const [detalhe, setDetalhe] = useState<string | null>(null)
+  // Modais abertos ficam na URL (?maquina=, ?semMotivo=1) para o F5 reabri-los.
+  const [detalhe, setDetalhe] = useParametroUrl('maquina')
   const [recarregar, setRecarregar] = useState(0)
 
   // Paradas das coletas automáticas sem motivo nos últimos 7 dias (botão no topo)
   const [semMotivo, setSemMotivo] = useState(0)
-  const [semMotivoAberto, setSemMotivoAberto] = useState(false)
+  const [semMotivoUrl, setSemMotivoUrl] = useParametroUrl('semMotivo')
+  const semMotivoAberto = semMotivoUrl === '1'
+  const setSemMotivoAberto = (aberto: boolean) => setSemMotivoUrl(aberto ? '1' : null)
 
   useEffect(() => {
     if (!clienteId) return
