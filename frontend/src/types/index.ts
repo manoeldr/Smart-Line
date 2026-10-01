@@ -51,6 +51,8 @@ export interface MaquinaLinha {
   // IP do WISE da coleta Semi Automática em andamento (nulo sem coleta)
   enderecoIpWise?: string | null
   situacaoColeta?: 'Rodando' | 'Parada' | 'SemComunicacao' | 'AguardandoPrimeiraAmostra' | null
+  // Coleta automática sem comunicação: há quantos minutos (a API calcula a cada atualização)
+  semComunicacaoMinutos?: number | null
   wiseConectado?: boolean | null
 }
 

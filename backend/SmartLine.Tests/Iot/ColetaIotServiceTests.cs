@@ -213,8 +213,12 @@ public class ColetaIotServiceTests : IAsyncLifetime
         Enviar(AmbienteColetaIot.IpA, 300, s2: 1500);
         await Aguardar();
 
+        // O feito com o backend fora vai já para uma leitura marcada "sem comunicação" (fora do
+        // OEE, cinza no gráfico), não para o pendente da consolidação.
         var s = _amb.Servico.Situacao(_amb.MaquinaA)!;
-        Assert.Equal((SituacaoMaquina.Rodando, 500L), (s.Situacao, s.ProducaoPendente.Garrafas));
+        Assert.Equal((SituacaoMaquina.Rodando, 0L), (s.Situacao, s.ProducaoPendente.Garrafas));
+        var leitura = AmbienteColetaIot.UltimaLeitura(Assert.Single(_amb.Sessoes(acompanhamento)));
+        Assert.Equal((500, Em(300), true), (leitura.Quantidade, leitura.Hora, leitura.SemComunicacao));
         var periodo = Assert.Single(_amb.Periodos(_amb.MaquinaA));
         Assert.Equal((Em(10), Em(300)), (periodo.Inicio, periodo.Fim!.Value));
     }

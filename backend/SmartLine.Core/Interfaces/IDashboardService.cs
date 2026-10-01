@@ -22,6 +22,7 @@ public interface IDashboardService
 /// <param name="RefugoTotal">Refugo somado de todas as máquinas.</param>
 /// <param name="TempoParadoTotalMs">Tempo parado somado de todas as máquinas (a parada em curso conta até agora).</param>
 /// <param name="NumParadas">Paradas somadas de todas as máquinas.</param>
+/// <param name="ProducaoPorHora">Gráfico de produção da máquina de referência (o mesmo do detalhe dela).</param>
 public record LinhaDashboardDto(
     string? MaquinaReferencia,
     bool ReferenciaCritica,
@@ -35,7 +36,8 @@ public record LinhaDashboardDto(
     int NumParadas,
     IList<MaquinaResumoLinhaDto> Maquinas,
     IList<ParadaLinhaPorMotivoDto> ParadasPorMotivo,
-    IList<ParadaLinhaPorHoraDto> ParadasPorHora
+    IList<ParadaLinhaPorHoraDto> ParadasPorHora,
+    IList<PontoProducaoDto> ProducaoPorHora
 );
 
 /// <summary>Uma máquina na visão da linha (sem sessão no período: tudo zero).</summary>

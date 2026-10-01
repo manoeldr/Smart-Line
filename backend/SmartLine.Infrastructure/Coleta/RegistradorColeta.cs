@@ -10,8 +10,9 @@ namespace SmartLine.Infrastructure.Coleta;
 
 /// <summary>
 /// Paradas, comunicação, produção consolidada e virada do dia.
-/// Em <see cref="RegistrarAsync"/>, <see cref="ProducaoApurada"/> é ignorada:
+/// Em <see cref="RegistrarAsync"/>, a <see cref="ProducaoApurada"/> normal é ignorada:
 /// o serviço de coleta soma em memória e grava por <see cref="ConsolidarProducaoAsync"/>.
+/// A feita sem comunicação (apurada na volta) é gravada já, numa leitura marcada.
 /// <see cref="ContadorReiniciado"/> é só diagnóstico.
 /// </summary>
 public class RegistradorColeta : IRegistradorColeta
@@ -31,8 +32,12 @@ public class RegistradorColeta : IRegistradorColeta
         if (!eventos.Any(Relevante))
             return;
 
-        var sessao = await _context.Sessoes
-            .Include(s => s.Paradas)
+        // Produção feita sem comunicação: gravada já na volta, numa leitura própria.
+        var comProducao = eventos.Any(e => e is ProducaoApurada { SemComunicacao: true });
+        IQueryable<Sessao> consulta = _context.Sessoes.Include(s => s.Paradas);
+        if (comProducao)
+            consulta = consulta.Include(s => s.Producoes);
+        var sessao = await consulta
             .FirstOrDefaultAsync(s => s.AcompanhamentoId == acompanhamentoId
                                       && s.Status == StatusSessao.EmAndamento, cancellationToken);
         if (sessao is null)
@@ -61,7 +66,13 @@ public class RegistradorColeta : IRegistradorColeta
                     break;
 
                 case ComunicacaoRestabelecida e:
-                    await FecharPeriodoSemComunicacaoAsync(sessao.MaquinaLinhaId, e.InstanteUtc, cancellationToken);
+                    await FecharPeriodoSemComunicacaoAsync(sessao.MaquinaLinhaId, e.InstanteUtc, e.ProducaoNaoRecuperada, cancellationToken);
+                    break;
+
+                case ProducaoApurada { SemComunicacao: true } p:
+                    // À parte da produção normal (que segue no pendente até a consolidação): o
+                    // gráfico mostra em cinza e o OEE não conta.
+                    GravarLeitura(sessao, p.InstanteUtc, new ProducaoPendente(p.Garrafas, p.Rejeito), semComunicacao: true);
                     break;
             }
         }
@@ -177,7 +188,7 @@ public class RegistradorColeta : IRegistradorColeta
     /// Nova leitura com o total da sessão (última + pendente), como o Manual
     /// grava o valor do contador. O OEE faz última − inicial.
     /// </summary>
-    private void GravarLeitura(Sessao sessao, DateTime instante, ProducaoPendente pendente)
+    private void GravarLeitura(Sessao sessao, DateTime instante, ProducaoPendente pendente, bool semComunicacao = false)
     {
         if (pendente.Vazia)
             return;
@@ -191,7 +202,8 @@ public class RegistradorColeta : IRegistradorColeta
             Refugo = Somar(ultima?.Refugo ?? 0, pendente.Rejeito),
             // Duas gravações no mesmo instante (ex.: consolidação e virada juntas) somariam
             // leituras com a mesma hora; empurra 1 ms para manter a ordem sem ambiguidade.
-            Hora = ultima is not null && instante <= ultima.Hora ? ultima.Hora.AddMilliseconds(1) : instante
+            Hora = ultima is not null && instante <= ultima.Hora ? ultima.Hora.AddMilliseconds(1) : instante,
+            SemComunicacao = semComunicacao
         };
         sessao.Producoes.Add(leitura);
         _context.Producoes.Add(leitura);
@@ -225,7 +237,8 @@ public class RegistradorColeta : IRegistradorColeta
 
     private static bool Relevante(EventoColeta e) =>
         e is ParadaIniciada or ParadaReclassificada or ParadaEncerrada
-            or ComunicacaoPerdida or ComunicacaoRestabelecida;
+            or ComunicacaoPerdida or ComunicacaoRestabelecida
+            or ProducaoApurada { SemComunicacao: true };
 
     private Parada AbrirParada(Sessao sessao, DateTime instante, ClassificacaoParada classificacao, bool historicoDoSistema = true)
     {
@@ -314,11 +327,13 @@ public class RegistradorColeta : IRegistradorColeta
         });
     }
 
-    private async Task FecharPeriodoSemComunicacaoAsync(Guid maquinaLinhaId, DateTime fim, CancellationToken cancellationToken)
+    private async Task FecharPeriodoSemComunicacaoAsync(Guid maquinaLinhaId, DateTime fim, bool producaoNaoRecuperada, CancellationToken cancellationToken)
     {
         var aberto = await PeriodoAbertoAsync(maquinaLinhaId, cancellationToken);
-        if (aberto is not null)
-            aberto.Fim = fim < aberto.Inicio ? aberto.Inicio : fim;
+        if (aberto is null)
+            return;
+        aberto.Fim = fim < aberto.Inicio ? aberto.Inicio : fim;
+        aberto.ProducaoNaoRecuperada |= producaoNaoRecuperada;
     }
 
     /// <summary>

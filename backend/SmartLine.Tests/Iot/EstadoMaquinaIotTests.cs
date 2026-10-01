@@ -354,9 +354,25 @@ public class EstadoMaquinaIotTests
         var eventos = estado.Processar(Amostra(600, s2: 3300));
 
         Assert.Collection(eventos,
-            e => Assert.Equal(Em(600), Assert.IsType<ComunicacaoRestabelecida>(e).InstanteUtc),
-            e => Assert.Equal(2000, Assert.IsType<ProducaoApurada>(e).Garrafas));
+            e => Assert.Equal((Em(600), false), (Assert.IsType<ComunicacaoRestabelecida>(e).InstanteUtc, ((ComunicacaoRestabelecida)e).ProducaoNaoRecuperada)),
+            e => Assert.Equal((2000L, true), (Assert.IsType<ProducaoApurada>(e).Garrafas, ((ProducaoApurada)e).SemComunicacao)));
         Assert.Equal(SituacaoMaquina.Rodando, estado.Situacao);
+
+        // Depois da volta, a produção é normal de novo.
+        Assert.False(Assert.IsType<ProducaoApurada>(Assert.Single(estado.Processar(Amostra(620, s2: 3400)))).SemComunicacao);
+    }
+
+    [Fact]
+    public void ComunicacaoVolta_ComOContadorReiniciado_AvisaProducaoNaoRecuperada()
+    {
+        var estado = Rodando();
+        estado.Verificar(Em(200));
+
+        var eventos = estado.Processar(Amostra(600, s2: 30)); // WISE reiniciou: contador voltou do zero
+
+        Assert.True(Assert.IsType<ComunicacaoRestabelecida>(eventos[0]).ProducaoNaoRecuperada);
+        Assert.DoesNotContain(eventos, e => e is ProducaoApurada);
+        Assert.Contains(eventos, e => e is ContadorReiniciado);
     }
 
     [Fact]
@@ -383,7 +399,7 @@ public class EstadoMaquinaIotTests
 
         Assert.Collection(eventos,
             e => Assert.Equal(Em(4000), Assert.IsType<ComunicacaoRestabelecida>(e).InstanteUtc),
-            e => Assert.Equal(800, Assert.IsType<ProducaoApurada>(e).Garrafas));
+            e => Assert.Equal((800L, true), (Assert.IsType<ProducaoApurada>(e).Garrafas, ((ProducaoApurada)e).SemComunicacao)));
         Assert.Equal(SituacaoMaquina.Rodando, estado.Situacao);
     }
 

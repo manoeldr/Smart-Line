@@ -108,6 +108,8 @@ public class DashboardColetaTests : IDisposable
         Assert.True(linha.ReferenciaCritica);
         Assert.Equal((detalhe.Oee, detalhe.Disponibilidade, detalhe.Qualidade, 500), (linha.Oee, linha.Disponibilidade, linha.Qualidade, linha.Producao));
         Assert.Equal(_c.MaquinaLinha.ToString(), Assert.Single(linha.Maquinas, m => m.Referencia).MaquinaLinhaId);
+        Assert.Equal(detalhe.PontosProducao, linha.ProducaoPorHora); // gráfico de produção da crítica
+        Assert.Equal(500, Assert.Single(linha.ProducaoPorHora).Quantidade);
 
         // Refugo e paradas somados das duas
         Assert.Equal((37, 15d, 2), (linha.RefugoTotal, linha.TempoParadoTotalMs / 60000, linha.NumParadas));

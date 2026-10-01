@@ -35,7 +35,12 @@ function formatarUltimaSessao(dataIso: string) {
 
 // Texto de status de uma máquina em coleta automática.
 function statusColeta(maquina: MaquinaLinha) {
-  if (maquina.situacaoColeta === 'SemComunicacao') return 'Sem comunicação'
+  if (maquina.situacaoColeta === 'SemComunicacao') {
+    const min = maquina.semComunicacaoMinutos
+    if (min == null) return 'Sem comunicação'
+    if (min < 60) return `Sem comunicação há ${min} min`
+    return `Sem comunicação há ${Math.floor(min / 60)}h ${min % 60}m`
+  }
   if (maquina.situacaoColeta === 'AguardandoPrimeiraAmostra' || !maquina.situacaoColeta) return 'Aguardando WISE'
   const base = statusLabel[maquina.status] ?? '—'
   if (!maquina.status.startsWith('Parada')) return base
@@ -55,12 +60,14 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
       ? 'bg-zinc-400' // sessão finalizada, sem comunicação ou aguardando o WISE — bolinha cinza neutra
       : (dotColorByStatus[maquina.status] ?? 'bg-zinc-400')
   const semMotivo = iot ? (maquina.paradasSemMotivo ?? 0) : 0
+  // Sem comunicação: borda amarela (por dentro, sem mudar o tamanho do card)
+  const semComunicacao = iot && maquina.situacaoColeta === 'SemComunicacao'
   const oeeColor = maquina.critica && !filtroAtivo ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'
 
   return (
     <div
       onClick={onAbrir}
-      className={`h-full flex flex-col ${cardPaddedSm} cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600 ${maquina.critica ? 'shadow-[inset_0_2px_0_0_#2563eb]' : ''}`}
+      className={`h-full flex flex-col ${cardPaddedSm} cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600 ${maquina.critica ? 'shadow-[inset_0_2px_0_0_#2563eb]' : ''} ${semComunicacao ? 'ring-2 ring-inset ring-amber-400 dark:ring-amber-500' : ''}`}
     >
       {/* Topo */}
       <div className="flex items-center justify-between mb-1.5">
@@ -76,7 +83,7 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
       </p>
       {/* Status: última sessão (finalizada) prevalece sobre o status ao vivo */}
       {!filtroAtivo && (
-        <p className="text-[10px] text-zinc-400 mb-2 truncate">
+        <p className={`text-[10px] mb-2 truncate ${semComunicacao ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400'}`}>
           {temHistorico
             ? `última sessão: ${formatarUltimaSessao(maquina.ultimaSessaoFim!)}`
             : iot

@@ -109,7 +109,7 @@ public class ExportImportService : IExportImportService
         return sessoes.Select(s => new SessaoExportDto(
             s.Id, s.MaquinaLinhaId, s.UsuarioId, s.Inicio, s.Fim, s.PrevisaoTermino,
             s.Status.ToString(), s.TipoColeta.ToString(), s.VelocidadeNominal, s.SobreVelocidade,
-            s.Producoes.Select(p => new ProducaoExportDto(p.Id, p.Quantidade, p.Refugo, p.Hora)).ToList(),
+            s.Producoes.Select(p => new ProducaoExportDto(p.Id, p.Quantidade, p.Refugo, p.Hora, p.SemComunicacao)).ToList(),
             s.Paradas.Select(p => new ParadaExportDto(p.Id, p.MotivoId, p.Inicio, p.Fim, p.FotoPath)).ToList(),
             s.LeiturasExtra.Select(le => new LeituraExtraExportDto(le.Id, le.CampoMaquinaId, le.Valor, le.Hora)).ToList(),
             s.SessoesCampo.Select(sc => sc.CampoMaquinaId).ToList()
@@ -277,6 +277,7 @@ public class ExportImportService : IExportImportService
                 producao.Quantidade = pDto.Quantidade;
                 producao.Refugo = pDto.Refugo;
                 producao.Hora = pDto.Hora;
+                producao.SemComunicacao = pDto.SemComunicacao;
             }
 
             foreach (var pdDto in sessaoDto.Paradas)

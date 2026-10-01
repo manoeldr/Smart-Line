@@ -6,7 +6,10 @@ public interface IOeeService
 {
     // medeProducao: quando false, a máquina não coleta leitura de produção — Performance e OEE
     // ficam nulos (indisponíveis pra calcular), em vez de um valor enganoso.
-    OeeResultado Calcular(Sessao sessao, decimal velocidadeNominal, bool medeProducao = true);
+    // semComunicacao: períodos da máquina sem comunicação (coleta automática). O tempo deles sai
+    // do cálculo e a produção feita neles (leituras marcadas) não entra na performance nem na qualidade.
+    OeeResultado Calcular(Sessao sessao, decimal velocidadeNominal, bool medeProducao = true,
+        IEnumerable<PeriodoSemComunicacao>? semComunicacao = null);
 }
 
 public record OeeResultado(
@@ -25,5 +28,6 @@ public record OeeResultado(
     int NumParadas,
     int NumParadasInternas,
     int NumParadasExternas,
-    int NumParadasPlanejadas
+    int NumParadasPlanejadas,
+    double TempoSemComunicacaoMs = 0
 );

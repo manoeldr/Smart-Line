@@ -150,8 +150,10 @@ public sealed class EstadoMaquinaIot
         VerificarComunicacao(t, eventos);
 
         var retomando = Situacao is SituacaoMaquina.AguardandoPrimeiraAmostra or SituacaoMaquina.SemComunicacao;
-        if (Situacao == SituacaoMaquina.SemComunicacao)
-            eventos.Add(new ComunicacaoRestabelecida(t));
+        // Na volta da comunicação, o que os contadores andaram é a produção feita sem comunicação.
+        var voltaDaComunicacao = Situacao == SituacaoMaquina.SemComunicacao;
+        if (voltaDaComunicacao)
+            eventos.Add(new ComunicacaoRestabelecida(t, ProducaoNaoRecuperada: ContadorVoltou(amostra)));
 
         _ultimaAmostraUtc = t;
 
@@ -194,7 +196,7 @@ public sealed class EstadoMaquinaIot
         }
 
         if (garrafas > 0 || rejeito > 0)
-            eventos.Add(new ProducaoApurada(t, garrafas, rejeito));
+            eventos.Add(new ProducaoApurada(t, garrafas, rejeito, SemComunicacao: voltaDaComunicacao));
 
         if (retomando)
         {
@@ -252,6 +254,13 @@ public sealed class EstadoMaquinaIot
         }
         return eventos;
     }
+
+    /// <summary>Algum contador marcado na medição voltou para trás (WISE reiniciado ou zerado).</summary>
+    private bool ContadorVoltou(AmostraWise amostra) =>
+        amostra.Contadores.Any(c =>
+            _config.Multiplicadores.ContainsKey(c.Key)
+            && _contadores.TryGetValue(c.Key, out var anterior)
+            && c.Value < anterior);
 
     private void VerificarComunicacao(DateTime agora, List<EventoColeta> eventos)
     {

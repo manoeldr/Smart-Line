@@ -80,6 +80,94 @@ public class SessaoDetalheService : ISessaoDetalheService
             .ThenBy(m => m.Motivo)
             .ToList();
 
+    /// <summary>
+    /// Pontos do gráfico de produção: a diferença entre apontamentos consecutivos (o primeiro,
+    /// leitura inicial, não entra). No Semi Automático, gravado a cada 5 min, fica por hora como
+    /// no Manual, e a hora em andamento vem marcada como parcial. A produção feita sem comunicação
+    /// (leituras marcadas, gravadas na volta) fica em <see cref="PontoProducaoDto.SemComunicacao"/>,
+    /// dividida pelas horas do período em proporção ao tempo de cada uma.
+    /// </summary>
+    public static List<PontoProducaoDto> ProducaoPorHora(Sessao sessao, DateTime agora, IEnumerable<PeriodoSemComunicacao>? semComunicacao = null)
+    {
+        var producaoOrdenada = sessao.Producoes.OrderBy(p => p.Hora).ToList();
+        var periodos = semComunicacao?.Where(p => p.Fim is not null).ToList() ?? [];
+        var pontos = new List<PontoProducaoDto>();
+        var semComunicacaoPorHora = new Dictionary<DateTime, int>();
+        for (var i = 1; i < producaoOrdenada.Count; i++)
+        {
+            var leitura = producaoOrdenada[i];
+            var diferenca = Math.Max(0, leitura.Quantidade - producaoOrdenada[i - 1].Quantidade);
+            if (!leitura.SemComunicacao)
+            {
+                pontos.Add(new PontoProducaoDto(leitura.Hora, diferenca));
+                continue;
+            }
+
+            // O período que terminou nesta leitura (gravada no instante da volta; até 1 s de folga).
+            var periodo = periodos
+                .Where(p => p.Fim <= leitura.Hora && p.Fim >= leitura.Hora.AddSeconds(-1))
+                .OrderByDescending(p => p.Fim)
+                .FirstOrDefault();
+            var de = periodo is null ? leitura.Hora : Max(periodo.Inicio, sessao.Inicio);
+            foreach (var (hora, quantidade) in DividirPorHora(diferenca, de, leitura.Hora))
+                semComunicacaoPorHora[hora] = semComunicacaoPorHora.GetValueOrDefault(hora) + quantidade;
+        }
+
+        if (sessao.TipoColeta != TipoColeta.SemiAutomatico)
+            return pontos;
+
+        pontos = PorHora(pontos);
+        foreach (var (hora, quantidade) in semComunicacaoPorHora)
+        {
+            var indice = pontos.FindIndex(p => p.Hora == hora);
+            if (indice >= 0) pontos[indice] = pontos[indice] with { SemComunicacao = pontos[indice].SemComunicacao + quantidade };
+            else pontos.Add(new PontoProducaoDto(hora, 0, SemComunicacao: quantidade));
+        }
+        pontos = pontos.OrderBy(p => p.Hora).ToList();
+
+        return sessao.Status == StatusSessao.EmAndamento
+            ? pontos.Select(p => p.Hora.AddHours(1) > agora ? p with { Parcial = true } : p).ToList()
+            : pontos;
+    }
+
+    /// <summary>
+    /// Divide uma quantidade pelas horas de um intervalo, em proporção ao tempo de cada hora
+    /// (cada uma marcada no início dela). As sobras do arredondamento vão para as horas com
+    /// mais tempo, e a soma fecha exatamente com a quantidade.
+    /// </summary>
+    public static List<(DateTime Hora, int Quantidade)> DividirPorHora(int quantidade, DateTime de, DateTime ate)
+    {
+        if (quantidade <= 0)
+            return [];
+        if (ate <= de)
+            return [(FimDaHora(ate).AddHours(-1), quantidade)];
+
+        var pedacos = new List<(DateTime Hora, double Ms)>();
+        for (var hora = InicioDaHora(de); hora < ate; hora = hora.AddHours(1))
+        {
+            var ms = (Min(hora.AddHours(1), ate) - Max(hora, de)).TotalMilliseconds;
+            if (ms > 0) pedacos.Add((hora, ms));
+        }
+
+        var total = pedacos.Sum(p => p.Ms);
+        var partes = pedacos
+            .Select(p => (p.Hora, Exato: quantidade * p.Ms / total))
+            .Select(p => (p.Hora, p.Exato, Inteiro: (int)Math.Floor(p.Exato)))
+            .ToList();
+        var sobra = quantidade - partes.Sum(p => p.Inteiro);
+        var comSobra = partes
+            .OrderByDescending(p => p.Exato - p.Inteiro)
+            .ThenByDescending(p => p.Exato)
+            .Take(sobra)
+            .Select(p => p.Hora)
+            .ToHashSet();
+
+        return partes
+            .Select(p => (p.Hora, p.Inteiro + (comSobra.Contains(p.Hora) ? 1 : 0)))
+            .Where(p => p.Item2 > 0)
+            .ToList();
+    }
+
     private static DateTime InicioDaHora(DateTime t) => new(t.Year, t.Month, t.Day, t.Hour, 0, 0, t.Kind);
     private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
     private static DateTime Max(DateTime a, DateTime b) => a > b ? a : b;
@@ -121,7 +209,8 @@ public class SessaoDetalheService : ISessaoDetalheService
 
         if (sessao is null) return null;
 
-        var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao);
+        var semComunicacao = await _context.PeriodosSemComunicacaoAsync(sessao);
+        var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao, semComunicacao);
 
         // MTBF — considera todas as paradas não planejadas (Interna/Externa), reflete o tempo
         // médio rodando entre uma parada e outra, qualquer que seja o motivo.
@@ -176,29 +265,7 @@ public class SessaoDetalheService : ISessaoDetalheService
             })
             .ToList();
 
-        // Pontos de produção — mesmo raciocínio: diferença entre apontamentos consecutivos,
-        // primeiro apontamento (leitura inicial) não entra no gráfico.
-        var producaoOrdenada = sessao.Producoes.OrderBy(p => p.Hora).ToList();
-        var pontosProducao = new List<PontoProducaoDto>();
-        for (var i = 1; i < producaoOrdenada.Count; i++)
-        {
-            var diferenca = producaoOrdenada[i].Quantidade - producaoOrdenada[i - 1].Quantidade;
-            pontosProducao.Add(new PontoProducaoDto(producaoOrdenada[i].Hora, Math.Max(0, diferenca)));
-        }
-
-        // Semi Automático: a produção é gravada a cada 5 min, o que daria uma barra a cada 5 min.
-        // O gráfico fica por hora, como no Manual.
-        if (sessao.TipoColeta == TipoColeta.SemiAutomatico)
-        {
-            pontosProducao = PorHora(pontosProducao);
-            if (sessao.Status == StatusSessao.EmAndamento)
-            {
-                var agora = DateTime.UtcNow;
-                pontosProducao = pontosProducao
-                    .Select(p => p.Hora.AddHours(1) > agora ? p with { Parcial = true } : p)
-                    .ToList();
-            }
-        }
+        var pontosProducao = ProducaoPorHora(sessao, DateTime.UtcNow, semComunicacao);
 
         // Gráficos de paradas: a parada em curso conta até agora (como no OEE).
         var agoraGraficos = DateTime.UtcNow;
@@ -235,7 +302,27 @@ public class SessaoDetalheService : ISessaoDetalheService
             }
         }
 
-        eventos = eventos.OrderBy(e => e.Horario).ToList();
+        // Sem comunicação (coleta automática): trecho próprio, nem marcha nem parada. A marcha que
+        // "começaria" no início do período não aconteceu; ela volta no fim (se não for parada).
+        foreach (var periodo in semComunicacao)
+        {
+            var inicioPeriodo = Max(periodo.Inicio, sessao.Inicio);
+            var fimPeriodo = periodo.Fim is { } f && (sessao.Fim is null || f < sessao.Fim) ? f : (DateTime?)null;
+            eventos.RemoveAll(e => e.Tipo == "Marcha" && e.Horario == inicioPeriodo);
+            eventos.Add(new EventoTimelineDto(
+                "SemComunicacao",
+                inicioPeriodo,
+                periodo.ProducaoNaoRecuperada ? "produção não recuperada (o WISE reiniciou)" : null,
+                null,
+                fimPeriodo is { } fimDentro ? (fimDentro - inicioPeriodo).TotalMilliseconds
+                    : sessao.Fim is { } fimSessao ? (fimSessao - inicioPeriodo).TotalMilliseconds
+                    : (double?)null,
+                null));
+            if (fimPeriodo is { } volta && !iniciosDeParada.Contains(volta))
+                eventos.Add(new EventoTimelineDto("Marcha", volta, null, null, null, null));
+        }
+
+        eventos = eventos.OrderBy(e => e.Horario).ThenBy(e => e.Tipo == "Marcha" ? 1 : 0).ToList();
 
         return new SessaoDetalheDto(
             SessaoId: sessao.Id.ToString(),

@@ -46,6 +46,16 @@ public class ClienteController : ControllerBase
             : nameof(Core.Iot.SituacaoMaquina.AguardandoPrimeiraAmostra);
     }
 
+    /// <summary>Sem comunicação: minutos desde a última mensagem do WISE (nulo se está comunicando).</summary>
+    private int? SemComunicacaoMinutos(MaquinaLinhaOverviewDto maquina)
+    {
+        var situacao = Guid.TryParse(maquina.Id, out var maquinaLinhaId) ? _coleta.Situacao(maquinaLinhaId) : null;
+        if (situacao is null || situacao.AcompanhamentoId.ToString() != maquina.AcompanhamentoId
+            || situacao.Situacao != Core.Iot.SituacaoMaquina.SemComunicacao || situacao.UltimaAmostraUtc is not { } desde)
+            return null;
+        return (int)Math.Max(0, (DateTime.UtcNow - desde).TotalMinutes);
+    }
+
     [HttpGet("{id}/linhas")]
     public async Task<IActionResult> GetLinhas(Guid id)
     {
@@ -58,7 +68,8 @@ public class ClienteController : ControllerBase
             Maquinas = l.Maquinas.Select(m => m with
             {
                 SituacaoColeta = m.AcompanhamentoId is null ? null : SituacaoColeta(m),
-                WiseConectado = m.EnderecoIpWise is null ? null : conectados.Contains(m.EnderecoIpWise)
+                WiseConectado = m.EnderecoIpWise is null ? null : conectados.Contains(m.EnderecoIpWise),
+                SemComunicacaoMinutos = m.AcompanhamentoId is null ? null : SemComunicacaoMinutos(m)
             }).ToList()
         }));
     }

@@ -1,5 +1,6 @@
 import { api } from './api'
 import type { SituacaoColeta } from './coletaIotService'
+import type { PontoProducaoDto } from './sessaoDetalheService'
 
 export interface MaquinaDashboardDto {
   maquinaLinhaId: string
@@ -71,6 +72,8 @@ export interface LinhaDashboardDto {
   maquinas: MaquinaResumoLinhaDto[]
   paradasPorMotivo: ParadaLinhaPorMotivoDto[]
   paradasPorHora: ParadaLinhaPorHoraDto[]
+  // Gráfico de produção da máquina de referência (o mesmo do detalhe dela)
+  producaoPorHora: PontoProducaoDto[]
 }
 
 export const dashboardService = {

@@ -233,7 +233,9 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
     fimDaHora: formatarHora(new Date(new Date(p.hora).getTime() + 3600000).toISOString()),
     parcial: p.parcial === true,
     producao: p.quantidade,
+    semComunicacao: p.semComunicacao ?? 0,
   }))
+  const temSemComunicacao = pontos.some(p => p.semComunicacao > 0)
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -257,7 +259,7 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
         />
         <YAxis tick={{ fontSize: 10 }} width={50} />
         <Tooltip
-          formatter={valor => [Number(valor).toLocaleString('pt-BR'), 'Produção']}
+          formatter={(valor, nome) => [Number(valor).toLocaleString('pt-BR'), nome]}
           labelFormatter={(rotulo, itens) => {
             const ponto = itens?.[0]?.payload as { parcial?: boolean; fimDaHora?: string } | undefined
             return ponto?.parcial
@@ -265,7 +267,7 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
               : rotulo
           }}
         />
-        <Bar dataKey="producao" name="Produção" fill="#1961c0">
+        <Bar dataKey="producao" name="Produção" stackId="producao" fill="#1961c0">
           {pontos.map((p, i) => (
             <Cell
               key={i}
@@ -276,6 +278,8 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
             />
           ))}
         </Bar>
+        {/* Produção feita sem comunicação: em cinza, em cima da normal (fora do OEE) */}
+        {temSemComunicacao && <Bar dataKey="semComunicacao" name="Sem comunicação" stackId="producao" fill="#a1a1aa" />}
       </BarChart>
     </ResponsiveContainer>
   )

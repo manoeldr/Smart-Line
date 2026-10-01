@@ -165,11 +165,14 @@ public class RetomadaColetaServiceTests : IDisposable
             Contadores = new Dictionary<CanalWise, uint> { [CanalWise.S2] = 7000, [CanalWise.S3] = 45 }
         });
         await _c.Registrar(eventos.ToArray());
-        var pendente = eventos.OfType<ProducaoApurada>().Aggregate(ProducaoPendente.Nenhuma, (acc, p) => acc.Somar(p));
+        // A produção do intervalo fora do ar já foi gravada pelo registrador (leitura marcada);
+        // a normal segue no pendente, como no serviço.
+        var pendente = eventos.OfType<ProducaoApurada>().Where(p => !p.SemComunicacao)
+            .Aggregate(ProducaoPendente.Nenhuma, (acc, p) => acc.Somar(p));
         await _c.Consolidar(Em(3620), pendente.Garrafas, pendente.Rejeito);
 
         Assert.Equal((Em(900), Em(3620)), (Assert.Single(_c.Periodos()).Inicio, _c.Periodos()[0].Fim!.Value));
         var ultima = _c.Sessoes().Single().Producoes.OrderBy(p => p.Hora).Last();
-        Assert.Equal((5000, 5), (ultima.Quantidade, ultima.Refugo)); // 3000 + 2000 produzidas com o backend fora
+        Assert.Equal((5000, 5, true), (ultima.Quantidade, ultima.Refugo, ultima.SemComunicacao)); // 3000 + 2000 produzidas com o backend fora
     }
 }

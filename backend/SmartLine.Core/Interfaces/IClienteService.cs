@@ -31,6 +31,7 @@ public record LinhaOverviewDto(
 /// SemComunicacao ou AguardandoPrimeiraAmostra.
 /// </param>
 /// <param name="WiseConectado">Preenchido pela API (broker) quando a máquina tem WISE.</param>
+/// <param name="SemComunicacaoMinutos">Preenchido pela API: há quantos minutos está sem comunicação.</param>
 public record MaquinaLinhaOverviewDto(
     string Id,
     string LinhaId,
@@ -52,5 +53,6 @@ public record MaquinaLinhaOverviewDto(
     int ParadasSemMotivo = 0,
     string? EnderecoIpWise = null,
     string? SituacaoColeta = null,
-    bool? WiseConectado = null
+    bool? WiseConectado = null,
+    int? SemComunicacaoMinutos = null
 );

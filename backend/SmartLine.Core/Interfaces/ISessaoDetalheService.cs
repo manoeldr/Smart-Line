@@ -53,7 +53,11 @@ public record CampoGraficoDto(
 public record PontoExtraDto(DateTime Hora, decimal Valor);
 
 /// <param name="Parcial">Semi Automático: hora ainda em andamento (o valor ainda vai crescer).</param>
-public record PontoProducaoDto(DateTime Hora, int Quantidade, bool Parcial = false);
+/// <param name="SemComunicacao">
+/// Semi Automático: produção feita sem comunicação (o contador andou enquanto o WISE estava fora),
+/// dividida pelas horas do período. Mostrada à parte (cinza); não entra no OEE.
+/// </param>
+public record PontoProducaoDto(DateTime Hora, int Quantidade, bool Parcial = false, int SemComunicacao = 0);
 
 public record EventoTimelineDto(
     string Tipo,

@@ -498,9 +498,10 @@ public sealed class ColetaIotService : BackgroundService
         {
             switch (evento)
             {
-                case ProducaoApurada p:
+                case ProducaoApurada { SemComunicacao: false } p:
                     coleta.Pendente = coleta.Pendente.Somar(p);
                     break;
+                // A feita sem comunicação o registrador grava já, numa leitura própria.
                 case ContadorReiniciado c:
                     _log.LogWarning(
                         "Contador {Contador} da máquina {MaquinaLinhaId} voltou de {Anterior} para {Novo} (WISE reiniciado?). " +

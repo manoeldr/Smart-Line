@@ -17,6 +17,12 @@ public class PeriodoSemComunicacao
     /// <summary>Instante em que a comunicação voltou; nulo enquanto continua fora.</summary>
     public DateTime? Fim { get; set; }
 
+    /// <summary>
+    /// Um contador voltou do zero durante o período (WISE reiniciado): a produção feita nele
+    /// não pôde ser calculada.
+    /// </summary>
+    public bool ProducaoNaoRecuperada { get; set; }
+
     // Navegação
     public MaquinaLinha MaquinaLinha { get; set; } = null!;
 }

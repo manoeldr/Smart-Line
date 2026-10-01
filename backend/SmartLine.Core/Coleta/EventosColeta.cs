@@ -17,7 +17,11 @@ public abstract record EventoColeta(DateTime InstanteUtc);
 /// </summary>
 /// <param name="Garrafas">Incremento de produção, em garrafas. Nunca negativo.</param>
 /// <param name="Rejeito">Incremento de rejeito, em garrafas. Nunca negativo.</param>
-public sealed record ProducaoApurada(DateTime InstanteUtc, long Garrafas, long Rejeito)
+/// <param name="SemComunicacao">
+/// Produção feita enquanto a fonte estava sem comunicação: a diferença entre o contador antes
+/// da queda e o da volta. Fica gravada à parte e não entra no OEE (não há tempo para ela).
+/// </param>
+public sealed record ProducaoApurada(DateTime InstanteUtc, long Garrafas, long Rejeito, bool SemComunicacao = false)
     : EventoColeta(InstanteUtc);
 
 /// <summary>
@@ -45,7 +49,11 @@ public sealed record ParadaEncerrada(DateTime InstanteUtc) : EventoColeta(Instan
 public sealed record ComunicacaoPerdida(DateTime InstanteUtc) : EventoColeta(InstanteUtc);
 
 /// <summary>A fonte voltou a responder.</summary>
-public sealed record ComunicacaoRestabelecida(DateTime InstanteUtc) : EventoColeta(InstanteUtc);
+/// <param name="ProducaoNaoRecuperada">
+/// Um contador voltou do zero durante a queda (WISE reiniciado): a produção do período não
+/// tem como ser calculada.
+/// </param>
+public sealed record ComunicacaoRestabelecida(DateTime InstanteUtc, bool ProducaoNaoRecuperada = false) : EventoColeta(InstanteUtc);
 
 /// <summary>
 /// Um contador voltou para trás (dispositivo reiniciou ou foi zerado). O

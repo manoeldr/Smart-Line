@@ -52,7 +52,8 @@ public class DashboardService : IDashboardService
                 continue;
             }
 
-            var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao);
+            var oee = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao,
+                await _context.PeriodosSemComunicacaoAsync(sessao));
             var emAndamento = sessao.Status == StatusSessao.EmAndamento;
 
             resultado.Add(new MaquinaDashboardDto(
@@ -91,7 +92,8 @@ public class DashboardService : IDashboardService
         foreach (var ml in maquinasLinha)
         {
             var sessao = await SessaoDaMaquinaAsync(ml.Id, inicio, fim);
-            itens.Add((ml, sessao, sessao is null ? null : _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao)));
+            itens.Add((ml, sessao, sessao is null ? null
+                : _oeeService.Calcular(sessao, sessao.VelocidadeNominal, ml.MedeProducao, await _context.PeriodosSemComunicacaoAsync(sessao))));
         }
 
         // Referência do OEE da linha: a máquina crítica (a de pior OEE, se houver mais de uma);
@@ -173,7 +175,11 @@ public class DashboardService : IDashboardService
             NumParadas: resumos.Sum(m => m.NumParadas),
             Maquinas: resumos,
             ParadasPorMotivo: paradasPorMotivo,
-            ParadasPorHora: paradasPorHora);
+            ParadasPorHora: paradasPorHora,
+            // Produção por hora da máquina de referência (a mesma do OEE da linha).
+            ProducaoPorHora: referencia?.Sessao is { } sessaoReferencia
+                ? SessaoDetalheService.ProducaoPorHora(sessaoReferencia, agora, await _context.PeriodosSemComunicacaoAsync(sessaoReferencia))
+                : []);
     }
 
     /// <summary>A sessão que o card e o detalhe da máquina mostram: a em andamento, senão a última do período.</summary>

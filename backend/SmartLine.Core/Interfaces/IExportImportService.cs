@@ -91,7 +91,7 @@ public record SessaoExportDto(
     IList<Guid> CamposSelecionados
 );
 
-public record ProducaoExportDto(Guid Id, int Quantidade, int Refugo, DateTime Hora);
+public record ProducaoExportDto(Guid Id, int Quantidade, int Refugo, DateTime Hora, bool SemComunicacao = false);
 
 public record ParadaExportDto(
     Guid Id,

@@ -89,7 +89,8 @@ public class ClienteService : IClienteService
 
                 if (sessaoParaOee is not null)
                 {
-                    var resultadoOee = _oeeService.Calcular(sessaoParaOee, ml.VelocidadeNominal, ml.MedeProducao);
+                    var resultadoOee = _oeeService.Calcular(sessaoParaOee, ml.VelocidadeNominal, ml.MedeProducao,
+                        await _context.PeriodosSemComunicacaoAsync(sessaoParaOee));
                     oee = resultadoOee.Oee;
                 }
 

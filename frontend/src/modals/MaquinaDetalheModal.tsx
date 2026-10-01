@@ -50,6 +50,13 @@ const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
 ]
 
 // Mesmas cores da linha do tempo: interna vermelho, externa amarelo, planejada laranja.
+// Cor de cada tipo de evento na linha do tempo (sem comunicação em cinza, fora do OEE).
+const COR_EVENTO = {
+  Marcha: { ponto: 'bg-green-600', texto: 'text-green-700 dark:text-green-400' },
+  Parada: { ponto: 'bg-red-500', texto: 'text-red-700 dark:text-red-400' },
+  SemComunicacao: { ponto: 'bg-zinc-400', texto: 'text-zinc-500 dark:text-zinc-400' },
+} as const
+
 const CORES_TIPO_PARADA = { Interna: '#ef4444', Externa: '#facc15', Planejada: '#f97316' } as const
 
 function minutos(ms: number) {
@@ -183,6 +190,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
         parcial: producaoPonto?.parcial === true,
       }
       if (producaoPonto) ponto['Produção'] = producaoPonto.quantidade
+      if (producaoPonto?.semComunicacao) ponto['Sem comunicação'] = producaoPonto.semComunicacao
 
       dados.camposExtras.forEach(campo => {
         const extraPonto = campo.pontos.find(p => p.hora === hora)
@@ -321,7 +329,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar yAxisId="left" dataKey="Produção" fill="#1961c0">
+                      <Bar yAxisId="left" dataKey="Produção" stackId="producao" fill="#1961c0">
                         {dadosGrafico.map((ponto, i) => (
                           <Cell
                             key={i}
@@ -332,6 +340,10 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                           />
                         ))}
                       </Bar>
+                      {/* Produção feita sem comunicação: em cinza, em cima da normal (fora do OEE) */}
+                      {dados.pontosProducao.some(p => (p.semComunicacao ?? 0) > 0) && (
+                        <Bar yAxisId="left" dataKey="Sem comunicação" stackId="producao" fill="#a1a1aa" />
+                      )}
                       {dados.camposExtras
                         .filter(c => camposSelecionados.has(c.campoMaquinaId))
                         .map((campo, i) => (
@@ -360,12 +372,12 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
               <div className="flex flex-col">
                 {dados.eventos.map((evento, i) => (
                   <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-                    <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${evento.tipo === 'Marcha' ? 'bg-green-600' : 'bg-red-500'}`} />
+                    <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${COR_EVENTO[evento.tipo].ponto}`} />
                     <div className="flex-1 flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium ${evento.tipo === 'Marcha' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                            {evento.tipo}
+                          <span className={`text-xs font-medium ${COR_EVENTO[evento.tipo].texto}`}>
+                            {evento.tipo === 'SemComunicacao' ? 'Sem comunicação' : evento.tipo}
                           </span>
                           <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
                         </div>
@@ -373,6 +385,12 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                           <p className="text-[11px] text-zinc-500 mt-0.5">
                             {evento.motivoNome ?? <span className="text-amber-600 dark:text-amber-400">sem motivo (conta como interna)</span>}
                             {evento.duracaoMs !== null ? ` — ${formatarHoras(evento.duracaoMs!)}` : ' — em andamento'}
+                          </p>
+                        )}
+                        {evento.tipo === 'SemComunicacao' && (
+                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                            Fora do OEE{evento.duracaoMs !== null ? ` — ${formatarHoras(evento.duracaoMs!)}` : ' — em andamento'}
+                            {evento.motivoNome && <span className="block text-amber-600 dark:text-amber-400">{evento.motivoNome}</span>}
                           </p>
                         )}
                         {evento.tipo === 'Parada' && evento.paradaId && (

@@ -34,10 +34,13 @@ export interface PontoProducaoDto {
   quantidade: number
   // Semi Automático: hora ainda em andamento (o valor ainda vai crescer)
   parcial?: boolean
+  // Semi Automático: produção feita sem comunicação, dividida pelas horas do período (cinza; fora do OEE)
+  semComunicacao?: number
 }
 
 export interface EventoTimelineDto {
-  tipo: 'Marcha' | 'Parada'
+  // SemComunicacao: WISE fora (fica fora do OEE); motivoNome avisa se a produção não foi recuperada
+  tipo: 'Marcha' | 'Parada' | 'SemComunicacao'
   horario: string
   motivoNome: string | null
   motivoTipo: string | null
