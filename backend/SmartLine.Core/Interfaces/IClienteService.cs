@@ -5,6 +5,12 @@ public interface IClienteService
     Task<IList<ClienteDto>> GetAllAsync();
     Task<ClienteDto?> GetByIdAsync(Guid id);
     Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId);
+
+    /// <summary>
+    /// Dias (no fuso deste computador, "yyyy-MM-dd") em que alguma máquina do cliente teve sessão,
+    /// Manual ou Semi Automático; a sessão que atravessa dias conta em todos eles.
+    /// </summary>
+    Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId);
 }
 
 public record ClienteDto(

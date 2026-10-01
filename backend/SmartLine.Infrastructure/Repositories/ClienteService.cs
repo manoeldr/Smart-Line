@@ -37,6 +37,31 @@ public class ClienteService : IClienteService
         return new ClienteDto(c.Id.ToString(), c.Nome, c.Estado, c.Ativo);
     }
 
+    public async Task<IList<string>> GetDatasComSessaoAsync(Guid clienteId)
+    {
+        var sessoes = await _context.Sessoes
+            .AsNoTracking()
+            .Where(s => s.MaquinaLinha.Linha.ClienteId == clienteId)
+            .Select(s => new { s.Inicio, s.Fim })
+            .ToListAsync();
+
+        var agora = DateTime.UtcNow;
+        var dias = new SortedSet<DateTime>();
+        foreach (var s in sessoes)
+        {
+            var de = DiaLocal(s.Inicio);
+            var ate = DiaLocal(s.Fim ?? agora);
+            // Limite de segurança: uma sessão esquecida aberta não marca anos inteiros.
+            for (var dia = de; dia <= ate && dia <= de.AddDays(366); dia = dia.AddDays(1))
+                dias.Add(dia);
+        }
+
+        return dias.Select(d => d.ToString("yyyy-MM-dd")).ToList();
+    }
+
+    private static DateTime DiaLocal(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local).Date;
+
     public async Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId)
     {
         var linhas = await _context.Linhas

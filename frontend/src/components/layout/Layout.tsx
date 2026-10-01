@@ -22,7 +22,7 @@ export default function Layout() {
   // Área que rola: o F5 volta na mesma posição
   const areaRolagemRef = useRef<HTMLDivElement>(null)
   useManterRolagem(areaRolagemRef)
-  const datasComSessao: string[] = []
+  const [datasComSessao, setDatasComSessao] = useState<string[]>([])
 
   useEffect(() => {
     if (usuario?.nivel === 'Administrador' || usuario?.nivel === 'Desenvolvedor') {
@@ -40,6 +40,12 @@ export default function Layout() {
   function handleOpenFiltro(ref: RefObject<HTMLButtonElement | null>) {
     setFiltroAnchor(ref)
     setFiltroOpen(prev => !prev)
+    // Dias com sessão (bolinha azul no calendário): busca na hora de abrir, sempre atualizado.
+    if (!filtroOpen && clienteId) {
+      clienteService.getDatasComSessao(clienteId)
+        .then(setDatasComSessao)
+        .catch(() => setDatasComSessao([]))
+    }
   }
 
   function handleSelectCliente(cliente: Cliente) {

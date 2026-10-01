@@ -56,6 +56,11 @@ public class ClienteController : ControllerBase
         return (int)Math.Max(0, (DateTime.UtcNow - desde).TotalMinutes);
     }
 
+    /// <summary>Dias com sessão, para marcar no calendário do filtro por data.</summary>
+    [HttpGet("{id}/datas-com-sessao")]
+    public async Task<IActionResult> GetDatasComSessao(Guid id) =>
+        Ok(await _clienteService.GetDatasComSessaoAsync(id));
+
     [HttpGet("{id}/linhas")]
     public async Task<IActionResult> GetLinhas(Guid id)
     {
