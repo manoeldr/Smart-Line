@@ -64,7 +64,8 @@ public class AcompanhamentoService : IAcompanhamentoService
         var sessao = NovaSessao(
             acompanhamento, agora,
             request.VelocidadeNominal ?? ml.VelocidadeNominal,
-            request.SobreVelocidade ?? ml.SobreVelocidade);
+            request.SobreVelocidade ?? ml.SobreVelocidade,
+            ml.MedeProducao ? request.ProducaoInicial ?? 0 : 0);
         _context.Sessoes.Add(sessao);
 
         try
@@ -92,6 +93,9 @@ public class AcompanhamentoService : IAcompanhamentoService
     {
         if (ml is null || !ml.Ativo)
             return "Máquina não encontrada ou inativa.";
+
+        if (request.ProducaoInicial < 0)
+            return "A produção até então não pode ser negativa.";
 
         if (string.IsNullOrWhiteSpace(request.EnderecoIpWise))
             return "Informe o IP do WISE instalado nesta máquina.";
@@ -326,11 +330,11 @@ public class AcompanhamentoService : IAcompanhamentoService
     // ── Apoio ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Sessão da coleta, com a leitura inicial de produção zerada: a produção
-    /// gravada depois é o acumulado em garrafas desde o início da sessão, e o
-    /// OEE continua calculando última leitura menos a inicial, como no Manual.
+    /// Sessão da coleta, com a leitura inicial de produção = o contador da máquina informado
+    /// ao iniciar (0 se não informado): a produção do WISE soma a partir dela, e o OEE continua
+    /// calculando última leitura menos a inicial, como no Manual.
     /// </summary>
-    internal static Sessao NovaSessao(Acompanhamento acompanhamento, DateTime inicio, decimal velocidadeNominal, decimal sobreVelocidade)
+    internal static Sessao NovaSessao(Acompanhamento acompanhamento, DateTime inicio, decimal velocidadeNominal, decimal sobreVelocidade, int producaoInicial = 0)
     {
         var sessao = new Sessao
         {
@@ -345,7 +349,7 @@ public class AcompanhamentoService : IAcompanhamentoService
             SobreVelocidade = sobreVelocidade,
             CriadoEm = inicio
         };
-        sessao.Producoes.Add(new Producao { Id = Guid.NewGuid(), Quantidade = 0, Refugo = 0, Hora = inicio });
+        sessao.Producoes.Add(new Producao { Id = Guid.NewGuid(), Quantidade = producaoInicial, Refugo = 0, Hora = inicio });
         return sessao;
     }
 }

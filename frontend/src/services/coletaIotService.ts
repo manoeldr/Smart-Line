@@ -14,6 +14,8 @@ export interface IniciarColetaRequest {
   velocidadeNominal: number | null
   sobreVelocidade: number | null
   canais: CanalMedicaoRequest[]
+  // Leitura do contador da máquina ao iniciar ("produção até então"); nula = 0
+  producaoInicial?: number | null
 }
 
 export interface ColetaIniciadaDto {

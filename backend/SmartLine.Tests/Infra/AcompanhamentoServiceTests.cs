@@ -117,6 +117,45 @@ public class AcompanhamentoServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Iniciar_ComProducaoAteEntao_LeituraInicialEOContadorDaMaquina()
+    {
+        var ml = NovaMaquinaLinha();
+
+        await IniciarOk(_usuario, Item(ml) with { ProducaoInicial = 152340 });
+
+        using var db = _banco.NovoContexto();
+        var p = Assert.Single(db.Producoes);
+        Assert.Equal((152340, 0), (p.Quantidade, p.Refugo));
+    }
+
+    [Fact]
+    public async Task Iniciar_ProducaoAteEntaoNegativa_Recusa()
+    {
+        var ml = NovaMaquinaLinha();
+
+        var r = await Iniciar(_usuario, Item(ml) with { ProducaoInicial = -1 });
+
+        Assert.False(r.Sucesso);
+        Assert.Contains("negativa", r.Erro);
+    }
+
+    [Fact]
+    public async Task Iniciar_MaquinaQueNaoMedeProducao_IgnoraAProducaoAteEntao()
+    {
+        var ml = NovaMaquinaLinha();
+        using (var db = _banco.NovoContexto())
+        {
+            db.MaquinasLinha.Single(m => m.Id == ml).MedeProducao = false;
+            db.SaveChanges();
+        }
+
+        await IniciarOk(_usuario, Item(ml) with { ProducaoInicial = 500 });
+
+        using var ctx = _banco.NovoContexto();
+        Assert.Equal(0, Assert.Single(ctx.Producoes).Quantidade);
+    }
+
+    [Fact]
     public async Task Iniciar_MultiplicadorEmSensorDeEstado_ViraUm()
     {
         var ml = NovaMaquinaLinha();

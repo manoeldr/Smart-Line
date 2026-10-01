@@ -6,6 +6,8 @@
 // o que ler: contadores de produção (S2, S5, S6) e refugo (S3), cada um com o seu
 // multiplicador opcional (garrafas por ciclo), e os sensores (S1, S4, S7, S8) liga/desliga.
 // Abre sempre no padrão: S2 e S3 sem multiplicador e os quatro sensores ligados.
+// "Produção até então" (como no Manual): a leitura do contador da máquina ao iniciar; a
+// produção do WISE soma a partir dela.
 import { useEffect, useState, type ReactNode } from 'react'
 import type { MaquinaLinha } from '../../types'
 import { coletaIotService } from '../../services/coletaIotService'
@@ -61,6 +63,7 @@ interface Props {
 export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, onIniciada }: Props) {
   const [velocidadeNominal, setVelocidadeNominal] = useState(String(maquina.velocidadeNominal ?? ''))
   const [sobreVelocidade, setSobreVelocidade] = useState('0')
+  const [producaoInicial, setProducaoInicial] = useState('')
   const [canais, setCanais] = useState<Record<string, CanalConfig>>(configuracaoPadrao)
 
   const [ipWise, setIpWise] = useState('')
@@ -119,10 +122,13 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
   const semProducao = !CONTADORES_PRODUCAO.some(c => canais[c].ligado)
   const multiplicadorInvalido = [...CONTADORES_PRODUCAO, ...CONTADORES_REJEITO].some(c => !multiplicadorValido(canais[c]))
   const velocidadeInvalida = !(Number(velocidadeNominal) > 0)
+  // Vazio = 0; senão um número inteiro, sem negativo.
+  const producaoInicialInvalida = producaoInicial !== ''
+    && !(Number.isInteger(Number(producaoInicial)) && Number(producaoInicial) >= 0)
 
   const wiseOk = wises !== null && wises.some(w => w.enderecoIp === ipWise && w.cadastrado)
     && situacaoDoIp(ipWise, wises).situacao === 'Conectado'
-  const podeIniciar = wiseOk && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !iniciando
+  const podeIniciar = wiseOk && !semProducao && !multiplicadorInvalido && !velocidadeInvalida && !producaoInicialInvalida && !iniciando
 
   async function iniciar() {
     setIniciando(true)
@@ -133,6 +139,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
         enderecoIpWise: ipWise.trim(),
         velocidadeNominal: Number(velocidadeNominal),
         sobreVelocidade: Number(sobreVelocidade) || 0,
+        producaoInicial: maquina.medeProducao ? Number(producaoInicial) || 0 : null,
         canais: Object.entries(canais)
           .filter(([, c]) => c.ligado)
           .map(([canal, c]) => ({ canal, multiplicador: c.comMultiplicador ? Number(c.multiplicador) : 1 })),
@@ -171,7 +178,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
             className={`${inputBase} ${!multiplicadorValido(c) && c.multiplicador !== '' ? 'ring-1 ring-red-500' : ''}`}
           />
         ) : (
-          <span className="text-[10px] text-zinc-400 text-right">{c.ligado ? '1 garrafa por pulso' : ''}</span>
+          <span />
         )}
       </div>
     )
@@ -203,6 +210,20 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           </div>
         </div>
 
+        {/* Produção até então — só faz sentido se a máquina mede produção */}
+        {maquina.medeProducao && (
+          <div>
+            <label className={label}>Produção até então</label>
+            <input
+              type="number" min="0" step="1"
+              value={producaoInicial}
+              onChange={e => setProducaoInicial(e.target.value)}
+              placeholder="Leitura atual do contador"
+              className={`${inputMdFull} ${producaoInicialInvalida ? 'ring-1 ring-red-500' : ''}`}
+            />
+          </div>
+        )}
+
         {/* Contadores */}
         <div>
           <label className="text-xs text-zinc-500 mb-1 block">Produção</label>
@@ -212,9 +233,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
         <div>
           <label className="text-xs text-zinc-500 mb-1 block">Refugo</label>
           {CONTADORES_REJEITO.map(linhaContador)}
-          {multiplicadorInvalido && (
-            <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">Garrafas por ciclo deve ser um número inteiro maior que zero.</p>
-          )}
         </div>
 
         {/* Sensores */}
@@ -227,10 +245,6 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
             </div>
           ))}
         </div>
-
-        <p className="text-[10px] text-zinc-400">
-          A coleta é contínua: vira o dia à meia-noite e só termina quando alguém finalizar. As paradas são classificadas pelas regras da máquina.
-        </p>
       </div>
 
       <div className={modalFooter}>

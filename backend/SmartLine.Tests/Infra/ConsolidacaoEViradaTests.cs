@@ -124,6 +124,19 @@ public class ConsolidacaoEViradaTests : IDisposable
     }
 
     [Fact]
+    public async Task Virada_ONovoDiaComecaDeOndeOContadorParou()
+    {
+        await _c.Consolidar(Em(300), garrafas: 1000, rejeito: 4);
+
+        await _c.Virar(Virada, garrafas: 250, rejeito: 2);
+        await _c.Consolidar(Virada.AddMinutes(5), garrafas: 100);
+
+        var hoje = _c.Sessoes()[1].Producoes.OrderBy(p => p.Hora).ToList();
+        Assert.Equal((1250, 6, Virada), (hoje[0].Quantidade, hoje[0].Refugo, hoje[0].Hora));
+        Assert.Equal(1350, hoje[1].Quantidade);
+    }
+
+    [Fact]
     public async Task Virada_CortaAParadaEmCurso_EContinuaComAMesmaClassificacao()
     {
         var falta = _c.Classificacao("Falta de garrafas na entrada");

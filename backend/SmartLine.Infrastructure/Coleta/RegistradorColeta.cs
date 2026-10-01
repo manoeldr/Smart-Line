@@ -111,7 +111,10 @@ public class RegistradorColeta : IRegistradorColeta
         sessao.Status = StatusSessao.Finalizada;
         sessao.MotivoFechamento = MotivoFechamentoSessao.ViradaDoDia;
 
-        // 3. Abre o novo dia, com os mesmos dados de quem iniciou a coleta.
+        // 3. Abre o novo dia, com os mesmos dados de quem iniciou a coleta. O contador segue
+        //    de onde o dia anterior parou (a leitura inicial do novo dia é a final do anterior),
+        //    como no Manual, onde a leitura inicial é o contador da máquina.
+        var fechamento = sessao.Producoes.OrderByDescending(p => p.Hora).FirstOrDefault();
         var nova = new Sessao
         {
             Id = Guid.NewGuid(),
@@ -125,7 +128,7 @@ public class RegistradorColeta : IRegistradorColeta
             SobreVelocidade = sessao.SobreVelocidade,
             CriadoEm = viradaUtc
         };
-        nova.Producoes.Add(new Producao { Id = Guid.NewGuid(), Quantidade = 0, Refugo = 0, Hora = viradaUtc });
+        nova.Producoes.Add(new Producao { Id = Guid.NewGuid(), Quantidade = fechamento?.Quantidade ?? 0, Refugo = fechamento?.Refugo ?? 0, Hora = viradaUtc });
         _context.Sessoes.Add(nova);
 
         // 4. A parada em curso continua no novo dia, com a mesma classificação — inclusive

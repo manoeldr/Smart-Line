@@ -58,12 +58,17 @@ public interface IAcompanhamentoService
 /// <param name="VelocidadeNominal">Nulo = a cadastrada na máquina da linha.</param>
 /// <param name="SobreVelocidade">Nulo = a cadastrada na máquina da linha.</param>
 /// <param name="Canais">Canais marcados na medição (contadores e sensores).</param>
+/// <param name="ProducaoInicial">
+/// Leitura do contador da máquina ao iniciar ("produção até então", como no Manual); a
+/// produção do WISE soma a partir dela. Nula = 0. Ignorada nas máquinas que não medem produção.
+/// </param>
 public record IniciarAcompanhamentoRequest(
     Guid MaquinaLinhaId,
     string? EnderecoIpWise,
     decimal? VelocidadeNominal,
     decimal? SobreVelocidade,
-    IList<CanalMedicaoRequest> Canais);
+    IList<CanalMedicaoRequest> Canais,
+    int? ProducaoInicial = null);
 
 /// <param name="Multiplicador">Garrafas por pulso; ignorado (1) nos sensores de estado.</param>
 public record CanalMedicaoRequest(CanalWise Canal, int Multiplicador = 1);
