@@ -68,5 +68,7 @@ public record EventoTimelineDto(
     string? FotoPath,
     // Só nas paradas: para editar o motivo e ver o histórico
     string? ParadaId = null,
-    string? MotivoId = null
+    string? MotivoId = null,
+    // Parada ou sem comunicação ainda em curso: DuracaoMs é até agora
+    bool EmAndamento = false
 );

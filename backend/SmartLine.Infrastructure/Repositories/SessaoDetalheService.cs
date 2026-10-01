@@ -281,9 +281,8 @@ public class SessaoDetalheService : ISessaoDetalheService
 
         foreach (var parada in sessao.Paradas.OrderBy(p => p.Inicio))
         {
-            var duracao = parada.Fim.HasValue
-                ? (parada.Fim.Value - parada.Inicio).TotalMilliseconds
-                : (double?)null;
+            // Em curso: o tempo até agora (a tela atualiza a cada 5 min).
+            var duracao = ((parada.Fim ?? agoraGraficos) - parada.Inicio).TotalMilliseconds;
 
             eventos.Add(new EventoTimelineDto(
                 "Parada",
@@ -293,7 +292,8 @@ public class SessaoDetalheService : ISessaoDetalheService
                 duracao,
                 parada.FotoPath,
                 parada.Id.ToString(),
-                parada.MotivoId?.ToString()
+                parada.MotivoId?.ToString(),
+                EmAndamento: !parada.Fim.HasValue
             ));
 
             if (parada.Fim.HasValue && !iniciosDeParada.Contains(parada.Fim.Value))
@@ -309,15 +309,16 @@ public class SessaoDetalheService : ISessaoDetalheService
             var inicioPeriodo = Max(periodo.Inicio, sessao.Inicio);
             var fimPeriodo = periodo.Fim is { } f && (sessao.Fim is null || f < sessao.Fim) ? f : (DateTime?)null;
             eventos.RemoveAll(e => e.Tipo == "Marcha" && e.Horario == inicioPeriodo);
+            // Termina na volta, no fim da sessão (virada) ou, ainda fora, conta até agora.
+            var ateQuando = fimPeriodo ?? sessao.Fim ?? agoraGraficos;
             eventos.Add(new EventoTimelineDto(
                 "SemComunicacao",
                 inicioPeriodo,
                 periodo.ProducaoNaoRecuperada ? "produção não recuperada (o WISE reiniciou)" : null,
                 null,
-                fimPeriodo is { } fimDentro ? (fimDentro - inicioPeriodo).TotalMilliseconds
-                    : sessao.Fim is { } fimSessao ? (fimSessao - inicioPeriodo).TotalMilliseconds
-                    : (double?)null,
-                null));
+                (ateQuando - inicioPeriodo).TotalMilliseconds,
+                null,
+                EmAndamento: fimPeriodo is null && sessao.Fim is null));
             if (fimPeriodo is { } volta && !iniciosDeParada.Contains(volta))
                 eventos.Add(new EventoTimelineDto("Marcha", volta, null, null, null, null));
         }

@@ -49,6 +49,8 @@ export interface EventoTimelineDto {
   // Só nas paradas: para editar o motivo e ver o histórico
   paradaId?: string | null
   motivoId?: string | null
+  // Parada ou sem comunicação ainda em curso: duracaoMs é até agora
+  emAndamento?: boolean
 }
 
 export interface SessaoDetalheDto {

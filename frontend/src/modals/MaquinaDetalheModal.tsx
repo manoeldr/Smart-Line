@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   BarChart, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { sessaoDetalheService, type ParadaPorHoraDto, type ParadaPorMotivoDto, type SessaoDetalheDto } from '../services/sessaoDetalheService'
+import { sessaoDetalheService, type EventoTimelineDto, type ParadaPorHoraDto, type ParadaPorMotivoDto, type SessaoDetalheDto } from '../services/sessaoDetalheService'
 import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
 import { badgeAtivaVerde } from '../styles/badges'
 import { metricaBox, metricaValor, metricaLabel } from '../styles/cards'
@@ -37,6 +37,23 @@ function formatarHora(dataIso: string) {
 
 function formatarDataHora(dataIso: string) {
   return new Date(dataIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+// Horário com segundos; com a data quando não é o mesmo dia de referência.
+function formatarHorario(data: Date, referencia?: Date) {
+  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return referencia && data.toDateString() !== referencia.toDateString()
+    ? `${data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} ${hora}`
+    : hora
+}
+
+// Duração legível: "45 s", "7 min 28 s", "1 h 05 min".
+function formatarDuracao(ms: number) {
+  const s = Math.max(0, Math.round(ms / 1000))
+  if (s < 60) return `${s} s`
+  const min = Math.floor(s / 60)
+  if (min < 60) return `${min} min ${String(s % 60).padStart(2, '0')} s`
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`
 }
 
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
@@ -373,32 +390,31 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                 {dados.eventos.map((evento, i) => (
                   <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                     <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${COR_EVENTO[evento.tipo].ponto}`} />
-                    <div className="flex-1 flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium ${COR_EVENTO[evento.tipo].texto}`}>
-                            {evento.tipo === 'SemComunicacao' ? 'Sem comunicação' : evento.tipo}
-                          </span>
-                          <span className="text-[10px] text-zinc-400">{formatarDataHora(evento.horario)}</span>
-                        </div>
+                    <div className="flex-1 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className={`text-xs font-medium ${COR_EVENTO[evento.tipo].texto}`}>
+                          {evento.tipo === 'SemComunicacao' ? 'Sem comunicação' : evento.tipo}
+                        </span>
                         {evento.tipo === 'Parada' && (
                           <p className="text-[11px] text-zinc-500 mt-0.5">
                             {evento.motivoNome ?? <span className="text-amber-600 dark:text-amber-400">sem motivo (conta como interna)</span>}
-                            {evento.duracaoMs !== null ? ` — ${formatarHoras(evento.duracaoMs!)}` : ' — em andamento'}
                           </p>
                         )}
                         {evento.tipo === 'SemComunicacao' && (
                           <p className="text-[11px] text-zinc-500 mt-0.5">
-                            Fora do OEE{evento.duracaoMs !== null ? ` — ${formatarHoras(evento.duracaoMs!)}` : ' — em andamento'}
+                            Fora do OEE
                             {evento.motivoNome && <span className="block text-amber-600 dark:text-amber-400">{evento.motivoNome}</span>}
                           </p>
                         )}
                         {evento.tipo === 'Parada' && evento.paradaId && (
-                          <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-2 mt-1 text-[10px]">
                             {podeEditarMotivo && dados.maquinaId && (
-                              <button onClick={() => setEditandoParada(evento.paradaId!)} className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">
-                                Editar motivo
-                              </button>
+                              <>
+                                <button onClick={() => setEditandoParada(evento.paradaId!)} className="text-blue-600 dark:text-blue-400 hover:underline">
+                                  Editar motivo
+                                </button>
+                                <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                              </>
                             )}
                             <button onClick={() => setHistoricoParada(evento.paradaId!)} className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:underline">
                               Histórico
@@ -406,6 +422,8 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
                           </div>
                         )}
                       </div>
+                      {/* Data, início e fim; embaixo, quanto tempo ficou assim (em curso: até agora) */}
+                      <HorarioEvento evento={evento} />
                       {evento.fotoPath && (
                         <button
                           onClick={() => abrirFoto(evento.fotoPath!)}
@@ -432,6 +450,32 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
         onSalvo={() => { setEditandoParada(null); setRecarregar(r => r + 1) }}
       />
       <HistoricoParadaModal paradaId={historicoParada} onFechar={() => setHistoricoParada(null)} />
+    </div>
+  )
+}
+
+// À direita de cada evento: "01/10/2026 - 14:31:41 - 14:33:56" e, embaixo, a duração.
+// Marcha só tem o instante em que começou.
+function HorarioEvento({ evento }: { evento: EventoTimelineDto }) {
+  const de = new Date(evento.horario)
+  const data = de.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const temPeriodo = evento.tipo !== 'Marcha' && evento.duracaoMs !== null
+  const emAndamento = evento.emAndamento === true
+  const ate = temPeriodo ? new Date(de.getTime() + evento.duracaoMs!) : null
+
+  return (
+    <div className="flex-shrink-0 text-right text-[11px] text-zinc-500 tabular-nums">
+      <p>
+        {data} - {formatarHorario(de)}
+        {temPeriodo && (
+          <> - {emAndamento ? <span className="text-amber-600 dark:text-amber-400">em andamento</span> : formatarHorario(ate!, de)}</>
+        )}
+      </p>
+      {temPeriodo && (
+        <p className="mt-0.5">
+          {emAndamento ? 'Até agora' : 'Duração'}: <span className="font-medium text-zinc-700 dark:text-zinc-300">{formatarDuracao(evento.duracaoMs!)}</span>
+        </p>
+      )}
     </div>
   )
 }
