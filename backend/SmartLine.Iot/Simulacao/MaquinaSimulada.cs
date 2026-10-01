@@ -29,6 +29,16 @@ public enum CenarioSimulado
     Desligado
 }
 
+/// <summary>Falha de comunicação simulada, por cima do que a máquina está fazendo.</summary>
+public enum FalhaComunicacao
+{
+    /// <summary>Rede caiu: o WISE continua contando, só não publica (na volta, o contador andou).</summary>
+    SemRede,
+
+    /// <summary>WISE sem energia: não conta nada e, ao voltar, reinicia com os contadores em zero.</summary>
+    SemEnergia
+}
+
 /// <summary>
 /// Uma máquina com WISE, simulada: guarda contadores e sensores e gera a
 /// mensagem MQTT no mesmo formato do WISE-4051 real (ver FormatoWise).
@@ -69,8 +79,27 @@ public sealed class MaquinaSimulada
 
     public CenarioSimulado Cenario { get; private set; } = CenarioSimulado.Rodando;
 
-    /// <summary>Publica? Desligado não publica.</summary>
-    public bool Publica => Cenario != CenarioSimulado.Desligado;
+    /// <summary>Falha de comunicação em curso; nula = comunicando.</summary>
+    public FalhaComunicacao? Falha { get; private set; }
+
+    /// <summary>Publica? Desligado ou com falha de comunicação não publica.</summary>
+    public bool Publica => Cenario != CenarioSimulado.Desligado && Falha is null;
+
+    /// <summary>Começa uma falha de comunicação (a máquina segue no cenário em que está).</summary>
+    public void PerderComunicacao(FalhaComunicacao falha, DateTime agoraUtc)
+    {
+        Avancar(agoraUtc);
+        Falha = falha;
+    }
+
+    /// <summary>Volta a comunicar. Depois de sem energia, o WISE reiniciou: contadores em zero.</summary>
+    public void RecuperarComunicacao(DateTime agoraUtc)
+    {
+        Avancar(agoraUtc);
+        if (Falha == FalhaComunicacao.SemEnergia)
+            _ticksRodando = 0;
+        Falha = null;
+    }
 
     /// <summary>Valor atual do contador de produção (S2).</summary>
     public uint ContadorProducao => Contar(_pulsosPorMinuto);
@@ -98,7 +127,8 @@ public sealed class MaquinaSimulada
         if (agoraUtc <= _ultimoAvancoUtc)
             return;
 
-        if (Cenario == CenarioSimulado.Rodando)
+        // Sem energia o WISE não conta; sem rede ele continua contando.
+        if (Cenario == CenarioSimulado.Rodando && Falha != FalhaComunicacao.SemEnergia)
             _ticksRodando += (agoraUtc - _ultimoAvancoUtc).Ticks;
         _ultimoAvancoUtc = agoraUtc;
     }

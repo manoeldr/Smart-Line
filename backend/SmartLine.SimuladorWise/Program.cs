@@ -18,7 +18,10 @@ using SmartLine.Iot.Simulacao;
 //   rodando=10           minutos médios produzindo entre uma parada e outra (sorteado entre 50% e 150%)
 //   paradaMin=1          duração mínima de uma parada, em minutos
 //   paradaMax=5          duração máxima de uma parada, em minutos
-//   desligar=sim         se o WISE sem energia (sem comunicação) entra no sorteio
+//   desligar=sim         quedas de comunicação automáticas (rede caindo ou WISE sem energia)
+//   quedas=60            minutos médios comunicando entre uma queda e outra (sorteado entre 50% e 150%)
+//   quedaMin=3           duração mínima de uma queda, em minutos
+//   quedaMax=10          duração máxima de uma queda, em minutos
 
 var parametros = args
     .Select(a => a.Split('=', 2))
@@ -43,7 +46,10 @@ var opcoesAuto = new OpcoesParadasAleatorias(
     TimeSpan.FromMinutes(Math.Clamp(Real("rodando", 10), 0.1, 1440)),
     TimeSpan.FromMinutes(Math.Clamp(Real("paradamin", 1), 0.1, 1440)),
     TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("paradamax", 5), Real("paradamin", 1)), 0.1, 1440)),
-    SimNao("desligar", true));
+    SimNao("desligar", true),
+    TimeSpan.FromMinutes(Math.Clamp(Real("quedas", 60), 0.5, 1440)),
+    TimeSpan.FromMinutes(Math.Clamp(Real("quedamin", 3), 0.1, 1440)),
+    TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("quedamax", 10), Real("quedamin", 3)), 0.1, 1440)));
 var automatico = new ParadasAleatorias(opcoesAuto);
 
 var agora = DateTime.UtcNow;
@@ -71,7 +77,8 @@ var comandos = new Dictionary<string, CenarioSimulado>
 Console.WriteLine($"""
     ── Simulador de WISE-4051 ─────────────────────────────────────
     Broker: {broker}:{porta} · publicação a cada {intervalo.TotalSeconds:0} s · {ritmo:0} pulsos/min
-    Paradas automáticas: {(autoNoInicio ? "ligadas" : "desligadas")} · rodando ~{opcoesAuto.RodandoMedio.TotalMinutes:0.#} min entre paradas · paradas de {opcoesAuto.ParadaMinima.TotalMinutes:0.#} a {opcoesAuto.ParadaMaxima.TotalMinutes:0.#} min{(opcoesAuto.IncluirDesligado ? "" : " · sem desligar")}
+    Paradas automáticas: {(autoNoInicio ? "ligadas" : "desligadas")} · rodando ~{opcoesAuto.RodandoMedio.TotalMinutes:0.#} min entre paradas · paradas de {opcoesAuto.ParadaMinima.TotalMinutes:0.#} a {opcoesAuto.ParadaMaxima.TotalMinutes:0.#} min
+    Quedas de comunicação automáticas: {(autoNoInicio && opcoesAuto.IncluirDesligado ? $"~a cada {opcoesAuto.EntreQuedas.TotalMinutes:0.#} min, de {opcoesAuto.QuedaMin.TotalMinutes:0.#} a {opcoesAuto.QuedaMax.TotalMinutes:0.#} min (rede ou WISE sem energia)" : "desligadas")}
 
     Cadastre no SmartLine cada WISE com o IP abaixo:
     {string.Join(Environment.NewLine, publicadores.Select(p => $"  Máquina {p.Maquina.Numero}: IP {p.EnderecoOrigem}"))}
@@ -83,11 +90,13 @@ Console.WriteLine($"""
       1 saida     parada com saída de garrafas bloqueada (S7)
       1 caixas    parada com saída de caixas bloqueada (S4)
       1 parada    parada sem causa (fica não classificada)
-      1 desligar  WISE sem energia (sem comunicação)
+      1 desligar  WISE sem energia (sem comunicação, não conta)
+      1 semrede   rede cai: o WISE continua contando, mas não publica
       1 reiniciar WISE reinicia: contadores voltam a zero
-      1 auto      paradas aleatórias automáticas nesta máquina
+      1 auto      paradas e quedas de comunicação automáticas nesta máquina
       1 manual    só por comando (desliga as automáticas)
-      (um comando de parada ou rodando também passa a máquina para manual)
+      (um comando de parada, rodando ou semrede também passa a máquina para manual;
+       um comando de parada ou rodando devolve a comunicação)
       status      situação de todas
       sair        encerra (Ctrl+C também)
     ───────────────────────────────────────────────────────────────
@@ -106,6 +115,13 @@ async Task<T> ComTrava<T>(Func<T> acao)
     finally { trava.Release(); }
 }
 
+string SemPublicar(MaquinaSimulada m) => m.Falha switch
+{
+    FalhaComunicacao.SemRede => $"sem rede (continua contando: S2={m.ContadorProducao})",
+    FalhaComunicacao.SemEnergia => "WISE sem energia (não conta; volta zerado)",
+    _ => "desligada",
+};
+
 string Duracao(TimeSpan t) => t.TotalMinutes >= 1 ? $"{(int)t.TotalMinutes} min {t.Seconds:00} s" : $"{t.Seconds} s";
 
 async Task Publicar(PublicadorWiseSimulado p, string motivo)
@@ -118,7 +134,7 @@ async Task Publicar(PublicadorWiseSimulado p, string motivo)
         finally { trava.Release(); }
         var hora = DateTime.Now.ToString("HH:mm:ss");
         Console.WriteLine(payload is null
-            ? $"{hora}  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}) desligada"
+            ? $"{hora}  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}) {SemPublicar(p.Maquina)}"
             : $"{hora}  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}) {motivo,-10} {p.Maquina.Cenario,-22} S2={p.Maquina.ContadorProducao} S3={p.Maquina.ContadorRejeito}");
     }
     catch (OperationCanceledException) when (cancelamento.IsCancellationRequested)
@@ -166,6 +182,26 @@ var paradasAutomaticas = Task.Run(async () =>
                 : $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: parada automática {mudou.Cenario} por {Duracao(mudou.Ate)}");
             await Publicar(p, "auto");
         }
+
+        // Quedas de comunicação, num relógio próprio (mais espaçadas e mais longas que as paradas).
+        foreach (var p in publicadores)
+        {
+            var comunicacao = await ComTrava(() =>
+            {
+                var agoraUtc = DateTime.UtcNow;
+                var mudanca = automatico.VerificarComunicacao(p.Maquina, agoraUtc);
+                return mudanca is null ? null : new { mudanca.Falha, Duracao = mudanca.Ate - agoraUtc };
+            });
+            if (comunicacao is null) continue;
+
+            Console.WriteLine(comunicacao.Falha switch
+            {
+                FalhaComunicacao.SemRede => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: rede caiu por {Duracao(comunicacao.Duracao)} (o WISE continua contando)",
+                FalhaComunicacao.SemEnergia => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: WISE sem energia por {Duracao(comunicacao.Duracao)} (volta com os contadores zerados)",
+                _ => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: comunicação voltou (próxima queda em ~{Duracao(comunicacao.Duracao)})",
+            });
+            await Publicar(p, "auto");
+        }
     }
 });
 
@@ -188,7 +224,8 @@ while (true)
             var modo = proxima is null
                 ? "manual"
                 : $"auto, {(p.Maquina.Cenario == CenarioSimulado.Rodando ? "para" : "volta")} em {Duracao(proxima.Value - DateTime.UtcNow)}";
-            Console.WriteLine($"  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}): {p.Maquina.Cenario}, S2={p.Maquina.ContadorProducao}, conectada={p.Conectado}, {modo}");
+            var falha = p.Maquina.Falha is not null ? $", {SemPublicar(p.Maquina)}" : "";
+            Console.WriteLine($"  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}): {p.Maquina.Cenario}{falha}, S2={p.Maquina.ContadorProducao}, conectada={p.Conectado}, {modo}");
         }
         continue;
     }
@@ -228,7 +265,7 @@ while (true)
             continue;
         }
 
-        if (partes[1] != "reiniciar" && !comandos.ContainsKey(partes[1]))
+        if (partes[1] is not ("reiniciar" or "semrede") && !comandos.ContainsKey(partes[1]))
         {
             Console.WriteLine($"Ação '{partes[1]}' desconhecida.");
             break;
@@ -244,7 +281,15 @@ while (true)
 
             // Comando de cenário: quem manda agora é o usuário, até ele pedir "auto" de novo.
             var estavaNoAuto = automatico.Ligado(p.Maquina);
-            automatico.Desligar(p.Maquina);
+            automatico.Desligar(p.Maquina, DateTime.UtcNow);
+            if (partes[1] == "semrede")
+            {
+                // A máquina segue no que estava fazendo; só a rede cai.
+                p.Maquina.PerderComunicacao(FalhaComunicacao.SemRede, DateTime.UtcNow);
+                return estavaNoAuto;
+            }
+            if (p.Maquina.Falha is not null)
+                p.Maquina.RecuperarComunicacao(DateTime.UtcNow);
             p.Maquina.MudarCenario(comandos[partes[1]], DateTime.UtcNow);
             return estavaNoAuto;
         });
