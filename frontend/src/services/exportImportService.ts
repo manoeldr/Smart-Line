@@ -15,6 +15,9 @@ export interface ImportResumoDto {
   maquinas: number
   sessoes: number
   usuarios: number
+  regras: number
+  textosEntradas: number
+  wises: number
 }
 
 export const exportImportService = {
