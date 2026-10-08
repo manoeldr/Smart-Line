@@ -70,6 +70,18 @@ export type AcaoSimulada =
   | 'rodando' | 'falta' | 'minimo' | 'saida' | 'caixas' | 'parada'
   | 'desligar' | 'semrede' | 'reiniciar' | 'auto' | 'manual'
 
+// Licença (só com o backend em desenvolvimento; fora dele a API responde 404)
+export interface SituacaoLicencaDevDto {
+  licencaAtiva: boolean
+  macPreferido: string
+  macsFisicos: string[]
+}
+
+export interface ChaveGeradaDto {
+  macAddress: string
+  chave: string
+}
+
 export const desenvolvedorService = {
   logs: (depoisDe = 0, nivel?: NivelLog | '', texto?: string, maximo = 500) => {
     const p = new URLSearchParams({ depoisDe: String(depoisDe), maximo: String(maximo) })
@@ -84,4 +96,7 @@ export const desenvolvedorService = {
   /** numero 0 = todas as máquinas. */
   comando: (numero: number, acao: AcaoSimulada) =>
     api.post<SimuladorDto>(`/dev/simulador/maquinas/${numero}/comando`, { acao }),
+
+  licenca: () => api.get<SituacaoLicencaDevDto>('/dev/licenca'),
+  gerarChave: (macAddress: string) => api.post<ChaveGeradaDto>('/dev/licenca/gerar', { macAddress }),
 }

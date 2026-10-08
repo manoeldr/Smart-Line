@@ -127,12 +127,14 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Velocidade nominal e sobre velocidade configuradas pelo Administrador por máquina/linha
 - Gestão de campos de coleta e motivos de parada por máquina
 - Semi Automático por máquina (aba "Semi Automático") e por máquina da linha ("Semi Auto"): textos das entradas, tempo de detecção de parada (Z) e regras de classificação
-- Dispositivos IoT: WISE cadastrados, WISE conectados sem cadastro e, só para o Desenvolvedor, a situação do broker e os contadores de mensagens
+- Dispositivos IoT: WISE cadastrados e WISE conectados sem cadastro (aviso se o computador não estiver recebendo os WISE)
 - Controle de acesso por nível: Administrador, Auditor, Cliente e Desenvolvedor
 
 ### Área do Desenvolvedor
 Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer instalação:
 - **Logs**: as últimas 2.000 linhas do log do backend desde que ele subiu, dentro do sistema, sem terminal — filtro por nível (tudo, avisos e erros, só erros) e por texto, atualização sozinha a cada 2 s, exceções abertas ao clicar. Somem ao reiniciar o backend.
+- **Coleta**: situação do broker MQTT (porta, WISE conectados, mensagens processadas, descartadas e perdidas) e cada coleta Semi Automática em andamento como o motor a vê: WISE e conexão, situação, parada aberta, última mensagem, sessão, sensores e contadores brutos.
+- **Licença** (só em desenvolvimento): gera a chave de licença de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. O controller fica dentro de `#if DEBUG` e só responde com `ASPNETCORE_ENVIRONMENT=Development`: o publish de produção (Release) não leva esse código, e a aba some.
 - **Simulador de WISE**: os mesmos WISE simulados do console, ligados por dentro do backend — formulário com máquinas, ritmo, garrafas por pulso, paradas e quedas automáticas; cada máquina com os comandos como botões (rodando, falta, mínimo, saída, caixas, sem causa, sem energia, sem rede, reiniciar, automático/manual). Os IPs simulados (`127.0.0.21`…) aparecem em Dispositivos IoT como aparelhos reais.
 
 ### Usabilidade
@@ -148,9 +150,9 @@ Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer insta
 - Ferramenta separada (`SmartLine.LicenseGenerator`) para gerar chaves a partir do MAC address do cliente
 
 ### Exportação e Importação de dados
-- Gera um pacote `.zip` (dados.json + fotos) com as categorias selecionadas: Clientes+Linhas, Máquinas, Sessões/Medições e Usuários
+- Gera um pacote `.zip` (dados.json + fotos) com as categorias selecionadas: Clientes+Linhas (máquinas da linha com Z e regras personalizadas, cadastro de WISE), Máquinas (campos, motivos, textos das entradas e regras do catálogo), Sessões/Medições (produção, paradas com histórico, leituras, trechos sem comunicação) e Usuários
 - Importação com prévia — mostra a contagem de registros de cada categoria antes de confirmar
-- Upsert por ID: dados existentes são atualizados, novos são criados, nada é duplicado
+- Upsert por ID: dados existentes são atualizados, novos são criados, nada é duplicado (regras espelham a origem: a que sumiu lá sai aqui; textos de entrada casam por máquina + entrada e WISE pelo IP)
 - Pensado para um fluxo de PC central + estações satélite: a configuração é definida uma vez e distribuída, garantindo nomes consistentes entre todos os computadores
 - Ferramenta dedicada (`ImportLegacy`) para migrar dados do sistema legado (Python/SQLite) — clientes, linhas, máquinas, motivos de parada e sessões completas com paradas e leituras reconstruídas
 
@@ -358,7 +360,7 @@ SmartLine/
 | Nível | Overview | Medição | Dashboard | Configurações | Desenvolvedor |
 |-------|----------|---------|-----------|---------------|---------------|
 | Administrador | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Dispositivos IoT, Exportar/Importar | ❌ |
-| Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador + situação do broker MQTT | Logs e simulador de WISE |
+| Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador | Logs, coleta (broker e motor) e simulador de WISE |
 | Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas | ❌ |
 | Cliente | ✅ | ❌ | ❌ | ❌ | ❌ |
 
@@ -385,17 +387,16 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - **Dashboard — visão Linha**: OEE pela máquina crítica, paradas somadas por máquina, produção por hora da crítica
 - F5 mantém modais, abas, tema e rolagem; filtros de data com bolinha nos dias com sessão
 - Zerar os contadores do WISE por HTTP ao iniciar a medição; licença aceitando qualquer placa de rede física; filtro por data do Overview mostrando a sessão do dia
-- **Área do Desenvolvedor**: logs do backend e simulador de WISE dentro do sistema, sem terminal
+- **Área do Desenvolvedor**: logs do backend, situação da coleta e simulador de WISE dentro do sistema, sem terminal
+- Exportação/Importação leva regras, textos das entradas, cadastro de WISE, Z, histórico de paradas e trechos sem comunicação
+- Filtros de data com um dia só, começando por hoje; tempo de parada (Z) no Adicionar máquina; SQLite nativo atualizado
 
 ### Próximo
 - [ ] Bancada com o WISE real: formato do contador e do registro HTTP, intervalo de publicação, IP fixo, filtros das entradas e firewall
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
 
 ### Em aberto
-- [ ] Exportação/Importação levar as regras, os textos das entradas e o cadastro de WISE
-- [ ] Recarregar as regras numa coleta em andamento (hoje valem na próxima coleta)
 - [ ] Rede/Multi-usuário — IP fixo no PC central, faixa do roteador e liberação das portas no firewall
-- [ ] Atualizar SQLitePCLRaw (aviso de vulnerabilidade NU1903)
 - [ ] Levantar os valores numéricos de `WS_Cur_Mode_00100` e `WS_Cur_Prog_00200` (Networks 26 e 27 da FC)
 
 ---
@@ -407,7 +408,7 @@ cd backend
 dotnet test SmartLine.Tests/SmartLine.Tests.csproj
 ```
 
-São 394 testes, todos passando. Para rodar só uma frente:
+São 398 testes, todos passando. Para rodar só uma frente:
 
 ```bash
 dotnet test SmartLine.Tests/SmartLine.Tests.csproj --filter "FullyQualifiedName~Iot"
