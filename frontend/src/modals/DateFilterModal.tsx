@@ -5,6 +5,8 @@ interface Props {
   onClose: () => void
   onApply: (data: string) => void
   onClear: () => void
+  // Data filtrada agora (nula = hoje, ao vivo)
+  valor?: string | null
   datasComSessao: string[]
   anchorRef: React.RefObject<HTMLButtonElement | null>
 }
@@ -12,11 +14,14 @@ interface Props {
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const DIAS_SEMANA = ['D','S','T','Q','Q','S','S']
 
-export default function DateFilterModal({ open, onClose, onApply, onClear, datasComSessao, anchorRef }: Props) {
+export default function DateFilterModal({ open, onClose, onApply, onClear, valor = null, datasComSessao, anchorRef }: Props) {
   const hoje = new Date()
-  const [ano, setAno] = useState(hoje.getFullYear())
-  const [mes, setMes] = useState(hoje.getMonth())
-  const [selecionado, setSelecionado] = useState<string | null>(null)
+  const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+  // Abre no dia filtrado ou, sem filtro, em hoje (o modal é montado a cada abertura).
+  const inicial = valor ?? hojeStr
+  const [ano, setAno] = useState(parseInt(inicial.split('-')[0]))
+  const [mes, setMes] = useState(parseInt(inicial.split('-')[1]) - 1)
+  const [selecionado, setSelecionado] = useState<string | null>(inicial)
   const [pos, setPos] = useState({ top: 0, right: 0 })
   const popoverRef = useRef<HTMLDivElement>(null)
 
@@ -82,6 +87,8 @@ export default function DateFilterModal({ open, onClose, onApply, onClear, datas
 
   function handleApply() {
     if (!selecionado) return
+    // Hoje é o ao vivo: o mesmo que limpar o filtro.
+    if (selecionado === hojeStr) { onClear(); onClose(); return }
     const d = parseInt(selecionado.split('-')[2])
     if (!temSessao(d)) return
     onApply(selecionado)
@@ -174,7 +181,7 @@ export default function DateFilterModal({ open, onClose, onApply, onClear, datas
         {/* Botões */}
         <button
           onClick={handleApply}
-          disabled={!selecionado || !temSessao(diaNumSel)}
+          disabled={!selecionado || (selecionado !== hojeStr && !temSessao(diaNumSel))}
           className="w-full py-2 rounded-sm text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mb-2"
         >
           Ver informações
@@ -183,7 +190,7 @@ export default function DateFilterModal({ open, onClose, onApply, onClear, datas
           onClick={handleClear}
           className="w-full py-1.5 rounded-sm text-xs text-zinc-500 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
-          Limpar filtro
+          Hoje (ao vivo)
         </button>
       </div>
     </div>

@@ -72,9 +72,10 @@ export default function Layout() {
         </div>
       </main>
 
-      {filtroAnchor && (
+      {filtroAnchor && filtroOpen && (
         <DateFilterModal
           open={filtroOpen}
+          valor={dataFiltro}
           onClose={() => setFiltroOpen(false)}
           onApply={(data) => setDataFiltro(data)}
           onClear={() => setDataFiltro(null)}

@@ -55,15 +55,11 @@ export default function Dashboard() {
   const [linhaSelecionada, setLinhaSelecionada] = useState<string>('')
   const [loadingLinhas, setLoadingLinhas] = useState(false)
 
-  // Padrão: últimos 7 dias
-  const hoje = new Date()
-  const seteDiasAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000)
-
-  const [dataInicio, setDataInicio] = useState(formatarDataInput(seteDiasAtras))
-  const [dataFim, setDataFim] = useState(formatarDataInput(hoje))
+  // Um dia só, começando pelo de hoje.
+  const [data, setData] = useState(() => formatarDataInput(new Date()))
 
   const [visao, setVisao] = useState<Visao>(visaoGuardada)
-  // Dias com sessão na linha escolhida: bolinha azul nos calendários de início e fim
+  // Dias com sessão na linha escolhida: bolinha azul no calendário
   const [datasComSessao, setDatasComSessao] = useState<string[]>([])
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [linhaGeral, setLinhaGeral] = useState<LinhaDashboardDto | null>(null)
@@ -113,8 +109,8 @@ export default function Dashboard() {
         setErro(null)
       }
       try {
-        const inicioIso = new Date(dataInicio + 'T00:00:00').toISOString()
-        const fimIso = new Date(dataFim + 'T23:59:59').toISOString()
+        const inicioIso = new Date(data + 'T00:00:00').toISOString()
+        const fimIso = new Date(data + 'T23:59:59').toISOString()
         if (visao === 'linha') {
           const data = await dashboardService.getLinhaGeral(linhaSelecionada, inicioIso, fimIso)
           if (!ativo) return
@@ -139,7 +135,7 @@ export default function Dashboard() {
     }
     carregarDados()
     return () => { ativo = false; clearTimeout(timer) }
-  }, [linhaSelecionada, dataInicio, dataFim, visao])
+  }, [linhaSelecionada, data, visao])
 
   function escolherVisao(v: Visao) {
     setVisao(v)
@@ -170,13 +166,8 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500">Data início</label>
-          <CampoData valor={dataInicio} onChange={setDataInicio} datasComSessao={datasComSessao} max={dataFim} />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500">Data fim</label>
-          <CampoData valor={dataFim} onChange={setDataFim} datasComSessao={datasComSessao} min={dataInicio} />
+          <label className="text-xs text-zinc-500">Data</label>
+          <CampoData valor={data} onChange={setData} datasComSessao={datasComSessao} max={formatarDataInput(new Date())} />
         </div>
 
         <div className="flex flex-col gap-1.5">
