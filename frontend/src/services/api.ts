@@ -47,6 +47,25 @@ function sairPorSessaoExpirada() {
   window.location.replace('/login?expirou=1')
 }
 
+/// Para as chamadas que mandam ou recebem arquivos (foto, exportar, importar): o mesmo
+/// cabeçalho de login e o mesmo tratamento de login vencido do request acima.
+export async function fetchAutenticado(url: string, options?: RequestInit): Promise<Response> {
+  const token = localStorage.getItem('token')
+  const res = await fetch(url, {
+    cache: 'no-store',
+    ...options,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
+  })
+  if (res.status === 401) {
+    sairPorSessaoExpirada()
+    return new Promise<Response>(() => {})
+  }
+  return res
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   BarChart, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
+import { fetchAutenticado } from '../services/api'
 import { sessaoDetalheService, type EventoTimelineDto, type ParadaPorHoraDto, type ParadaPorMotivoDto, type SessaoDetalheDto } from '../services/sessaoDetalheService'
 import { modalOverlayDark, modalPanel, modalHeader, modalTitle, modalSubtitle } from '../styles/modals'
 import { badgeAtivaVerde } from '../styles/badges'
@@ -172,10 +173,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
 
   async function abrirFoto(fotoPath: string) {
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`/api/paradas/foto/${fotoPath}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
+      const res = await fetchAutenticado(`/api/paradas/foto/${fotoPath}`)
       if (!res.ok) throw new Error('Erro ao carregar foto')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)

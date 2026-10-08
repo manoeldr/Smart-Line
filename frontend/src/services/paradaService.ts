@@ -1,4 +1,4 @@
-import { api } from './api'
+import { api, fetchAutenticado } from './api'
 
 export interface ParadaDto {
   id: string
@@ -7,11 +7,6 @@ export interface ParadaDto {
   inicio: string
   fim: string | null
   fotoPath: string | null
-}
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export const paradaService = {
@@ -26,9 +21,8 @@ export const paradaService = {
     const formData = new FormData()
     formData.append('foto', arquivo)
 
-    const res = await fetch(`/api/paradas/${paradaId}/foto`, {
+    const res = await fetchAutenticado(`/api/paradas/${paradaId}/foto`, {
       method: 'POST',
-      headers: authHeaders(),
       body: formData,
     })
     if (!res.ok) throw new Error(`Erro ${res.status} ao enviar foto`)

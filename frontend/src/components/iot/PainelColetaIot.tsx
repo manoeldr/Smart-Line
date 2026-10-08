@@ -138,7 +138,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
           <p>Produção da sessão: <span className="font-medium text-zinc-900 dark:text-zinc-100">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>
           <p>Refugo: <span className="text-zinc-900 dark:text-zinc-100">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
           {c.paradasNaoClassificadas > 0 && (
-            <p className="text-amber-600 dark:text-amber-400">{c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada sem motivo' : 'paradas sem motivo'}</p>
+            <p className="text-amber-600 dark:text-amber-400">{c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada sem classificação' : 'paradas sem classificação'}</p>
           )}
         </div>
 
@@ -146,7 +146,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
         {parada && (
           <p className="text-red-600 dark:text-red-400">
             Parada desde {dataHora(parada.inicio)} ({tempoDesde(parada.inicio, agora).replace('há ', '')})
-            {' · '}{parada.motivo ? `${parada.motivo} (${parada.tipo.toLowerCase()})` : 'sem motivo (conta como interna)'}
+            {' · '}{parada.motivo ? `${parada.motivo} (${parada.tipo.toLowerCase()})` : 'sem classificação (conta como interna)'}
           </p>
         )}
         {c.semComunicacaoDesde && (
@@ -176,7 +176,8 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
         <p className="text-[10px] text-zinc-400">
           Canais: {c.canais.map(x => `${x.canal}${x.multiplicador > 1 ? ` ×${x.multiplicador}` : ''}`).join(', ')}
           {' · '}parada após {c.tempoDeteccaoParadaSegundos} s sem produção
-          {Object.keys(painel.contadores).length > 0 && (
+          {/* Valor bruto dos contadores do WISE: só para o Desenvolvedor (não é a produção) */}
+          {usuario?.nivel === 'Desenvolvedor' && Object.keys(painel.contadores).length > 0 && (
             <> · contadores: {Object.entries(painel.contadores).map(([canal, v]) => `${canal}=${v.toLocaleString('pt-BR')}`).join(', ')}</>
           )}
         </p>

@@ -1,3 +1,5 @@
+import { fetchAutenticado } from './api'
+
 const BASE_URL = '/api/export-import'
 
 export interface ExportOpcoes {
@@ -15,17 +17,12 @@ export interface ImportResumoDto {
   usuarios: number
 }
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export const exportImportService = {
   // Exportar: baixa um .zip com os dados selecionados
   exportar: async (opcoes: ExportOpcoes) => {
-    const res = await fetch(`${BASE_URL}/exportar`, {
+    const res = await fetchAutenticado(`${BASE_URL}/exportar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(opcoes),
     })
     if (!res.ok) throw new Error(`Erro ${res.status} ao exportar`)
@@ -49,9 +46,8 @@ export const exportImportService = {
     const formData = new FormData()
     formData.append('arquivo', arquivo)
 
-    const res = await fetch(`${BASE_URL}/previa`, {
+    const res = await fetchAutenticado(`${BASE_URL}/previa`, {
       method: 'POST',
-      headers: authHeaders(),
       body: formData,
     })
     if (!res.ok) throw new Error(`Erro ${res.status} ao ler o arquivo`)
@@ -63,9 +59,8 @@ export const exportImportService = {
     const formData = new FormData()
     formData.append('arquivo', arquivo)
 
-    const res = await fetch(`${BASE_URL}/importar`, {
+    const res = await fetchAutenticado(`${BASE_URL}/importar`, {
       method: 'POST',
-      headers: authHeaders(),
       body: formData,
     })
     if (!res.ok) throw new Error(`Erro ${res.status} ao importar`)

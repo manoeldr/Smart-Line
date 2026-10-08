@@ -253,7 +253,7 @@ export default function AbaDispositivosIot() {
               <tr className={tableHeadRow}>
                 <th className={tableHeadCell}>Nome</th>
                 <th className={tableHeadCell}>IP</th>
-                <th className={tableHeadCell}>Identificação MQTT</th>
+                <th className={tableHeadCell}>Identificação</th>
                 <th className={tableHeadCell}>Conexão</th>
                 <th className={tableHeadCell}>Última mensagem</th>
                 <th className={tableHeadCell}>Medição</th>
@@ -314,7 +314,7 @@ export default function AbaDispositivosIot() {
             <thead>
               <tr className={tableHeadRow}>
                 <th className={tableHeadCell}>IP</th>
-                <th className={tableHeadCell}>Identificação MQTT</th>
+                <th className={tableHeadCell}>Identificação</th>
                 <th className={tableHeadCell}>Conexão</th>
                 <th className={tableHeadCell}>Última mensagem</th>
                 <th className="py-2" />

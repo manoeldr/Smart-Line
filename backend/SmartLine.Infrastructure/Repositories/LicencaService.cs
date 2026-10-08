@@ -51,20 +51,21 @@ public class LicencaService : ILicencaService
         var mac = ObterMacAddress();
         var licenca = await _context.Licencas.FirstOrDefaultAsync();
 
+        // A chave continua presa a um MAC só; o que não importa é qual placa está em uso agora.
         var ativa = licenca is not null
-            && licenca.MacAddress == mac
-            && licenca.Chave == GerarChaveEsperada(mac);
+            && ObterMacsFisicos().Contains(licenca.MacAddress, StringComparer.OrdinalIgnoreCase)
+            && licenca.Chave == GerarChaveEsperada(licenca.MacAddress);
 
         return new LicencaStatusDto(ativa, mac);
     }
 
     public async Task<bool> AtivarAsync(string chave)
     {
-        var mac = ObterMacAddress();
         var chaveNormalizada = NormalizarChave(chave);
-        var chaveEsperada = GerarChaveEsperada(mac);
 
-        if (chaveNormalizada != chaveEsperada) return false;
+        // A chave pode ter sido gerada para qualquer placa física deste computador.
+        var mac = ObterMacsFisicos().FirstOrDefault(m => GerarChaveEsperada(m) == chaveNormalizada);
+        if (mac is null) return false;
 
         var licencaExistente = await _context.Licencas.FirstOrDefaultAsync();
         if (licencaExistente is not null)
@@ -88,29 +89,41 @@ public class LicencaService : ILicencaService
         return true;
     }
 
-    // Detecta o MAC address de forma estável — prioriza Ethernet físico, depois Wi-Fi,
-    // ignora adaptadores virtuais (por fabricante conhecido E por palavra-chave),
-    // e usa o nome como critério de desempate (não a ordem do SO, que pode variar entre execuções).
+    // MAC mostrado na tela de ativação, para gerar a chave. A validação depois aceita a chave em
+    // qualquer placa física do computador (ObterMacsFisicos), então a escolha aqui só define
+    // qual MAC vai na chave.
     public string ObterMacAddress()
     {
-        var interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(ni => ni.OperationalStatus == OperationalStatus.Up
-                && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback
-                && ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel
-                && ni.GetPhysicalAddress().GetAddressBytes().Length > 0
-                && !OuiVirtuaisIgnorados.Contains(ni.GetPhysicalAddress().ToString().Substring(0, 6), StringComparer.OrdinalIgnoreCase)
-                && !PalavrasIgnoradas.Any(p => ni.Description.Contains(p, StringComparison.OrdinalIgnoreCase)
-                                             || ni.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
-            .OrderByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
-            .ThenByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
-            .ThenBy(ni => ni.Name, StringComparer.Ordinal)
-            .ToList();
-
-        var escolhida = interfaces.FirstOrDefault();
+        // Preferência: placa ligada, cabo antes de Wi-Fi; sem nenhuma ligada, a primeira física.
+        var fisicas = PlacasFisicas();
+        var escolhida = fisicas.FirstOrDefault(ni => ni.OperationalStatus == OperationalStatus.Up) ?? fisicas.FirstOrDefault();
         if (escolhida is null) return "SEM-MAC-DETECTADO";
 
         return escolhida.GetPhysicalAddress().ToString(); // formato: "0011223344AA"
     }
+
+    public IReadOnlyList<string> ObterMacsFisicos()
+    {
+        var macs = PlacasFisicas().Select(ni => ni.GetPhysicalAddress().ToString()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        // Computador sem nenhuma placa física reconhecida: a chave é gerada para este texto, como antes.
+        return macs.Count > 0 ? macs : ["SEM-MAC-DETECTADO"];
+    }
+
+    // Placas físicas do computador, ligadas ou não (a de cabo sem cabo continua aqui), sem as
+    // virtuais (por fabricante conhecido E por palavra-chave). Ordem estável: cabo, Wi-Fi, nome.
+    private static List<NetworkInterface> PlacasFisicas() =>
+        NetworkInterface.GetAllNetworkInterfaces()
+            .Where(ni => ni.NetworkInterfaceType != NetworkInterfaceType.Loopback
+                && ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel
+                && ni.GetPhysicalAddress().GetAddressBytes().Length >= 6
+                && !OuiVirtuaisIgnorados.Contains(ni.GetPhysicalAddress().ToString().Substring(0, 6), StringComparer.OrdinalIgnoreCase)
+                && !PalavrasIgnoradas.Any(p => ni.Description.Contains(p, StringComparison.OrdinalIgnoreCase)
+                                             || ni.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(ni => ni.OperationalStatus == OperationalStatus.Up)
+            .ThenByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+            .ThenByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+            .ThenBy(ni => ni.Name, StringComparer.Ordinal)
+            .ToList();
 
     // Gera a chave esperada para um MAC address, usando HMAC-SHA256 com o segredo fixo.
     // Formato final: 6 grupos de 4 caracteres hexadecimais separados por hífen.
