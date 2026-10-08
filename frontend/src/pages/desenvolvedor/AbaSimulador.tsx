@@ -2,7 +2,7 @@
 // backend (publicam no broker como aparelhos reais, com IPs 127.0.0.21, .22…), com paradas e
 // quedas de comunicação automáticas, e botões com os mesmos comandos do simulador de console.
 // O formulário fica guardado no navegador para a próxima vez. Atualiza a cada 2 s.
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   desenvolvedorService,
   type AcaoSimulada,
@@ -188,39 +188,34 @@ export default function AbaSimulador() {
 
       {erroComando && <p className="text-xs text-red-500">{erroComando}</p>}
 
-      {/* Formulário (só desligado) */}
+      {/* Formulário (só desligado): rótulos de uma linha só, para os campos ficarem alinhados. */}
       {!ligado && (
-        <div className={`${cardPadded} grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3`}>
-          <div>
-            <label className={labelClass}>Máquinas (1 a 50)</label>
-            <input type="number" min={1} max={50} className={inputBase} value={form.maquinas} onChange={e => numero('maquinas', e.target.value)} />
+        <div className={`${cardPadded} flex flex-col gap-4`}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
+            <Campo rotulo="Máquinas (1 a 50)">
+              <input type="number" min={1} max={50} className={inputBase} value={form.maquinas} onChange={e => numero('maquinas', e.target.value)} />
+            </Campo>
+            <Campo rotulo="Publicação a cada (s)">
+              <input type="number" min={1} max={3600} className={inputBase} value={form.intervaloSegundos} onChange={e => numero('intervaloSegundos', e.target.value)} />
+            </Campo>
+            <Campo rotulo="Garrafas por minuto">
+              <input className={inputBase} value={ritmoTexto} onChange={e => setRitmoTexto(e.target.value)} placeholder="600 ou 600, 600, 500" />
+            </Campo>
+            <Campo rotulo="Garrafas por pulso">
+              <input className={inputBase} value={pulsoTexto} onChange={e => setPulsoTexto(e.target.value)} placeholder="1 ou 1, 1, 84" />
+            </Campo>
+            <Campo rotulo="Refugo (% da produção)">
+              <input type="number" min={0} max={100} step="0.1" className={inputBase} value={form.rejeitoPercentual} onChange={e => numero('rejeitoPercentual', e.target.value)} />
+            </Campo>
+            <Campo rotulo="Primeiro IP (127.0.0.N)">
+              <input type="number" min={2} max={200} className={inputBase} value={form.primeiroIp} onChange={e => numero('primeiroIp', e.target.value)} />
+            </Campo>
+            <Campo rotulo="Porta HTTP dos WISE (0 desliga)">
+              <input type="number" min={0} max={65535} className={inputBase} value={form.portaHttp} onChange={e => numero('portaHttp', e.target.value)} />
+            </Campo>
           </div>
-          <div>
-            <label className={labelClass}>Publicação a cada (s)</label>
-            <input type="number" min={1} max={3600} className={inputBase} value={form.intervaloSegundos} onChange={e => numero('intervaloSegundos', e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Garrafas por minuto (um valor ou um por máquina)</label>
-            <input className={inputBase} value={ritmoTexto} onChange={e => setRitmoTexto(e.target.value)} placeholder="600 ou 600, 600, 500" />
-          </div>
-          <div>
-            <label className={labelClass}>Garrafas por pulso (um por máquina)</label>
-            <input className={inputBase} value={pulsoTexto} onChange={e => setPulsoTexto(e.target.value)} placeholder="1 ou 1, 1, 84" />
-          </div>
-          <div>
-            <label className={labelClass}>Refugo (% da produção)</label>
-            <input type="number" min={0} max={100} step="0.1" className={inputBase} value={form.rejeitoPercentual} onChange={e => numero('rejeitoPercentual', e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Primeiro IP (127.0.0.N)</label>
-            <input type="number" min={2} max={200} className={inputBase} value={form.primeiroIp} onChange={e => numero('primeiroIp', e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Porta HTTP dos WISE (0 desliga)</label>
-            <input type="number" min={0} max={65535} className={inputBase} value={form.portaHttp} onChange={e => numero('portaHttp', e.target.value)} />
-            <p className="text-[10px] text-zinc-400 mt-1">A mesma de WISE_HTTP_PORTA no backend (zerar contadores).</p>
-          </div>
-          <div className="flex flex-col gap-2 pt-5">
+
+          <div className="flex flex-wrap gap-6 pt-3 border-t border-zinc-100 dark:border-zinc-800">
             <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
               <input type="checkbox" className={checkbox} checked={form.automatico} onChange={e => campo('automatico', e.target.checked)} />
               Paradas automáticas
@@ -231,32 +226,33 @@ export default function AbaSimulador() {
             </label>
           </div>
 
-          <div className="col-span-2 md:col-span-4 grid grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-            <div>
-              <label className={labelClass}>Rodando entre paradas (min, médio)</label>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-3">
+            <Campo rotulo="Entre paradas (min)">
               <input type="number" min={0.1} step="0.5" className={inputBase} value={form.rodandoMedioMin} onChange={e => numero('rodandoMedioMin', e.target.value)} disabled={!form.automatico} />
-            </div>
-            <div>
-              <label className={labelClass}>Parada mínima (min)</label>
+            </Campo>
+            <Campo rotulo="Parada mínima (min)">
               <input type="number" min={0.1} step="0.5" className={inputBase} value={form.paradaMinimaMin} onChange={e => numero('paradaMinimaMin', e.target.value)} disabled={!form.automatico} />
-            </div>
-            <div>
-              <label className={labelClass}>Parada máxima (min)</label>
+            </Campo>
+            <Campo rotulo="Parada máxima (min)">
               <input type="number" min={0.1} step="0.5" className={inputBase} value={form.paradaMaximaMin} onChange={e => numero('paradaMaximaMin', e.target.value)} disabled={!form.automatico} />
-            </div>
-            <div>
-              <label className={labelClass}>Comunicando entre quedas (min, médio)</label>
+            </Campo>
+            <Campo rotulo="Entre quedas (min)">
               <input type="number" min={0.5} step="1" className={inputBase} value={form.quedaMediaMin} onChange={e => numero('quedaMediaMin', e.target.value)} disabled={!form.automatico || !form.quedas} />
-            </div>
-            <div>
-              <label className={labelClass}>Queda mínima (min)</label>
+            </Campo>
+            <Campo rotulo="Queda mínima (min)">
               <input type="number" min={0.1} step="0.5" className={inputBase} value={form.quedaMinimaMin} onChange={e => numero('quedaMinimaMin', e.target.value)} disabled={!form.automatico || !form.quedas} />
-            </div>
-            <div>
-              <label className={labelClass}>Queda máxima (min)</label>
+            </Campo>
+            <Campo rotulo="Queda máxima (min)">
               <input type="number" min={0.1} step="0.5" className={inputBase} value={form.quedaMaximaMin} onChange={e => numero('quedaMaximaMin', e.target.value)} disabled={!form.automatico || !form.quedas} />
-            </div>
+            </Campo>
           </div>
+
+          <p className="text-[10px] text-zinc-400">
+            Garrafas por minuto e por pulso: um valor ou um por máquina, separados por vírgula (a lista curta repete o último).
+            Garrafas por pulso maior que 1 pede o mesmo número como multiplicador da máquina na medição.
+            "Entre paradas" e "Entre quedas" são tempos médios (sorteados entre 50% e 150%).
+            A porta HTTP é a mesma de WISE_HTTP_PORTA no backend (zerar contadores).
+          </p>
         </div>
       )}
 
@@ -397,6 +393,17 @@ function BotoesComando({ maquina, ocupado, onComando }: {
           Manual
         </button>
       )}
+    </div>
+  )
+}
+
+// Rótulo numa linha só (o que não couber vira reticências, com o texto inteiro na dica),
+// para todos os campos do formulário ficarem na mesma altura.
+function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <label className={`${labelClass} truncate`} title={rotulo}>{rotulo}</label>
+      {children}
     </div>
   )
 }
