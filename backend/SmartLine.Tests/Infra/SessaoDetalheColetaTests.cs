@@ -34,6 +34,21 @@ public class SessaoDetalheColetaTests : IDisposable
     }
 
     [Fact]
+    public async Task DetalhePorSessao_EOMesmoDaUltima_QuandoEAMesmaSessao()
+    {
+        await _c.Consolidar(Em(300), garrafas: 100);
+
+        await using var db = _c.Banco.NovoContexto();
+        var servico = new SessaoDetalheService(db, new OeeService());
+        var porSessao = await servico.GetSessaoDetalheAsync(_c.Sessao);
+        var ultima = await servico.GetUltimaSessaoDetalheAsync(_c.MaquinaLinha);
+
+        Assert.Equal(ultima!.SessaoId, porSessao!.SessaoId);
+        Assert.Equal((ultima.Producao, ultima.Oee, ultima.Eventos.Count), (porSessao.Producao, porSessao.Oee, porSessao.Eventos.Count));
+        Assert.Null(await servico.GetSessaoDetalheAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
     public async Task GraficoDeProducao_PorHora_EmVezDeACada5Minutos()
     {
         // Coleta às 11:00; gravações às 11:05, 11:10, 12:00 e 12:05.

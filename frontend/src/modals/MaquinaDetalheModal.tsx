@@ -21,6 +21,8 @@ import { useParametroUrl } from '../hooks/useParametroUrl'
 interface Props {
   open: boolean
   maquinaLinhaId: string | null
+  // Uma sessão específica (a do dia escolhido no filtro do Overview); nula = a última da máquina
+  sessaoId?: string | null
   onFechar: () => void
   // Chamado quando a coleta Semi Automática é finalizada por aqui (quem abriu recarrega a tela)
   onColetaFinalizada?: () => void
@@ -92,7 +94,7 @@ function msAteProximaAtualizacao(agora = Date.now()) {
   return Math.max(1000, proxima - agora)
 }
 
-export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, onColetaFinalizada }: Props) {
+export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = null, onFechar, onColetaFinalizada }: Props) {
   const [dados, setDados] = useState<SessaoDetalheDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -127,20 +129,23 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
     let ativo = true
     let timer: ReturnType<typeof setTimeout> | undefined
 
+    const alvo = `${maquinaLinhaId}:${sessaoId ?? ''}`
     async function carregar() {
-      const primeira = carregadoPara.current !== maquinaLinhaId
+      const primeira = carregadoPara.current !== alvo
       if (primeira) {
         setLoading(true)
         setErro(null)
         setDados(null)
       }
       try {
-        const data = await sessaoDetalheService.getUltimaSessaoDetalhe(maquinaLinhaId!)
+        const data = sessaoId
+          ? await sessaoDetalheService.getSessaoDetalhe(sessaoId)
+          : await sessaoDetalheService.getUltimaSessaoDetalhe(maquinaLinhaId!)
         if (!ativo) return
         setDados(data)
         setErro(null)
         if (primeira) setCamposSelecionados(new Set())
-        carregadoPara.current = maquinaLinhaId
+        carregadoPara.current = alvo
       } catch (e: unknown) {
         // Numa atualização em segundo plano, uma falha só mantém o que já está na tela.
         if (!ativo || !primeira) return
@@ -160,7 +165,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
 
     carregar()
     return () => { ativo = false; clearTimeout(timer) }
-  }, [open, maquinaLinhaId, recarregar])
+  }, [open, maquinaLinhaId, sessaoId, recarregar])
 
   function toggleCampo(id: string) {
     setCamposSelecionados(prev => {
@@ -236,8 +241,9 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, onFechar, on
           </button>
         </div>
 
-        {/* Coleta Semi Automática em andamento (some quando a máquina não está em coleta) */}
-        {maquinaLinhaId && (
+        {/* Coleta Semi Automática em andamento (some quando a máquina não está em coleta).
+            Numa sessão antiga escolhida pelo filtro por data, não faz sentido mostrar a coleta de agora. */}
+        {maquinaLinhaId && (!sessaoId || dados?.status === 'EmAndamento') && (
           <PainelColetaIot
             maquinaLinhaId={maquinaLinhaId}
             onFinalizada={() => { onColetaFinalizada?.(); fechar() }}

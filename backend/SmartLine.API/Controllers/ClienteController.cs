@@ -61,10 +61,23 @@ public class ClienteController : ControllerBase
     public async Task<IActionResult> GetDatasComSessao(Guid id, [FromQuery] Guid? linhaId) =>
         Ok(await _clienteService.GetDatasComSessaoAsync(id, linhaId));
 
+    /// <param name="data">Filtro por data do Overview ("yyyy-MM-dd"): a sessão daquele dia em cada máquina.</param>
     [HttpGet("{id}/linhas")]
-    public async Task<IActionResult> GetLinhas(Guid id)
+    public async Task<IActionResult> GetLinhas(Guid id, [FromQuery] string? data)
     {
-        var linhas = await _clienteService.GetLinhasAsync(id);
+        DateTime? dia = null;
+        if (!string.IsNullOrWhiteSpace(data))
+        {
+            if (!DateTime.TryParseExact(data, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var d))
+                return BadRequest(new { mensagem = "Data inválida." });
+            dia = d;
+        }
+
+        var linhas = await _clienteService.GetLinhasAsync(id, dia);
+        // Dia escolhido: é a sessão daquele dia, sem a situação ao vivo.
+        if (dia is not null)
+            return Ok(linhas);
+
         var conectados = _broker.IpsConectados();
 
         // O que só existe em memória (motor da coleta e broker) entra aqui, sobre o que veio do banco.

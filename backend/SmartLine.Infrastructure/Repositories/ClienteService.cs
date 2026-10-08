@@ -63,8 +63,11 @@ public class ClienteService : IClienteService
     private static DateTime DiaLocal(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local).Date;
 
-    public async Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId)
+    public async Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId, DateTime? dia = null)
     {
+        if (dia is { } d)
+            return await GetLinhasDoDiaAsync(clienteId, d);
+
         var linhas = await _context.Linhas
             .Where(l => l.ClienteId == clienteId && l.Ativo)
             .Include(l => l.Maquinas)
@@ -150,6 +153,81 @@ public class ClienteService : IClienteService
                 Ativo: linha.Ativo,
                 Maquinas: maquinasDto
             ));
+        }
+
+        return resultado;
+    }
+
+    /// <summary>
+    /// Overview de um dia: cada máquina com a sessão que tocou aquele dia (a última, se houve
+    /// mais de uma), com OEE e totais dela; sem a situação ao vivo.
+    /// </summary>
+    private async Task<IList<LinhaOverviewDto>> GetLinhasDoDiaAsync(Guid clienteId, DateTime dia)
+    {
+        var inicioDia = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dia.Date, DateTimeKind.Unspecified), TimeZoneInfo.Local);
+        var fimDia = inicioDia.AddDays(1);
+        var agora = DateTime.UtcNow;
+
+        var linhas = await _context.Linhas
+            .Where(l => l.ClienteId == clienteId && l.Ativo)
+            .Include(l => l.Maquinas)
+                .ThenInclude(ml => ml.Maquina)
+            .OrderBy(l => l.Nome)
+            .ToListAsync();
+
+        var resultado = new List<LinhaOverviewDto>();
+        foreach (var linha in linhas)
+        {
+            var maquinasDto = new List<MaquinaLinhaOverviewDto>();
+            foreach (var ml in linha.Maquinas.Where(m => m.Ativo).OrderBy(m => m.Ordem))
+            {
+                // Sessão que tocou o dia: começou antes do fim do dia e terminou (ou ainda roda) depois do início.
+                var sessao = await _context.Sessoes
+                    .Include(s => s.Producoes)
+                    .Include(s => s.Paradas)
+                        .ThenInclude(p => p.Motivo)
+                    .Where(s => s.MaquinaLinhaId == ml.Id && s.Inicio < fimDia && (s.Fim == null || s.Fim > inicioDia))
+                    .OrderByDescending(s => s.Inicio)
+                    .FirstOrDefaultAsync();
+
+                double? oee = null;
+                SessaoDoDiaDto? sessaoDia = null;
+                if (sessao is not null)
+                {
+                    var r = _oeeService.Calcular(sessao, ml.VelocidadeNominal, ml.MedeProducao,
+                        await _context.PeriodosSemComunicacaoAsync(sessao));
+                    oee = r.Oee;
+                    sessaoDia = new SessaoDoDiaDto(
+                        sessao.Id.ToString(), sessao.Inicio, sessao.Fim,
+                        sessao.Status == StatusSessao.EmAndamento,
+                        r.Producao, r.Refugo, r.TempoRodandoMs, r.TempoInternoMs + r.TempoExternoMs);
+                }
+
+                maquinasDto.Add(new MaquinaLinhaOverviewDto(
+                    Id: ml.Id.ToString(),
+                    LinhaId: ml.LinhaId.ToString(),
+                    MaquinaId: ml.MaquinaId.ToString(),
+                    MaquinaNome: ml.Maquina.Nome,
+                    TipoColeta: ml.TipoColeta.ToString(),
+                    VelocidadeNominal: ml.VelocidadeNominal,
+                    Critica: ml.Critica,
+                    MedeProducao: ml.MedeProducao,
+                    Ordem: ml.Ordem,
+                    Ativo: ml.Ativo,
+                    Status: "SemSessao",
+                    Oee: oee.HasValue ? Math.Round(oee.Value, 1) : null,
+                    SessaoAtiva: false,
+                    SessaoAtivaId: null,
+                    UltimaSessaoFim: sessao?.Fim ?? (sessao is null ? null : agora),
+                    SessaoDia: sessaoDia));
+            }
+
+            resultado.Add(new LinhaOverviewDto(
+                Id: linha.Id.ToString(),
+                ClienteId: linha.ClienteId.ToString(),
+                Nome: linha.Nome,
+                Ativo: linha.Ativo,
+                Maquinas: maquinasDto));
         }
 
         return resultado;

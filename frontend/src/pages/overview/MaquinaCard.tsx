@@ -26,6 +26,17 @@ const statusLabel: Record<string, string> = {
   SemSessao:       'Sem sessão ativa',
 }
 
+// "1h 25m", como no detalhe da máquina.
+function formatarHoras(ms: number) {
+  const horas = Math.floor(ms / 3600000)
+  const minutos = Math.floor((ms % 3600000) / 60000)
+  return `${horas}h ${minutos}m`
+}
+
+function hora(dataIso: string) {
+  return new Date(dataIso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
 function formatarUltimaSessao(dataIso: string) {
   const data = new Date(dataIso)
   const dia = data.toLocaleDateString('pt-BR')
@@ -45,6 +56,15 @@ function statusColeta(maquina: MaquinaLinha) {
   const base = statusLabel[maquina.status] ?? '—'
   if (!maquina.status.startsWith('Parada')) return base
   return `${base} · ${maquina.motivoParadaAtual ?? 'sem motivo'}`
+}
+
+function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-zinc-900 dark:text-zinc-100 font-medium truncate">{valor}</p>
+      <p className="text-zinc-400">{rotulo}</p>
+    </div>
+  )
 }
 
 export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir }: Props) {
@@ -91,12 +111,29 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
               : statusLabel[maquina.status] ?? '—'}
         </p>
       )}
-      {filtroAtivo && <div className="mb-2" />}
+      {/* Filtro por data: a sessão daquele dia (início e fim) */}
+      {filtroAtivo && (
+        <p className="text-[10px] text-zinc-400 mb-2 truncate">
+          {maquina.sessaoDia
+            ? `sessão ${hora(maquina.sessaoDia.inicio)} – ${maquina.sessaoDia.fim ? hora(maquina.sessaoDia.fim) : 'em andamento'}`
+            : 'sem sessão neste dia'}
+        </p>
+      )}
       {/* OEE */}
       <p className={`text-base font-medium ${oeeColor}`}>
         {maquina.oee !== null ? `${maquina.oee}%` : '—'}
       </p>
       <p className="text-[10px] text-zinc-400">OEE</p>
+
+      {/* Filtro por data: os números da sessão daquele dia */}
+      {filtroAtivo && maquina.sessaoDia && (
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-[10px]">
+          <Numero rotulo="Produção" valor={maquina.sessaoDia.producao.toLocaleString('pt-BR')} />
+          <Numero rotulo="Refugo" valor={maquina.sessaoDia.refugo.toLocaleString('pt-BR')} />
+          <Numero rotulo="Rodando" valor={formatarHoras(maquina.sessaoDia.tempoRodandoMs)} />
+          <Numero rotulo="Parado" valor={formatarHoras(maquina.sessaoDia.tempoParadoMs)} />
+        </div>
+      )}
 
       {/* Paradas da coleta automática ainda sem motivo (o espaço fica reservado) */}
       {!filtroAtivo && (

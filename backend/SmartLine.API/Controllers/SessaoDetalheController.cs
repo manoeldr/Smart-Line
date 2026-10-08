@@ -23,4 +23,13 @@ public class SessaoDetalheController : ControllerBase
         if (resultado is null) return NotFound();
         return Ok(resultado);
     }
+
+    /// <summary>Detalhe de uma sessão específica (a do dia escolhido no filtro do Overview).</summary>
+    [HttpGet("/api/sessoes/{sessaoId:guid}/detalhe")]
+    public async Task<IActionResult> GetSessaoDetalhe(Guid sessaoId)
+    {
+        var resultado = await _service.GetSessaoDetalheAsync(sessaoId);
+        if (resultado is null) return NotFound();
+        return Ok(resultado);
+    }
 }

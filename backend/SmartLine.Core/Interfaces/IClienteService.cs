@@ -4,7 +4,12 @@ public interface IClienteService
 {
     Task<IList<ClienteDto>> GetAllAsync();
     Task<ClienteDto?> GetByIdAsync(Guid id);
-    Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId);
+    /// <param name="dia">
+    /// Filtro por data do Overview (dia no fuso deste computador): cada máquina vem com a sessão
+    /// daquele dia (a última que tocou o dia) no lugar da situação de agora; sem sessão no dia,
+    /// vem sem OEE. Nulo = situação de agora.
+    /// </param>
+    Task<IList<LinhaOverviewDto>> GetLinhasAsync(Guid clienteId, DateTime? dia = null);
 
     /// <summary>
     /// Dias (no fuso deste computador, "yyyy-MM-dd") em que alguma máquina do cliente teve sessão,
@@ -39,6 +44,7 @@ public record LinhaOverviewDto(
 /// </param>
 /// <param name="WiseConectado">Preenchido pela API (broker) quando a máquina tem WISE.</param>
 /// <param name="SemComunicacaoMinutos">Preenchido pela API: há quantos minutos está sem comunicação.</param>
+/// <param name="SessaoDia">Só com o filtro por data: a sessão daquele dia (nula se não houve).</param>
 public record MaquinaLinhaOverviewDto(
     string Id,
     string LinhaId,
@@ -61,5 +67,18 @@ public record MaquinaLinhaOverviewDto(
     string? EnderecoIpWise = null,
     string? SituacaoColeta = null,
     bool? WiseConectado = null,
-    int? SemComunicacaoMinutos = null
+    int? SemComunicacaoMinutos = null,
+    SessaoDoDiaDto? SessaoDia = null
+);
+
+/// <summary>Resumo da sessão de um dia, para o card do Overview com o filtro por data.</summary>
+public record SessaoDoDiaDto(
+    string SessaoId,
+    DateTime Inicio,
+    DateTime? Fim,
+    bool EmAndamento,
+    int Producao,
+    int Refugo,
+    double TempoRodandoMs,
+    double TempoParadoMs
 );

@@ -11,18 +11,20 @@ interface Props {
   filtroAtivo: boolean
   dataFiltro: string | null
   onFinalizarMaquina?: (maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) => void
-  onAbrirMaquina?: (maquinaLinhaId: string) => void
+  // sessaoId: com o filtro por data, a sessão daquele dia
+  onAbrirMaquina?: (maquinaLinhaId: string, sessaoId?: string | null) => void
   // Colunas da tela inteira: o número de máquinas da linha mais comprida
   colunas: number
 }
 
 export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina, onAbrirMaquina, colunas }: Props) {
   const temSessao = linha.maquinas.some(m => m.sessaoAtiva)
-  const temDados = filtroAtivo ? linha.maquinas.some(m => m.oee !== null) : temSessao
+  const temDados = filtroAtivo ? linha.maquinas.some(m => m.sessaoDia) : temSessao
+  const dataTexto = dataFiltro ? `${dataFiltro.slice(8, 10)}/${dataFiltro.slice(5, 7)}/${dataFiltro.slice(0, 4)}` : ''
   const badgeText = filtroAtivo
     ? temDados
-      ? `sessão em ${dataFiltro}`
-      : 'sem registros neste dia'
+      ? `sessões de ${dataTexto}`
+      : `sem sessão em ${dataTexto}`
     : temSessao
       ? 'em andamento'
       : 'sem sessão ativa'
@@ -60,7 +62,9 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarM
                   maquina={maquina}
                   filtroAtivo={filtroAtivo}
                   onFinalizar={onFinalizarMaquina ? () => onFinalizarMaquina(maquina.id, maquina.maquinaNome, maquina.medeProducao) : undefined}
-                  onAbrir={onAbrirMaquina ? () => onAbrirMaquina(maquina.id) : undefined}
+                  onAbrir={onAbrirMaquina && (!filtroAtivo || maquina.sessaoDia)
+                    ? () => onAbrirMaquina(maquina.id, maquina.sessaoDia?.sessaoId)
+                    : undefined}
                 />
                 </div>
                 {/* Seta para a próxima máquina; a última guarda o mesmo espaço */}

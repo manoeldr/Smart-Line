@@ -54,6 +54,19 @@ export interface MaquinaLinha {
   // Coleta automática sem comunicação: há quantos minutos (a API calcula a cada atualização)
   semComunicacaoMinutos?: number | null
   wiseConectado?: boolean | null
+  // Só com o filtro por data do Overview: a sessão daquele dia (nula se não houve)
+  sessaoDia?: SessaoDoDia | null
+}
+
+export interface SessaoDoDia {
+  sessaoId: string
+  inicio: string
+  fim: string | null
+  emAndamento: boolean
+  producao: number
+  refugo: number
+  tempoRodandoMs: number
+  tempoParadoMs: number
 }
 
 export interface Linha {

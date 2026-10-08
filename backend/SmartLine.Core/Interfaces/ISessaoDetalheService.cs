@@ -3,6 +3,9 @@ namespace SmartLine.Core.Interfaces;
 public interface ISessaoDetalheService
 {
     Task<SessaoDetalheDto?> GetUltimaSessaoDetalheAsync(Guid maquinaLinhaId);
+
+    /// <summary>Uma sessão específica (ex.: a do dia escolhido no filtro do Overview).</summary>
+    Task<SessaoDetalheDto?> GetSessaoDetalheAsync(Guid sessaoId);
 }
 
 public record SessaoDetalheDto(

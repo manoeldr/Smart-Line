@@ -189,25 +189,37 @@ public class SessaoDetalheService : ISessaoDetalheService
 
     public async Task<SessaoDetalheDto?> GetUltimaSessaoDetalheAsync(Guid maquinaLinhaId)
     {
-        var maquinaLinha = await _context.MaquinasLinha
-            .Include(ml => ml.Maquina)
-            .FirstOrDefaultAsync(ml => ml.Id == maquinaLinhaId);
-
-        if (maquinaLinha is null) return null;
-
-        var sessao = await _context.Sessoes
-            .Include(s => s.Producoes)
-            .Include(s => s.Paradas)
-                .ThenInclude(p => p.Motivo)
-            .Include(s => s.SessoesCampo)
-                .ThenInclude(sc => sc.CampoMaquina)
-            .Include(s => s.LeiturasExtra)
+        var sessao = await SessoesCompletas()
             .Where(s => s.MaquinaLinhaId == maquinaLinhaId)
             .OrderByDescending(s => s.Status == StatusSessao.EmAndamento ? 1 : 0)
             .ThenByDescending(s => s.Inicio)
             .FirstOrDefaultAsync();
 
-        if (sessao is null) return null;
+        return sessao is null ? null : await MontarAsync(sessao);
+    }
+
+    public async Task<SessaoDetalheDto?> GetSessaoDetalheAsync(Guid sessaoId)
+    {
+        var sessao = await SessoesCompletas().FirstOrDefaultAsync(s => s.Id == sessaoId);
+        return sessao is null ? null : await MontarAsync(sessao);
+    }
+
+    private IQueryable<Sessao> SessoesCompletas() =>
+        _context.Sessoes
+            .Include(s => s.Producoes)
+            .Include(s => s.Paradas)
+                .ThenInclude(p => p.Motivo)
+            .Include(s => s.SessoesCampo)
+                .ThenInclude(sc => sc.CampoMaquina)
+            .Include(s => s.LeiturasExtra);
+
+    private async Task<SessaoDetalheDto?> MontarAsync(Sessao sessao)
+    {
+        var maquinaLinha = await _context.MaquinasLinha
+            .Include(ml => ml.Maquina)
+            .FirstOrDefaultAsync(ml => ml.Id == sessao.MaquinaLinhaId);
+
+        if (maquinaLinha is null) return null;
 
         var semComunicacao = await _context.PeriodosSemComunicacaoAsync(sessao);
         var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao, semComunicacao);

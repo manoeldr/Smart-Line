@@ -86,4 +86,8 @@ export interface SessaoDetalheDto {
 export const sessaoDetalheService = {
   getUltimaSessaoDetalhe: (maquinaLinhaId: string) =>
     api.get<SessaoDetalheDto>(`/maquinas-linha/${maquinaLinhaId}/ultima-sessao-detalhe`),
+
+  // Uma sessão específica (a do dia escolhido no filtro do Overview)
+  getSessaoDetalhe: (sessaoId: string) =>
+    api.get<SessaoDetalheDto>(`/sessoes/${sessaoId}/detalhe`),
 }

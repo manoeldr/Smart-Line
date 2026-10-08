@@ -56,6 +56,8 @@ export default function Overview() {
   // Detalhe da máquina clicada
   // Modais abertos ficam na URL (?maquina=, ?semMotivo=1) para o F5 reabri-los.
   const [detalhe, setDetalhe] = useParametroUrl('maquina')
+  // Com o filtro por data, o detalhe abre a sessão daquele dia (não a última da máquina)
+  const [sessaoDetalhe, setSessaoDetalhe] = useParametroUrl('sessao')
   const [recarregar, setRecarregar] = useState(0)
 
   // Paradas das coletas automáticas sem motivo nos últimos 7 dias (botão no topo)
@@ -69,7 +71,7 @@ export default function Overview() {
     let ativo = true
     async function carregar() {
       try {
-        const data = await linhaService.getLinhasByCliente(clienteId!)
+        const data = await linhaService.getLinhasByCliente(clienteId!, dataFiltro)
         if (!ativo) return
         setLinhas(data)
         setClienteCarregado(clienteId)
@@ -82,7 +84,7 @@ export default function Overview() {
     carregar()
     const id = setInterval(carregar, 30000)
     return () => { ativo = false; clearInterval(id) }
-  }, [clienteId, recarregar])
+  }, [clienteId, recarregar, dataFiltro])
 
   useEffect(() => {
     if (!clienteId) return
@@ -217,7 +219,7 @@ export default function Overview() {
             filtroAtivo={dataFiltro !== null}
             dataFiltro={dataFiltro}
             onFinalizarMaquina={handleFinalizarClick}
-            onAbrirMaquina={setDetalhe}
+            onAbrirMaquina={(maquinaLinhaId, sessaoId) => { setSessaoDetalhe(sessaoId ?? null); setDetalhe(maquinaLinhaId) }}
             colunas={colunas}
           />
         ))
@@ -226,7 +228,8 @@ export default function Overview() {
       <MaquinaDetalheModal
         open={detalhe !== null}
         maquinaLinhaId={detalhe}
-        onFechar={() => setDetalhe(null)}
+        sessaoId={sessaoDetalhe}
+        onFechar={() => { setDetalhe(null); setSessaoDetalhe(null) }}
         onColetaFinalizada={() => setRecarregar(r => r + 1)}
       />
 

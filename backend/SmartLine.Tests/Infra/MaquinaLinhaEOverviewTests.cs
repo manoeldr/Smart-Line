@@ -108,6 +108,26 @@ public class MaquinaLinhaEOverviewTests : IDisposable
     }
 
     [Fact]
+    public async Task Overview_ComFiltroPorData_TrazASessaoDaqueleDia_ENaoASituacaoDeAgora()
+    {
+        await _c.Consolidar(Em(1800), garrafas: 500, rejeito: 7);
+        var diaDaColeta = TimeZoneInfo.ConvertTimeFromUtc(T0.UtcDateTime, TimeZoneInfo.Local).Date;
+
+        await using var db = _c.Banco.NovoContexto();
+        var servico = new ClienteService(db, new OeeService());
+
+        var noDia = (await servico.GetLinhasAsync(ClienteId(), diaDaColeta)).Single().Maquinas.Single();
+        Assert.NotNull(noDia.SessaoDia);
+        Assert.Equal((_c.Sessao.ToString(), true, 500, 7), (noDia.SessaoDia!.SessaoId, noDia.SessaoDia.EmAndamento, noDia.SessaoDia.Producao, noDia.SessaoDia.Refugo));
+        Assert.Equal(("SemSessao", false, (string?)null), (noDia.Status, noDia.SessaoAtiva, noDia.AcompanhamentoId)); // sem o "ao vivo"
+        Assert.NotNull(noDia.Oee);
+
+        var outroDia = (await servico.GetLinhasAsync(ClienteId(), diaDaColeta.AddDays(-10))).Single().Maquinas.Single();
+        Assert.Null(outroDia.SessaoDia);
+        Assert.Null(outroDia.Oee);
+    }
+
+    [Fact]
     public async Task Overview_ContaParadasSemMotivo_EMostraOMotivoDaAtual()
     {
         await _c.Registrar(
