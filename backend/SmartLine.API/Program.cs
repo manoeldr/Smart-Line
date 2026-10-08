@@ -74,6 +74,20 @@ builder.Services.AddSingleton<SmartLine.Iot.Rede.ITestePing, SmartLine.Iot.Rede.
 // Zera os contadores do WISE (pela interface HTTP dele) ao iniciar cada medição.
 builder.Services.AddSingleton(SmartLine.Iot.Rede.OpcoesHttpWise.LerDoAmbiente());
 builder.Services.AddSingleton<SmartLine.Iot.Rede.IZeradorContadoresWise, SmartLine.Iot.Rede.ZeradorContadoresWise>();
+
+// Área do Desenvolvedor: as últimas linhas do log ficam em memória para a tela, e o
+// simulador de WISE pode ser ligado por dentro do sistema (publica no broker acima).
+var logEmMemoria = new SmartLine.Iot.Diagnostico.LogEmMemoria();
+builder.Logging.AddProvider(logEmMemoria);
+builder.Services.AddSingleton(logEmMemoria);
+builder.Services.AddSingleton(sp =>
+{
+    var simulador = new SmartLine.Iot.Simulacao.SimuladorWise();
+    var log = sp.GetRequiredService<ILogger<SmartLine.Iot.Simulacao.SimuladorWise>>();
+    simulador.Mensagem += texto => log.LogInformation("{Texto}", texto);
+    simulador.Publicacao += texto => log.LogDebug("{Texto}", texto);
+    return simulador;
+});
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BrokerMqttService>());
 
 // Motor da coleta: consome o que o broker recebeu e grava paradas, comunicação e produção.

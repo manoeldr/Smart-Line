@@ -1,4 +1,5 @@
-// Menu lateral de navegação. Item "Configurações" só aparece para Administrador, Desenvolvedor e Auditor.
+// Menu lateral de navegação. Item "Configurações" só aparece para Administrador, Desenvolvedor e Auditor;
+// "Desenvolvedor" (logs e simulador) só para o nível Desenvolvedor.
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -16,6 +17,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const nivel = usuario?.nivel ?? ''
   const temConfiguracao = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(nivel)
+  const desenvolvedor = nivel === 'Desenvolvedor'
 
   function handleLogout() {
     logout()
@@ -77,6 +79,14 @@ export default function Sidebar() {
               </svg>
               Configurações
             </NavLink>
+            {desenvolvedor && (
+              <NavLink to="/desenvolvedor" className={navLinkClass}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                </svg>
+                Desenvolvedor
+              </NavLink>
+            )}
           </div>
         )}
       </nav>

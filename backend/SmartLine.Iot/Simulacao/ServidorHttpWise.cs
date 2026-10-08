@@ -39,6 +39,8 @@ public sealed class ServidorHttpWise : IDisposable
 
     public int Porta => ((IPEndPoint)_ouvinte.LocalEndpoint).Port;
 
+    public MaquinaSimulada Maquina => _maquina;
+
     /// <summary>Quantas vezes os contadores foram zerados por HTTP.</summary>
     public int Zeradas { get; private set; }
 

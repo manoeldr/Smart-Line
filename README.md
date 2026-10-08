@@ -130,6 +130,11 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Dispositivos IoT: WISE cadastrados, WISE conectados sem cadastro e, só para o Desenvolvedor, a situação do broker e os contadores de mensagens
 - Controle de acesso por nível: Administrador, Auditor, Cliente e Desenvolvedor
 
+### Área do Desenvolvedor
+Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer instalação:
+- **Logs**: as últimas 2.000 linhas do log do backend desde que ele subiu, dentro do sistema, sem terminal — filtro por nível (tudo, avisos e erros, só erros) e por texto, atualização sozinha a cada 2 s, exceções abertas ao clicar. Somem ao reiniciar o backend.
+- **Simulador de WISE**: os mesmos WISE simulados do console, ligados por dentro do backend — formulário com máquinas, ritmo, garrafas por pulso, paradas e quedas automáticas; cada máquina com os comandos como botões (rodando, falta, mínimo, saída, caixas, sem causa, sem energia, sem rede, reiniciar, automático/manual). Os IPs simulados (`127.0.0.21`…) aparecem em Dispositivos IoT como aparelhos reais.
+
 ### Usabilidade
 - O F5 mantém o que estava aberto: modais, abas, item em edição (pela URL), tema escuro e posição da rolagem
 - Gráficos sem área de seleção nem moldura de foco ao clicar
@@ -244,7 +249,7 @@ O frontend estará disponível em `http://localhost:5173`, com proxy automático
 
 ### 6. (Opcional) Simulador de WISE
 
-Para testar o Semi Automático sem hardware, com o backend rodando:
+Para testar o Semi Automático sem hardware. O caminho mais simples é pela tela: entre como Desenvolvedor, menu **Desenvolvedor → Simulador de WISE**, e ligue por ali (o simulador roda dentro do próprio backend). O console abaixo é o mesmo simulador para quem prefere terminal ou quer rodá-lo em outro computador, com o backend rodando:
 
 ```bash
 cd backend
@@ -319,10 +324,10 @@ SmartLine/
 ├── backend/
 │ ├── SmartLine.API/ # Controllers, Program.cs, wwwroot (frontend buildado)
 │ ├── SmartLine.Core/ # Entidades, Interfaces, Serviços (OEE), Enums, motor da coleta IoT
-│ ├── SmartLine.Iot/ # Broker MQTT, serviço de coleta do Semi Automático, simulação de WISE
+│ ├── SmartLine.Iot/ # Broker MQTT, serviço de coleta do Semi Automático, simulação de WISE, log em memória
 │ ├── SmartLine.Plc/ # Comunicação com PLC (parser do DB, S7, simuladores)
 │ ├── SmartLine.Infrastructure/ # EF Core, Migrations, Repositórios, gravação da coleta
-│ ├── SmartLine.SimuladorWise/ # Console que simula vários WISE-4051
+│ ├── SmartLine.SimuladorWise/ # Console do simulador de WISE-4051 (o mesmo que roda dentro do backend)
 │ ├── SmartLine.Desktop/ # App desktop (WinForms + WebView2), sobe o backend como processo filho
 │ ├── SmartLine.LicenseGenerator/ # Ferramenta CLI para gerar chaves de licença
 │ ├── Seed/ # Cria o usuário admin
@@ -350,12 +355,12 @@ SmartLine/
 
 ## Níveis de acesso
 
-| Nível | Overview | Medição | Dashboard | Configurações |
-|-------|----------|---------|-----------|---------------|
-| Administrador | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Dispositivos IoT, Exportar/Importar |
-| Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador + situação do broker MQTT |
-| Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas |
-| Cliente | ✅ | ❌ | ❌ | ❌ |
+| Nível | Overview | Medição | Dashboard | Configurações | Desenvolvedor |
+|-------|----------|---------|-----------|---------------|---------------|
+| Administrador | ✅ | ✅ | ✅ | Usuários, Clientes (com Linhas), Máquinas, Dispositivos IoT, Exportar/Importar | ❌ |
+| Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador + situação do broker MQTT | Logs e simulador de WISE |
+| Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas | ❌ |
+| Cliente | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrador e do Desenvolvedor; escolher o WISE, editar regras e textos, iniciar, finalizar e classificar paradas também são do Auditor. O Cliente só visualiza.
 
@@ -379,15 +384,14 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - **Modo Semi Automático (IoT)**: broker MQTT embutido, cadastro de WISE com ping, coleta contínua com virada do dia e retomada após reinício, regras de classificação por sensor, produção até então, perda de comunicação fora do OEE, simulador de WISE com paradas e quedas automáticas
 - **Dashboard — visão Linha**: OEE pela máquina crítica, paradas somadas por máquina, produção por hora da crítica
 - F5 mantém modais, abas, tema e rolagem; filtros de data com bolinha nos dias com sessão
+- Zerar os contadores do WISE por HTTP ao iniciar a medição; licença aceitando qualquer placa de rede física; filtro por data do Overview mostrando a sessão do dia
+- **Área do Desenvolvedor**: logs do backend e simulador de WISE dentro do sistema, sem terminal
 
 ### Próximo
-- [ ] Bancada com o WISE real: formato do contador, intervalo de publicação, IP fixo, filtros das entradas e firewall
-- [ ] **Área do Desenvolvedor**: logs do backend e simulador de WISE dentro do sistema, sem terminal
+- [ ] Bancada com o WISE real: formato do contador e do registro HTTP, intervalo de publicação, IP fixo, filtros das entradas e firewall
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
 
 ### Em aberto
-- [ ] Licença aceitando qualquer placa de rede física do computador (em notebook, trocar de cabo para Wi-Fi muda o MAC)
-- [ ] Filtro por data do Overview mostrar de fato o OEE das sessões do dia escolhido
 - [ ] Exportação/Importação levar as regras, os textos das entradas e o cadastro de WISE
 - [ ] Recarregar as regras numa coleta em andamento (hoje valem na próxima coleta)
 - [ ] Rede/Multi-usuário — IP fixo no PC central, faixa do roteador e liberação das portas no firewall
@@ -403,7 +407,7 @@ cd backend
 dotnet test SmartLine.Tests/SmartLine.Tests.csproj
 ```
 
-São 375 testes, todos passando. Para rodar só uma frente:
+São 394 testes, todos passando. Para rodar só uma frente:
 
 ```bash
 dotnet test SmartLine.Tests/SmartLine.Tests.csproj --filter "FullyQualifiedName~Iot"

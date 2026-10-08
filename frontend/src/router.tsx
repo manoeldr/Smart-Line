@@ -8,6 +8,7 @@ import Medicao from './pages/medicao'
 import Configuracao from './pages/configuracao'
 import Dashboard from './pages/dashboard'
 import Ativacao from './pages/ativacao'
+import Desenvolvedor from './pages/desenvolvedor'
 import { licencaService } from './services/licencaService'
 
 export default function Router() {
@@ -55,6 +56,7 @@ export default function Router() {
           <Route path="medicao" element={<Medicao />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="configuracao" element={<Configuracao />} />
+          <Route path="desenvolvedor" element={<Desenvolvedor />} />
         </Route>
       </Route>
     </Routes>

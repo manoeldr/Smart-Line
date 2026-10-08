@@ -1,8 +1,9 @@
 using System.Globalization;
-using System.Net;
 using SmartLine.Iot.Simulacao;
 
 // Simulador de WISE-4051 para testar o Modo Semi Automático sem hardware.
+// O mesmo simulador roda dentro do backend, na Área do Desenvolvedor; este console
+// é só outra forma de ligá-lo (com o backend em outra máquina, por exemplo).
 //
 // Uso (com o backend rodando):
 //   dotnet run --project SmartLine.SimuladorWise -- maquinas=2 intervalo=20 ritmo=600
@@ -38,9 +39,8 @@ var parametros = args
 int Inteiro(string nome, int padrao) => parametros.TryGetValue(nome, out var v) && int.TryParse(v, out var n) ? n : padrao;
 double Real(string nome, double padrao) =>
     parametros.TryGetValue(nome, out var v) && double.TryParse(v.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var n) ? n : padrao;
-
-var quantidade = Math.Clamp(Inteiro("maquinas", 2), 1, 50);
-var intervalo = TimeSpan.FromSeconds(Math.Clamp(Inteiro("intervalo", 20), 1, 3600));
+bool SimNao(string nome, bool padrao) =>
+    parametros.TryGetValue(nome, out var v) ? v is "sim" or "s" or "true" or "1" : padrao;
 // Listas por máquina (repetem o último valor se forem mais curtas que a quantidade).
 List<double> Lista(string nome, double padrao)
 {
@@ -51,59 +51,45 @@ List<double> Lista(string nome, double padrao)
     if (valores.Count == 0) valores.Add(padrao);
     return valores;
 }
-var garrafasPorMinuto = Lista("ritmo", 600);
-var garrafasPorPulso = Lista("pulso", 1);
-double Da(List<double> lista, int maquina) => lista[Math.Min(maquina - 1, lista.Count - 1)];
-// O contador conta pulsos: uma máquina que conta caixas de 84 manda 84 vezes menos pulsos.
-double PulsosPorMinuto(int maquina) => Da(garrafasPorMinuto, maquina) / Da(garrafasPorPulso, maquina);
-var rejeito = Real("rejeito", 1);
-var broker = parametros.GetValueOrDefault("broker", "127.0.0.1");
-var porta = Inteiro("porta", 1883);
-var primeiroIp = Math.Clamp(Inteiro("primeiroip", 21), 2, 250 - quantidade);
-bool SimNao(string nome, bool padrao) =>
-    parametros.TryGetValue(nome, out var v) ? v is "sim" or "s" or "true" or "1" : padrao;
-var autoNoInicio = SimNao("auto", true);
-var opcoesAuto = new OpcoesParadasAleatorias(
-    TimeSpan.FromMinutes(Math.Clamp(Real("rodando", 10), 0.1, 1440)),
-    TimeSpan.FromMinutes(Math.Clamp(Real("paradamin", 1), 0.1, 1440)),
-    TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("paradamax", 5), Real("paradamin", 1)), 0.1, 1440)),
-    SimNao("desligar", true),
-    TimeSpan.FromMinutes(Math.Clamp(Real("quedas", 60), 0.5, 1440)),
-    TimeSpan.FromMinutes(Math.Clamp(Real("quedamin", 3), 0.1, 1440)),
-    TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("quedamax", 10), Real("quedamin", 3)), 0.1, 1440)));
-var automatico = new ParadasAleatorias(opcoesAuto);
 
-var agora = DateTime.UtcNow;
-var publicadores = Enumerable.Range(1, quantidade)
-    .Select(n => new PublicadorWiseSimulado(
-        new MaquinaSimulada(n, PulsosPorMinuto(n), rejeito, agora),
-        $"127.0.0.{primeiroIp + n - 1}", broker, porta))
-    .ToList();
+var opcoes = new OpcoesSimulador(
+    Maquinas: Math.Clamp(Inteiro("maquinas", 2), 1, 50),
+    IntervaloSegundos: Math.Clamp(Inteiro("intervalo", 20), 1, 3600),
+    GarrafasPorMinuto: Lista("ritmo", 600),
+    GarrafasPorPulso: Lista("pulso", 1),
+    RejeitoPercentual: Real("rejeito", 1),
+    Broker: parametros.GetValueOrDefault("broker", "127.0.0.1"),
+    PortaBroker: Inteiro("porta", 1883),
+    PrimeiroIp: Inteiro("primeiroip", 21),
+    Automatico: SimNao("auto", true),
+    Paradas: new OpcoesParadasAleatorias(
+        TimeSpan.FromMinutes(Math.Clamp(Real("rodando", 10), 0.1, 1440)),
+        TimeSpan.FromMinutes(Math.Clamp(Real("paradamin", 1), 0.1, 1440)),
+        TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("paradamax", 5), Real("paradamin", 1)), 0.1, 1440)),
+        SimNao("desligar", true),
+        TimeSpan.FromMinutes(Math.Clamp(Real("quedas", 60), 0.5, 1440)),
+        TimeSpan.FromMinutes(Math.Clamp(Real("quedamin", 3), 0.1, 1440)),
+        TimeSpan.FromMinutes(Math.Clamp(Math.Max(Real("quedamax", 10), Real("quedamin", 3)), 0.1, 1440))),
+    PortaHttp: Math.Clamp(Inteiro("http", 80), 0, 65535));
 
-if (autoNoInicio)
-    foreach (var p in publicadores)
-        automatico.Ligar(p.Maquina, agora);
+await using var simulador = new SimuladorWise();
+simulador.Mensagem += texto => Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {texto}");
+simulador.Publicacao += texto => Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {texto}");
 
-var comandos = new Dictionary<string, CenarioSimulado>
-{
-    ["rodando"] = CenarioSimulado.Rodando,
-    ["falta"] = CenarioSimulado.FaltaGarrafas,
-    ["minimo"] = CenarioSimulado.AbaixoAcumuloMinimo,
-    ["saida"] = CenarioSimulado.SaidaGarrafasBloqueada,
-    ["caixas"] = CenarioSimulado.SaidaCaixasBloqueada,
-    ["parada"] = CenarioSimulado.ParadaSemCausa,
-    ["desligar"] = CenarioSimulado.Desligado,
-};
+await simulador.LigarAsync(opcoes);
+var situacao = simulador.Situacao();
+var paradas = opcoes.Paradas!;
 
 Console.WriteLine($"""
     ── Simulador de WISE-4051 ─────────────────────────────────────
-    Broker: {broker}:{porta} · publicação a cada {intervalo.TotalSeconds:0} s
-    Produção: {string.Join(" · ", publicadores.Select(p => $"máq. {p.Maquina.Numero}: {Da(garrafasPorMinuto, p.Maquina.Numero):0} garrafas/min = {PulsosPorMinuto(p.Maquina.Numero):0.#} pulsos/min{(Da(garrafasPorPulso, p.Maquina.Numero) > 1 ? $" (multiplicador {Da(garrafasPorPulso, p.Maquina.Numero):0} no SmartLine)" : "")}"))}
-    Paradas automáticas: {(autoNoInicio ? "ligadas" : "desligadas")} · rodando ~{opcoesAuto.RodandoMedio.TotalMinutes:0.#} min entre paradas · paradas de {opcoesAuto.ParadaMinima.TotalMinutes:0.#} a {opcoesAuto.ParadaMaxima.TotalMinutes:0.#} min
-    Quedas de comunicação automáticas: {(autoNoInicio && opcoesAuto.IncluirDesligado ? $"~a cada {opcoesAuto.EntreQuedas.TotalMinutes:0.#} min, de {opcoesAuto.QuedaMin.TotalMinutes:0.#} a {opcoesAuto.QuedaMax.TotalMinutes:0.#} min (rede ou WISE sem energia)" : "desligadas")}
+    Broker: {opcoes.Broker}:{opcoes.PortaBroker} · publicação a cada {opcoes.IntervaloSegundos} s
+    Produção: {string.Join(" · ", situacao.Select(m => $"máq. {m.Numero}: {m.GarrafasPorMinuto:0} garrafas/min = {opcoes.PulsosPorMinutoDa(m.Numero):0.#} pulsos/min{(m.GarrafasPorPulso > 1 ? $" (multiplicador {m.GarrafasPorPulso:0} no SmartLine)" : "")}"))}
+    Paradas automáticas: {(opcoes.Automatico ? "ligadas" : "desligadas")} · rodando ~{paradas.RodandoMedio.TotalMinutes:0.#} min entre paradas · paradas de {paradas.ParadaMinima.TotalMinutes:0.#} a {paradas.ParadaMaxima.TotalMinutes:0.#} min
+    Quedas de comunicação automáticas: {(opcoes.Automatico && paradas.IncluirDesligado ? $"~a cada {paradas.EntreQuedas.TotalMinutes:0.#} min, de {paradas.QuedaMin.TotalMinutes:0.#} a {paradas.QuedaMax.TotalMinutes:0.#} min (rede ou WISE sem energia)" : "desligadas")}
+    Interface HTTP dos WISE: {(situacao.Any(m => m.InterfaceHttp) ? $"porta {opcoes.PortaHttp} (usuário root, senha 00000000): o SmartLine zera os contadores por ela ao iniciar a medição" : "desligada")}
 
     Cadastre no SmartLine cada WISE com o IP abaixo:
-    {string.Join(Environment.NewLine, publicadores.Select(p => $"  Máquina {p.Maquina.Numero}: IP {p.EnderecoOrigem}"))}
+    {string.Join(Environment.NewLine, situacao.Select(m => $"  Máquina {m.Numero}: IP {m.EnderecoIp}"))}
 
     Comandos (número da máquina + ação, ou "todas" + ação):
       1 rodando   produzindo, sensores normais
@@ -124,131 +110,6 @@ Console.WriteLine($"""
     ───────────────────────────────────────────────────────────────
     """);
 
-// Ctrl+C encerra o processo direto; "sair" encerra fechando as conexões.
-using var cancelamento = new CancellationTokenSource();
-
-// Interface HTTP de cada WISE (zerar contadores), na mesma porta do WISE real.
-var portaHttp = Math.Clamp(Inteiro("http", 80), 0, 65535);
-var servidoresHttp = new List<ServidorHttpWise>();
-
-// Comandos, paradas automáticas e publicação periódica mexem nas mesmas máquinas: um de cada vez.
-using var trava = new SemaphoreSlim(1, 1);
-
-if (portaHttp > 0)
-{
-    foreach (var p in publicadores)
-    {
-        try
-        {
-            servidoresHttp.Add(new ServidorHttpWise(p.Maquina, trava, IPAddress.Parse(p.EnderecoOrigem), portaHttp));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Máquina {p.Maquina.Numero}: interface HTTP não subiu em {p.EnderecoOrigem}:{portaHttp} ({ex.GetBaseException().Message}). " +
-                              "Outro programa usa a porta? Tente http=8051 aqui e WISE_HTTP_PORTA=8051 no backend.");
-        }
-    }
-    if (servidoresHttp.Count > 0)
-        Console.WriteLine($"Interface HTTP dos WISE na porta {portaHttp} (usuário root, senha 00000000): o SmartLine zera os contadores por ela ao iniciar a medição.");
-}
-
-async Task<T> ComTrava<T>(Func<T> acao)
-{
-    await trava.WaitAsync();
-    try { return acao(); }
-    finally { trava.Release(); }
-}
-
-string SemPublicar(MaquinaSimulada m) => m.Falha switch
-{
-    FalhaComunicacao.SemRede => $"sem rede (continua contando: S2={m.ContadorProducao})",
-    FalhaComunicacao.SemEnergia => "WISE sem energia (não conta; volta zerado)",
-    _ => "desligada",
-};
-
-string Duracao(TimeSpan t) => t.TotalMinutes >= 1 ? $"{(int)t.TotalMinutes} min {t.Seconds:00} s" : $"{t.Seconds} s";
-
-async Task Publicar(PublicadorWiseSimulado p, string motivo)
-{
-    try
-    {
-        string? payload;
-        await trava.WaitAsync(cancelamento.Token);
-        try { payload = await p.PublicarAsync(DateTime.UtcNow, cancelamento.Token); }
-        finally { trava.Release(); }
-        var hora = DateTime.Now.ToString("HH:mm:ss");
-        Console.WriteLine(payload is null
-            ? $"{hora}  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}) {SemPublicar(p.Maquina)}"
-            : $"{hora}  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}) {motivo,-10} {p.Maquina.Cenario,-22} S2={p.Maquina.ContadorProducao} S3={p.Maquina.ContadorRejeito}");
-    }
-    catch (OperationCanceledException) when (cancelamento.IsCancellationRequested)
-    {
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Máquina {p.Maquina.Numero}: não publicou ({ex.GetBaseException().Message}). O backend está rodando?");
-    }
-}
-
-// Publicação periódica (contadores), como o WISE configurado com intervalo fixo.
-var periodica = Task.Run(async () =>
-{
-    using var relogio = new PeriodicTimer(intervalo);
-    do
-    {
-        foreach (var p in publicadores)
-            await Publicar(p, "periódica");
-    }
-    while (await relogio.WaitForNextTickAsync(cancelamento.Token).AsTask()
-               .ContinueWith(t => t.IsCompletedSuccessfully && t.Result));
-});
-
-// Paradas automáticas: a cada segundo vê se alguma máquina deve parar ou voltar; a mudança
-// publica na hora, como o C.O.S. do WISE real.
-var paradasAutomaticas = Task.Run(async () =>
-{
-    using var relogio = new PeriodicTimer(TimeSpan.FromSeconds(1));
-    while (await relogio.WaitForNextTickAsync(cancelamento.Token).AsTask()
-               .ContinueWith(t => t.IsCompletedSuccessfully && t.Result))
-    {
-        foreach (var p in publicadores)
-        {
-            var mudou = await ComTrava(() =>
-            {
-                var agoraUtc = DateTime.UtcNow;
-                var novo = automatico.Verificar(p.Maquina, agoraUtc);
-                return novo is null ? null : new { Cenario = novo.Value, Ate = automatico.ProximaMudanca(p.Maquina)!.Value - agoraUtc };
-            });
-            if (mudou is null) continue;
-
-            Console.WriteLine(mudou.Cenario == CenarioSimulado.Rodando
-                ? $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: volta a produzir (próxima parada em ~{Duracao(mudou.Ate)})"
-                : $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: parada automática {mudou.Cenario} por {Duracao(mudou.Ate)}");
-            await Publicar(p, "auto");
-        }
-
-        // Quedas de comunicação, num relógio próprio (mais espaçadas e mais longas que as paradas).
-        foreach (var p in publicadores)
-        {
-            var comunicacao = await ComTrava(() =>
-            {
-                var agoraUtc = DateTime.UtcNow;
-                var mudanca = automatico.VerificarComunicacao(p.Maquina, agoraUtc);
-                return mudanca is null ? null : new { mudanca.Falha, Duracao = mudanca.Ate - agoraUtc };
-            });
-            if (comunicacao is null) continue;
-
-            Console.WriteLine(comunicacao.Falha switch
-            {
-                FalhaComunicacao.SemRede => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: rede caiu por {Duracao(comunicacao.Duracao)} (o WISE continua contando)",
-                FalhaComunicacao.SemEnergia => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: WISE sem energia por {Duracao(comunicacao.Duracao)} (volta com os contadores zerados)",
-                _ => $"{DateTime.Now:HH:mm:ss}  Máquina {p.Maquina.Numero}: comunicação voltou (próxima queda em ~{Duracao(comunicacao.Duracao)})",
-            });
-            await Publicar(p, "auto");
-        }
-    }
-});
-
 // Comandos: cada mudança publica na hora, como o C.O.S. (mudança de estado) do WISE real.
 while (true)
 {
@@ -262,14 +123,18 @@ while (true)
 
     if (partes[0] == "status")
     {
-        foreach (var p in publicadores)
+        foreach (var m in simulador.Situacao())
         {
-            var proxima = automatico.ProximaMudanca(p.Maquina);
-            var modo = proxima is null
-                ? "manual"
-                : $"auto, {(p.Maquina.Cenario == CenarioSimulado.Rodando ? "para" : "volta")} em {Duracao(proxima.Value - DateTime.UtcNow)}";
-            var falha = p.Maquina.Falha is not null ? $", {SemPublicar(p.Maquina)}" : "";
-            Console.WriteLine($"  Máquina {p.Maquina.Numero} ({p.EnderecoOrigem}): {p.Maquina.Cenario}{falha}, S2={p.Maquina.ContadorProducao}, conectada={p.Conectado}, {modo}");
+            var modo = m.ProximaMudancaUtc is { } proxima
+                ? $"auto, {(m.Cenario == CenarioSimulado.Rodando ? "para" : "volta")} em {SimuladorWise.Duracao(proxima - DateTime.UtcNow)}"
+                : "manual";
+            var falha = m.Falha switch
+            {
+                FalhaComunicacao.SemRede => ", sem rede (continua contando)",
+                FalhaComunicacao.SemEnergia => ", WISE sem energia",
+                _ => "",
+            };
+            Console.WriteLine($"  Máquina {m.Numero} ({m.EnderecoIp}): {m.Cenario}{falha}, S2={m.ContadorProducao}, conectada={m.Conectada}, {modo}");
         }
         continue;
     }
@@ -280,75 +145,23 @@ while (true)
         continue;
     }
 
-    List<PublicadorWiseSimulado> alvos;
+    int numero;
     if (partes[0] == "todas")
+        numero = 0;
+    else if (!int.TryParse(partes[0], out numero) || numero < 1 || numero > opcoes.Maquinas)
     {
-        alvos = publicadores;
-    }
-    else if (int.TryParse(partes[0], out var numero) && numero >= 1 && numero <= publicadores.Count)
-    {
-        alvos = [publicadores[numero - 1]];
-    }
-    else
-    {
-        Console.WriteLine($"Máquina '{partes[0]}' não existe (1 a {publicadores.Count}).");
+        Console.WriteLine($"Máquina '{partes[0]}' não existe (1 a {opcoes.Maquinas}).");
         continue;
     }
 
-    foreach (var p in alvos)
+    if (!Enum.TryParse<AcaoSimulada>(partes[1], ignoreCase: true, out var acao))
     {
-        if (partes[1] is "auto" or "manual")
-        {
-            await ComTrava(() =>
-            {
-                if (partes[1] == "auto") automatico.Ligar(p.Maquina, DateTime.UtcNow);
-                else automatico.Desligar(p.Maquina);
-                return true;
-            });
-            Console.WriteLine($"  Máquina {p.Maquina.Numero}: {(partes[1] == "auto" ? "paradas automáticas ligadas" : "só por comando")}.");
-            continue;
-        }
-
-        if (partes[1] is not ("reiniciar" or "semrede") && !comandos.ContainsKey(partes[1]))
-        {
-            Console.WriteLine($"Ação '{partes[1]}' desconhecida.");
-            break;
-        }
-
-        var saiuDoAuto = await ComTrava(() =>
-        {
-            if (partes[1] == "reiniciar")
-            {
-                p.Maquina.Reiniciar(DateTime.UtcNow);
-                return false;
-            }
-
-            // Comando de cenário: quem manda agora é o usuário, até ele pedir "auto" de novo.
-            var estavaNoAuto = automatico.Ligado(p.Maquina);
-            automatico.Desligar(p.Maquina, DateTime.UtcNow);
-            if (partes[1] == "semrede")
-            {
-                // A máquina segue no que estava fazendo; só a rede cai.
-                p.Maquina.PerderComunicacao(FalhaComunicacao.SemRede, DateTime.UtcNow);
-                return estavaNoAuto;
-            }
-            if (p.Maquina.Falha is not null)
-                p.Maquina.RecuperarComunicacao(DateTime.UtcNow);
-            p.Maquina.MudarCenario(comandos[partes[1]], DateTime.UtcNow);
-            return estavaNoAuto;
-        });
-        if (saiuDoAuto)
-            Console.WriteLine($"  Máquina {p.Maquina.Numero}: paradas automáticas desligadas (\"{p.Maquina.Numero} auto\" religa).");
-
-        await Publicar(p, "mudança");
+        Console.WriteLine($"Ação '{partes[1]}' desconhecida.");
+        continue;
     }
+
+    await simulador.ComandoAsync(numero, acao);
 }
 
-cancelamento.Cancel();
-await periodica;
-await paradasAutomaticas;
-foreach (var s in servidoresHttp)
-    s.Dispose();
-foreach (var p in publicadores)
-    p.Dispose();
+await simulador.DesligarAsync();
 Console.WriteLine("Simulador encerrado.");

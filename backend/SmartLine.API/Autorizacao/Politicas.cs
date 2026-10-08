@@ -17,9 +17,13 @@ public static class Politicas
     /// </summary>
     public const string Operacao = nameof(Operacao);
 
+    /// <summary>Área do Desenvolvedor (log do backend, simulador de WISE): só Desenvolvedor.</summary>
+    public const string Desenvolvedor = nameof(Desenvolvedor);
+
     public static void Registrar(AuthorizationOptions opcoes)
     {
         opcoes.AddPolicy(AdministradorOuDesenvolvedor, p => p.RequireClaim("nivel", "Administrador", "Desenvolvedor"));
         opcoes.AddPolicy(Operacao, p => p.RequireClaim("nivel", "Administrador", "Desenvolvedor", "Auditor"));
+        opcoes.AddPolicy(Desenvolvedor, p => p.RequireClaim("nivel", "Desenvolvedor"));
     }
 }
