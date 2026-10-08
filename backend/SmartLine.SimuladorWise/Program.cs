@@ -9,7 +9,10 @@ using SmartLine.Iot.Simulacao;
 // Parâmetros (todos opcionais):
 //   maquinas=2           quantas máquinas simular (1 a 50)
 //   intervalo=20         segundos entre publicações periódicas dos contadores
-//   ritmo=600            pulsos por minuto no contador de produção (S2) rodando
+//   ritmo=600            garrafas por minuto que a linha produz rodando (um valor ou um por máquina)
+//   pulso=1              garrafas por pulso do contador de cada máquina, um por máquina
+//                        (pulso=1,1,1,84: a 4ª conta caixas de 84 e manda ritmo÷84 pulsos/min).
+//                        Configure o mesmo número como multiplicador da máquina no SmartLine.
 //   rejeito=1            rejeito (S3) em % da produção
 //   broker=127.0.0.1     IP do PC com o SmartLine
 //   porta=1883           porta do broker
@@ -34,7 +37,21 @@ double Real(string nome, double padrao) =>
 
 var quantidade = Math.Clamp(Inteiro("maquinas", 2), 1, 50);
 var intervalo = TimeSpan.FromSeconds(Math.Clamp(Inteiro("intervalo", 20), 1, 3600));
-var ritmo = Real("ritmo", 600);
+// Listas por máquina (repetem o último valor se forem mais curtas que a quantidade).
+List<double> Lista(string nome, double padrao)
+{
+    var valores = parametros.GetValueOrDefault(nome, "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(v => double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var n) && n > 0 ? n : padrao)
+        .ToList();
+    if (valores.Count == 0) valores.Add(padrao);
+    return valores;
+}
+var garrafasPorMinuto = Lista("ritmo", 600);
+var garrafasPorPulso = Lista("pulso", 1);
+double Da(List<double> lista, int maquina) => lista[Math.Min(maquina - 1, lista.Count - 1)];
+// O contador conta pulsos: uma máquina que conta caixas de 84 manda 84 vezes menos pulsos.
+double PulsosPorMinuto(int maquina) => Da(garrafasPorMinuto, maquina) / Da(garrafasPorPulso, maquina);
 var rejeito = Real("rejeito", 1);
 var broker = parametros.GetValueOrDefault("broker", "127.0.0.1");
 var porta = Inteiro("porta", 1883);
@@ -55,7 +72,7 @@ var automatico = new ParadasAleatorias(opcoesAuto);
 var agora = DateTime.UtcNow;
 var publicadores = Enumerable.Range(1, quantidade)
     .Select(n => new PublicadorWiseSimulado(
-        new MaquinaSimulada(n, ritmo, rejeito, agora),
+        new MaquinaSimulada(n, PulsosPorMinuto(n), rejeito, agora),
         $"127.0.0.{primeiroIp + n - 1}", broker, porta))
     .ToList();
 
@@ -76,7 +93,8 @@ var comandos = new Dictionary<string, CenarioSimulado>
 
 Console.WriteLine($"""
     ── Simulador de WISE-4051 ─────────────────────────────────────
-    Broker: {broker}:{porta} · publicação a cada {intervalo.TotalSeconds:0} s · {ritmo:0} pulsos/min
+    Broker: {broker}:{porta} · publicação a cada {intervalo.TotalSeconds:0} s
+    Produção: {string.Join(" · ", publicadores.Select(p => $"máq. {p.Maquina.Numero}: {Da(garrafasPorMinuto, p.Maquina.Numero):0} garrafas/min = {PulsosPorMinuto(p.Maquina.Numero):0.#} pulsos/min{(Da(garrafasPorPulso, p.Maquina.Numero) > 1 ? $" (multiplicador {Da(garrafasPorPulso, p.Maquina.Numero):0} no SmartLine)" : "")}"))}
     Paradas automáticas: {(autoNoInicio ? "ligadas" : "desligadas")} · rodando ~{opcoesAuto.RodandoMedio.TotalMinutes:0.#} min entre paradas · paradas de {opcoesAuto.ParadaMinima.TotalMinutes:0.#} a {opcoesAuto.ParadaMaxima.TotalMinutes:0.#} min
     Quedas de comunicação automáticas: {(autoNoInicio && opcoesAuto.IncluirDesligado ? $"~a cada {opcoesAuto.EntreQuedas.TotalMinutes:0.#} min, de {opcoesAuto.QuedaMin.TotalMinutes:0.#} a {opcoesAuto.QuedaMax.TotalMinutes:0.#} min (rede ou WISE sem energia)" : "desligadas")}
 
