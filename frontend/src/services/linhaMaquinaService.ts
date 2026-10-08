@@ -20,13 +20,15 @@ export const linhaMaquinaService = {
   getMaquinas: (linhaId: string) =>
     api.get<MaquinaLinhaConfDto[]>(`/configuracao/linhas/${linhaId}/maquinas`),
 
-  adicionar: (linhaId: string, maquinaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number, medeProducao: boolean) =>
+  // tempoDeteccaoParadaSegundos (Z do Semi Automático, 10 a 3600 s): omitido = 60 s
+  adicionar: (linhaId: string, maquinaId: string, critica: boolean, velocidadeNominal: number, sobreVelocidade: number, medeProducao: boolean, tempoDeteccaoParadaSegundos?: number) =>
     api.post<MaquinaLinhaConfDto>(`/configuracao/linhas/${linhaId}/maquinas`, {
       maquinaId,
       critica,
       velocidadeNominal,
       sobreVelocidade,
       medeProducao,
+      tempoDeteccaoParadaSegundos,
     }),
 
   // tempoDeteccaoParadaSegundos (Z do Semi Automático): omitido = mantém o atual

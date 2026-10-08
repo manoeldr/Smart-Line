@@ -117,7 +117,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   const [modalAdicionarMaquinaOpen, setModalAdicionarMaquinaOpen] = useState(false)
   const [linhaAlvo, setLinhaAlvo] = useState<string | null>(null)
   const [todasMaquinas, setTodasMaquinas] = useState<MaquinaConfDto[]>([])
-  const [formMaquina, setFormMaquina] = useState({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true })
+  const [formMaquina, setFormMaquina] = useState({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true, tempoDeteccao: '60' })
 
   // Confirmação de remoção (substitui o confirm() nativo do navegador)
   const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null)
@@ -233,13 +233,17 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   // ── Máquinas dentro de uma linha — mesmo padrão staged ──
   async function abrirAdicionarMaquina(linhaId: string) {
     setLinhaAlvo(linhaId)
-    setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true })
+    setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true, tempoDeteccao: '60' })
     if (todasMaquinas.length === 0) {
       const maquinas = await configuracaoService.getMaquinas()
       setTodasMaquinas(maquinas.filter(m => m.ativo))
     }
     setModalAdicionarMaquinaOpen(true)
   }
+
+  // Z entre 10 s e 1 h, como o backend exige.
+  const zNumero = Number(formMaquina.tempoDeteccao)
+  const zValido = Number.isInteger(zNumero) && zNumero >= 10 && zNumero <= 3600
 
   function adicionarMaquinaLocal() {
     if (!linhaAlvo || !formMaquina.maquinaId) return
@@ -255,6 +259,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       velocidadeNominal: Number(formMaquina.velocidadeNominal) || 0,
       sobreVelocidade: Number(formMaquina.sobreVelocidade) || 0,
       medeProducao: formMaquina.medeProducao,
+      tempoDeteccaoParadaSegundos: Number(formMaquina.tempoDeteccao) || 60,
       ativo: true,
       isNew: true,
       isDeleted: false,
@@ -335,7 +340,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
           if (item.isDeleted && !item.isNew) {
             await linhaMaquinaService.remover(linhaRealId, item.id)
           } else if (item.isNew && !item.isDeleted) {
-            const criada = await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade, item.medeProducao)
+            const criada = await linhaMaquinaService.adicionar(linhaRealId, item.maquinaId, item.critica, item.velocidadeNominal, item.sobreVelocidade, item.medeProducao, item.tempoDeteccaoParadaSegundos)
             mapaIdMaquinaLinha[item.id] = criada.id
           } else if (!item.isNew && !item.isDeleted) {
             await linhaMaquinaService.atualizar(linhaRealId, item.id, item.critica, item.velocidadeNominal, item.sobreVelocidade, item.medeProducao)
@@ -563,6 +568,16 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   className={`${inputBase} ${!formMaquina.medeProducao ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
+              <div>
+                <label className={label}>Parada após (s) — Semi Automático</label>
+                <input
+                  type="number" min="10" max="3600"
+                  value={formMaquina.tempoDeteccao}
+                  onChange={e => setFormMaquina(f => ({ ...f, tempoDeteccao: e.target.value }))}
+                  className={inputBase}
+                />
+                <p className="text-[10px] text-zinc-400 mt-1">Segundos sem contar produção para considerar a máquina parada.</p>
+              </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -588,7 +603,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
               </button>
               <button
                 onClick={adicionarMaquinaLocal}
-                disabled={!formMaquina.maquinaId || (formMaquina.medeProducao && !formMaquina.velocidadeNominal)}
+                disabled={!formMaquina.maquinaId || (formMaquina.medeProducao && !formMaquina.velocidadeNominal) || !zValido}
                 className={btnPrimary}
               >
                 Adicionar

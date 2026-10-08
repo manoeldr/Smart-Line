@@ -9,6 +9,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
+    <!-- O EF Sqlite 10.0.8 traz o SQLite nativo 2.1.11, com a vulnerabilidade GHSA-2m69-gcr7-jv3q
+         (aviso NU1903 em todo build). A referência direta sobe para a versão corrigida. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
   </ItemGroup>
   <PropertyGroup>
