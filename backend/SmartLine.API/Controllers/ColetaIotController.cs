@@ -6,6 +6,7 @@ using SmartLine.Core.Interfaces;
 using SmartLine.Core.Iot;
 using SmartLine.Iot.Broker;
 using SmartLine.Iot.Coleta;
+using SmartLine.Iot.Rede;
 
 namespace SmartLine.API.Controllers;
 
@@ -21,17 +22,20 @@ public class ColetaIotController : ControllerBase
     private readonly IEntradasWiseService _entradas;
     private readonly ColetaIotService _coleta;
     private readonly BrokerMqttService _broker;
+    private readonly IZeradorContadoresWise _zerador;
 
     public ColetaIotController(
         IAcompanhamentoService acompanhamentos,
         IEntradasWiseService entradas,
         ColetaIotService coleta,
-        BrokerMqttService broker)
+        BrokerMqttService broker,
+        IZeradorContadoresWise zerador)
     {
         _acompanhamentos = acompanhamentos;
         _entradas = entradas;
         _coleta = coleta;
         _broker = broker;
+        _zerador = zerador;
     }
 
     /// <summary>Os oito canais do WISE, para montar a tela de iniciar (o mapa é fixo).</summary>
@@ -83,7 +87,22 @@ public class ColetaIotController : ControllerBase
         }
 
         var resultado = await _acompanhamentos.IniciarAsync(ObterUsuarioId(), request, cancellationToken);
-        return resultado.Sucesso ? Ok(resultado.Iniciado) : BadRequest(new { mensagem = resultado.Erro });
+        if (!resultado.Sucesso)
+            return BadRequest(new { mensagem = resultado.Erro });
+
+        // Contadores do WISE zerados a cada medição, para quem está em campo não precisar abrir
+        // o aparelho. Se não der (porta HTTP fechada, senha trocada), a medição segue mesmo
+        // assim — a produção é a diferença entre leituras, então continua certa — e a tela avisa.
+        var contadores = request.Canais
+            .Select(c => c.Canal)
+            .Where(c => MapaWise.Definicao(c).Tipo == TipoCanal.Contador)
+            .ToList();
+        var zerar = await _zerador.ZerarAsync(enderecoIp!, contadores, cancellationToken);
+
+        return Ok(resultado.Iniciado! with
+        {
+            AvisoContadores = zerar.Sucesso ? null : $"Os contadores do WISE não foram zerados: {zerar.Erro}"
+        });
     }
 
     /// <summary>

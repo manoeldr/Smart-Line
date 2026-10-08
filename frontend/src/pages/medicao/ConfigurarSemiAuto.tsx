@@ -57,7 +57,7 @@ interface Props {
   // Seletor "Forma de medição" do modal, mostrado no topo
   seletorForma: ReactNode
   onCancelar: () => void
-  onIniciada: (mensagem: string) => void
+  onIniciada: (mensagem: string, aviso?: string | null) => void
 }
 
 export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, onIniciada }: Props) {
@@ -134,7 +134,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     setIniciando(true)
     setErro(null)
     try {
-      await coletaIotService.iniciar({
+      const iniciada = await coletaIotService.iniciar({
         maquinaLinhaId: maquina.id,
         enderecoIpWise: ipWise.trim(),
         velocidadeNominal: Number(velocidadeNominal),
@@ -144,7 +144,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           .filter(([, c]) => c.ligado)
           .map(([canal, c]) => ({ canal, multiplicador: c.comMultiplicador ? Number(c.multiplicador) : 1 })),
       })
-      onIniciada(`Coleta Semi Automática iniciada na ${maquina.maquinaNome} com o WISE ${ipWise.trim()}.`)
+      onIniciada(`Coleta Semi Automática iniciada na ${maquina.maquinaNome} com o WISE ${ipWise.trim()}.`, iniciada.avisoContadores)
     } catch (e) {
       setErro(mensagemErro(e, 'Não foi possível iniciar a coleta.'))
     } finally {

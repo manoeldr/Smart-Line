@@ -79,7 +79,8 @@ public record ResultadoIniciarAcompanhamento(AcompanhamentoIniciadoDto? Iniciado
     public bool Sucesso => Iniciado is not null;
 }
 
-public record AcompanhamentoIniciadoDto(Guid AcompanhamentoId, Guid MaquinaLinhaId, Guid SessaoId);
+/// <param name="AvisoContadores">Preenchido pela API quando não conseguiu zerar os contadores do WISE.</param>
+public record AcompanhamentoIniciadoDto(Guid AcompanhamentoId, Guid MaquinaLinhaId, Guid SessaoId, string? AvisoContadores = null);
 
 /// <param name="EnderecoIp">IP do WISE informado ao iniciar a coleta.</param>
 /// <param name="ProducaoConsolidada">Garrafas já gravadas na sessão do dia (última leitura).</param>

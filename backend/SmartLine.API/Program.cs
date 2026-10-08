@@ -71,6 +71,9 @@ builder.Services.AddSingleton(OpcoesBrokerMqtt.DoAmbiente());
 builder.Services.AddSingleton<CaixaDeEntradaMqtt>();
 builder.Services.AddSingleton<BrokerMqttService>();
 builder.Services.AddSingleton<SmartLine.Iot.Rede.ITestePing, SmartLine.Iot.Rede.TestePing>();
+// Zera os contadores do WISE (pela interface HTTP dele) ao iniciar cada medição.
+builder.Services.AddSingleton(SmartLine.Iot.Rede.OpcoesHttpWise.LerDoAmbiente());
+builder.Services.AddSingleton<SmartLine.Iot.Rede.IZeradorContadoresWise, SmartLine.Iot.Rede.ZeradorContadoresWise>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BrokerMqttService>());
 
 // Motor da coleta: consome o que o broker recebeu e grava paradas, comunicação e produção.

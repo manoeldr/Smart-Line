@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using SmartLine.Iot.Simulacao;
 
 // Simulador de WISE-4051 para testar o Modo Semi Automático sem hardware.
@@ -16,6 +17,9 @@ using SmartLine.Iot.Simulacao;
 //   rejeito=1            rejeito (S3) em % da produção
 //   broker=127.0.0.1     IP do PC com o SmartLine
 //   porta=1883           porta do broker
+//   http=80              porta da interface HTTP de cada WISE simulado (o SmartLine zera os
+//                        contadores por ela ao iniciar a medição; WISE_HTTP_PORTA no backend
+//                        deve ser a mesma). http=0 desliga.
 //   primeiroIp=21        máquina 1 sai por 127.0.0.21, a 2 por 127.0.0.22...
 //   auto=sim             paradas aleatórias automáticas em todas as máquinas (auto=nao: só por comando)
 //   rodando=10           minutos médios produzindo entre uma parada e outra (sorteado entre 50% e 150%)
@@ -123,8 +127,30 @@ Console.WriteLine($"""
 // Ctrl+C encerra o processo direto; "sair" encerra fechando as conexões.
 using var cancelamento = new CancellationTokenSource();
 
+// Interface HTTP de cada WISE (zerar contadores), na mesma porta do WISE real.
+var portaHttp = Math.Clamp(Inteiro("http", 80), 0, 65535);
+var servidoresHttp = new List<ServidorHttpWise>();
+
 // Comandos, paradas automáticas e publicação periódica mexem nas mesmas máquinas: um de cada vez.
 using var trava = new SemaphoreSlim(1, 1);
+
+if (portaHttp > 0)
+{
+    foreach (var p in publicadores)
+    {
+        try
+        {
+            servidoresHttp.Add(new ServidorHttpWise(p.Maquina, trava, IPAddress.Parse(p.EnderecoOrigem), portaHttp));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Máquina {p.Maquina.Numero}: interface HTTP não subiu em {p.EnderecoOrigem}:{portaHttp} ({ex.GetBaseException().Message}). " +
+                              "Outro programa usa a porta? Tente http=8051 aqui e WISE_HTTP_PORTA=8051 no backend.");
+        }
+    }
+    if (servidoresHttp.Count > 0)
+        Console.WriteLine($"Interface HTTP dos WISE na porta {portaHttp} (usuário root, senha 00000000): o SmartLine zera os contadores por ela ao iniciar a medição.");
+}
 
 async Task<T> ComTrava<T>(Func<T> acao)
 {
@@ -321,6 +347,8 @@ while (true)
 cancelamento.Cancel();
 await periodica;
 await paradasAutomaticas;
+foreach (var s in servidoresHttp)
+    s.Dispose();
 foreach (var p in publicadores)
     p.Dispose();
 Console.WriteLine("Simulador encerrado.");

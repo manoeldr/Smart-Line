@@ -48,6 +48,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   const setModalOpen = (aberto: boolean) => setConfigurarUrl(aberto && maquinaSelecionada ? maquinaSelecionada.id : null)
   const [recarregar, setRecarregar] = useState(0)
   const [sucesso, setSucesso] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   // Campos do modal de configuração
   const [velocidadeNominal, setVelocidadeNominal] = useState('')
@@ -124,13 +125,15 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
 
   function handleAbrirModal() {
     setSucesso(null)
+    setAviso(null)
     setModalOpen(true)
   }
 
   // Coleta Semi Automática iniciada: volta para a seleção (dá para iniciar outra máquina).
-  function handleColetaIniciada(mensagem: string) {
+  function handleColetaIniciada(mensagem: string, avisoIniciar?: string | null) {
     setModalOpen(false)
     setSucesso(mensagem)
+    setAviso(avisoIniciar ?? null)
     setLinhaSelecionada(null)
     setMaquinaSelecionada(null)
     setRecarregar(r => r + 1)
@@ -230,6 +233,11 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
           {sucesso && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-3 py-2 mb-4 text-xs text-green-700 dark:text-green-400">
               {sucesso} Acompanhe pelo Overview.
+            </div>
+          )}
+          {aviso && (
+            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-4 text-xs text-amber-700 dark:text-amber-400">
+              {aviso} A produção continua certa (o sistema conta a diferença do contador), mas o WISE segue com o valor antigo.
             </div>
           )}
 

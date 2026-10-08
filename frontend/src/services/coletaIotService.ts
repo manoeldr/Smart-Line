@@ -22,6 +22,8 @@ export interface ColetaIniciadaDto {
   acompanhamentoId: string
   maquinaLinhaId: string
   sessaoId: string
+  // Preenchido quando o SmartLine não conseguiu zerar os contadores do WISE ao iniciar
+  avisoContadores?: string | null
 }
 
 export type SituacaoColeta = 'Rodando' | 'Parada' | 'SemComunicacao' | 'AguardandoPrimeiraAmostra'

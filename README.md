@@ -33,6 +33,7 @@ Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e
 - Ao iniciar a medição, o WISE é escolhido da lista (conectado / desconectado / em uso em outra medição); só inicia com ele conectado e livre. Fica associado à medição até ela ser finalizada
 - Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga
 - "Produção até então" informada ao iniciar, como no Manual: a primeira leitura da sessão é o contador da máquina e o WISE soma a partir dele
+- Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo; se não conseguir, a medição começa mesmo assim e a tela avisa
 - Diagnóstico por WISE: Validar entradas (valores ao vivo de cada canal) e Ping ("WISE conectado" / "WISE desconectado")
 
 **Coleta**
@@ -204,6 +205,9 @@ JWT_SECRET=sua_chave_secreta_aqui_com_pelo_menos_32_caracteres
 MQTT_HABILITADO=true    # false desliga o broker (ex.: estações que não recebem WISE)
 MQTT_PORTA=1883
 MQTT_LOG_BRUTO=false    # true escreve no log cada mensagem recebida do WISE
+WISE_HTTP_PORTA=80      # interface HTTP dos WISE: o SmartLine zera os contadores por ela ao iniciar a medição
+WISE_HTTP_USUARIO=root  # usuário e senha de fábrica do WISE, iguais para todos os WISE da instalação
+WISE_HTTP_SENHA=00000000
 ```
 
 ### 3. Inicie o backend
@@ -258,6 +262,7 @@ Cada máquina simulada publica de um IP próprio (`127.0.0.21`, `.22`…), que d
 | `auto` | sim | Paradas e quedas automáticas (`nao`: só por comando) |
 | `rodando` / `paradaMin` / `paradaMax` | 10 / 1 / 5 | Minutos médios entre paradas e duração delas |
 | `desligar` | sim | Quedas de comunicação automáticas |
+| `http` | 80 | Porta da interface HTTP de cada WISE simulado (zerar contadores); `0` desliga |
 | `quedas` / `quedaMin` / `quedaMax` | 60 / 3 / 10 | Minutos médios entre quedas e duração delas |
 
 Comandos no console (número da máquina ou `todas` + ação): `rodando`, `falta`, `minimo`, `saida`, `caixas`, `parada`, `desligar`, `semrede`, `reiniciar`, `auto`, `manual`, além de `status` e `sair`.
