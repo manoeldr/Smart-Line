@@ -77,11 +77,14 @@ export interface SituacaoLicencaDevDto {
   licencaAtiva: boolean
   macPreferido: string
   macsFisicos: string[]
+  // Senha do perfil Desenvolvedor neste computador (derivada do segredo e do MAC; não fica no banco)
+  senhaDesenvolvedor: string
 }
 
 export interface ChaveGeradaDto {
   macAddress: string
   chave: string
+  senhaDesenvolvedor: string
 }
 
 export const desenvolvedorService = {

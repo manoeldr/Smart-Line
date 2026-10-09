@@ -13,11 +13,13 @@ public class AuthService : IAuthService
 {
     private readonly SmartLineDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly ILicencaService _licenca;
 
-    public AuthService(SmartLineDbContext context, IConfiguration configuration)
+    public AuthService(SmartLineDbContext context, IConfiguration configuration, ILicencaService licenca)
     {
         _context = context;
         _configuration = configuration;
+        _licenca = licenca;
     }
 
     public async Task<LoginResultado?> LoginAsync(string login, string senha)
@@ -28,7 +30,13 @@ public class AuthService : IAuthService
         if (usuario is null)
             return null;
 
-        if (!BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash))
+        // O Desenvolvedor não tem senha no banco: entra com a senha derivada do segredo e do MAC
+        // deste computador (gerada pelo Desenvolvedor na aba Licença ou no LicenseGenerator).
+        // O hash gravado num usuário desse nível é ignorado, então editar o banco não adianta.
+        var senhaCerta = usuario.Nivel == SmartLine.Core.Enums.NivelUsuario.Desenvolvedor
+            ? _licenca.SenhaDesenvolvedorValida(senha)
+            : BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash);
+        if (!senhaCerta)
             return null;
 
         var token = GerarToken(usuario);

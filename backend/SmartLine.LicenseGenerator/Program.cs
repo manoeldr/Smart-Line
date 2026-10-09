@@ -21,7 +21,17 @@ var chave = GerarChave(macAddress);
 Console.WriteLine();
 Console.WriteLine($"MAC address: {macAddress}");
 Console.WriteLine($"Chave de licença: {chave}");
+Console.WriteLine($"Senha do Desenvolvedor: {GerarSenhaDesenvolvedor(macAddress)}");
 Console.WriteLine();
+
+// Senha do perfil Desenvolvedor naquele computador (não fica no banco; ver LicencaService.GerarSenhaDesenvolvedor).
+static string GerarSenhaDesenvolvedor(string macAddress)
+{
+    var macNormalizado = macAddress.ToUpperInvariant().Replace(":", "").Replace("-", "");
+    using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(Segredo));
+    var hex = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes("desenvolvedor|" + macNormalizado)));
+    return string.Join("-", Enumerable.Range(0, 6).Select(i => hex.Substring(i * 4, 4)));
+}
 
 static string GerarChave(string macAddress)
 {

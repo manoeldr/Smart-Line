@@ -62,17 +62,22 @@ public class PerfilDesenvolvedorTests : IDisposable
     }
 
     [Fact]
-    public async Task Desenvolvedor_PodeTudo()
+    public async Task Desenvolvedor_PodeTudo_MasSenhaDeDesenvolvedorNaoVaiParaOBanco()
     {
         await using var db = _banco.NovoContexto();
         var s = Servico(db);
 
+        // A senha do Desenvolvedor é derivada do segredo da licença (ver SenhaDesenvolvedorTests):
+        // o que for digitado no cadastro não vira hash no banco.
         await s.EditarUsuarioAsync(_dev, Editar("Desenvolvedor", senha: "nova"), chamadorDesenvolvedor: true);
         var criado = await s.CriarUsuarioAsync(new CriarUsuarioRequest("Outro", "outro", "123", "Desenvolvedor", null), chamadorDesenvolvedor: true);
 
         await using var confere = _banco.NovoContexto();
-        Assert.NotEqual(_hashDev, (await confere.Usuarios.SingleAsync(u => u.Id == _dev)).SenhaHash);
-        Assert.Equal(NivelUsuario.Desenvolvedor, (await confere.Usuarios.SingleAsync(u => u.Id == Guid.Parse(criado.Id))).Nivel);
+        var dev = await confere.Usuarios.SingleAsync(u => u.Id == _dev);
+        Assert.Equal((_hashDev, "login-x"), (dev.SenhaHash, dev.Login)); // o resto da edição valeu; o hash ficou
+        var outro = await confere.Usuarios.SingleAsync(u => u.Id == Guid.Parse(criado.Id));
+        Assert.Equal(NivelUsuario.Desenvolvedor, outro.Nivel);
+        Assert.DoesNotContain("$2", outro.SenhaHash); // nada de bcrypt da senha "123"
     }
 
     [Fact]

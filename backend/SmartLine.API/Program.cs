@@ -146,6 +146,30 @@ using (var scope = app.Services.CreateScope())
     // WISE simulados (IP 127.0.0.x) só existem enquanto o simulador da Área do Desenvolvedor
     // está ligado; um que tenha sobrado no cadastro (backend derrubado com ele ligado) sai aqui.
     // Um WISE real nunca tem endereço de loopback.
+    // Sempre existe um usuário "desenvolvedor". A senha dele não fica no banco: é derivada do
+    // segredo da licença e do MAC deste computador (ILicencaService.GerarSenhaDesenvolvedor), então
+    // nem Administrador nem quem edita o banco consegue trocá-la.
+    if (!await db.Usuarios.AnyAsync(u => u.Nivel == SmartLine.Core.Enums.NivelUsuario.Desenvolvedor))
+    {
+        db.Usuarios.Add(new SmartLine.Core.Entities.Tenant.Usuario
+        {
+            Id = Guid.NewGuid(),
+            Nome = "Desenvolvedor",
+            Login = "desenvolvedor",
+            SenhaHash = "(senha derivada do segredo; não fica no banco)",
+            Nivel = SmartLine.Core.Enums.NivelUsuario.Desenvolvedor,
+            Ativo = true,
+        });
+        await db.SaveChangesAsync();
+    }
+    if (app.Environment.IsDevelopment())
+    {
+        // Em desenvolvimento, a senha do Desenvolvedor desta máquina vai para o log (console e aba Logs).
+        var licenca = scope.ServiceProvider.GetRequiredService<ILicencaService>();
+        app.Logger.LogInformation("Senha do Desenvolvedor neste computador (MAC {Mac}): {Senha}",
+            licenca.ObterMacAddress(), licenca.GerarSenhaDesenvolvedor(licenca.ObterMacAddress()));
+    }
+
     var simuladosSobrando = await db.Wises.Where(w => w.EnderecoIp.StartsWith("127.")).ToListAsync();
     if (simuladosSobrando.Count > 0)
     {

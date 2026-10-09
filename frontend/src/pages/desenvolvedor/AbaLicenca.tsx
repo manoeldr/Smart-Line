@@ -80,11 +80,18 @@ export default function AbaLicenca() {
         {erro && <p className="text-xs text-red-500">{erro}</p>}
 
         {chave && (
-          <div className="bg-superficie-2 p-3 flex flex-col gap-1">
+          <div className="bg-superficie-2 p-3 flex flex-col gap-2">
             <p className="text-[10px] text-texto-3">MAC {formatarMac(chave.macAddress)}</p>
-            <div className="flex items-center gap-3">
-              <p className="font-mono text-base text-texto select-all">{chave.chave}</p>
-              <button onClick={copiar} className={btnSecondarySm}>{copiado ? 'Copiado' : 'Copiar'}</button>
+            <div>
+              <p className="text-[10px] text-texto-3">Chave de licença</p>
+              <div className="flex items-center gap-3">
+                <p className="font-mono text-base text-texto select-all">{chave.chave}</p>
+                <button onClick={copiar} className={btnSecondarySm}>{copiado ? 'Copiado' : 'Copiar'}</button>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-texto-3">Senha do Desenvolvedor naquele computador (login "desenvolvedor")</p>
+              <p className="font-mono text-base text-texto select-all">{chave.senhaDesenvolvedor}</p>
             </div>
           </div>
         )}
@@ -97,6 +104,9 @@ export default function AbaLicenca() {
             Licença: <span className={situacao.licencaAtiva ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
               {situacao.licencaAtiva ? 'ativa' : 'não ativada'}
             </span>
+          </p>
+          <p className="text-xs text-texto-2">
+            Senha do Desenvolvedor aqui: <span className="font-mono text-texto select-all">{situacao.senhaDesenvolvedor}</span>
           </p>
           <div className="text-xs text-texto-2">
             Placas de rede físicas:

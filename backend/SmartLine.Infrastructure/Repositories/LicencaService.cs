@@ -140,6 +140,25 @@ public class LicencaService : ILicencaService
         return string.Join("-", grupos);
     }
 
+    public string GerarSenhaDesenvolvedor(string macAddress) => Derivar("desenvolvedor|" + Normalizar(macAddress));
+
+    public bool SenhaDesenvolvedorValida(string senha)
+    {
+        if (string.IsNullOrWhiteSpace(senha)) return false;
+        var informada = NormalizarChave(senha);
+        return ObterMacsFisicos().Any(mac => GerarSenhaDesenvolvedor(mac) == informada);
+    }
+
+    private static string Normalizar(string macAddress) => macAddress.ToUpperInvariant().Replace(":", "").Replace("-", "");
+
+    // HMAC-SHA256 com o segredo, 24 hex em 6 grupos de 4 — o mesmo formato da chave de licença.
+    private static string Derivar(string entrada)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(Segredo));
+        var hex = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(entrada)));
+        return string.Join("-", Enumerable.Range(0, 6).Select(i => hex.Substring(i * 4, 4)));
+    }
+
     private static string NormalizarChave(string chave)
     {
         return chave.ToUpperInvariant().Replace(" ", "").Trim();

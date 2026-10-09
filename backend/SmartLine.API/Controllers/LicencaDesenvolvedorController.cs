@@ -24,9 +24,9 @@ public class LicencaDesenvolvedorController : ControllerBase
         _ambiente = ambiente;
     }
 
-    public sealed record SituacaoLicencaDevDto(bool LicencaAtiva, string MacPreferido, IReadOnlyList<string> MacsFisicos);
+    public sealed record SituacaoLicencaDevDto(bool LicencaAtiva, string MacPreferido, IReadOnlyList<string> MacsFisicos, string SenhaDesenvolvedor);
     public sealed record GerarChaveRequest(string MacAddress);
-    public sealed record ChaveGeradaDto(string MacAddress, string Chave);
+    public sealed record ChaveGeradaDto(string MacAddress, string Chave, string SenhaDesenvolvedor);
 
     /// <summary>404 fora do ambiente de desenvolvimento: a tela esconde a aba.</summary>
     [HttpGet]
@@ -34,7 +34,8 @@ public class LicencaDesenvolvedorController : ControllerBase
     {
         if (!_ambiente.IsDevelopment()) return NotFound();
         var status = await _licenca.ObterStatusAsync();
-        return new SituacaoLicencaDevDto(status.Ativa, _licenca.ObterMacAddress(), _licenca.ObterMacsFisicos());
+        var mac = _licenca.ObterMacAddress();
+        return new SituacaoLicencaDevDto(status.Ativa, mac, _licenca.ObterMacsFisicos(), _licenca.GerarSenhaDesenvolvedor(mac));
     }
 
     [HttpPost("gerar")]
@@ -46,7 +47,7 @@ public class LicencaDesenvolvedorController : ControllerBase
         if (mac.Length != 12 || !mac.All(Uri.IsHexDigit))
             return BadRequest(new { mensagem = "Informe o MAC com 12 caracteres hexadecimais (ex.: 00-11-22-33-44-AA)." });
 
-        return new ChaveGeradaDto(mac, _licenca.GerarChaveEsperada(mac));
+        return new ChaveGeradaDto(mac, _licenca.GerarChaveEsperada(mac), _licenca.GerarSenhaDesenvolvedor(mac));
     }
 }
 #endif

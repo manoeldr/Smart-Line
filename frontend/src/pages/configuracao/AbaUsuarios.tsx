@@ -187,10 +187,14 @@ export default function AbaUsuarios() {
                 <label className={label}>Login</label>
                 <input value={form.login} onChange={e => setForm(f => ({ ...f, login: e.target.value }))} className={inputBase} />
               </div>
-              <div>
-                <label className={label}>{editando ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</label>
-                <input type="password" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} className={inputBase} />
-              </div>
+              {form.nivel === 'Desenvolvedor' ? (
+                <p className="text-[11px] text-texto-2">O Desenvolvedor não tem senha cadastrada: entra com a senha gerada para este computador (Desenvolvedor → Licença).</p>
+              ) : (
+                <div>
+                  <label className={label}>{editando ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</label>
+                  <input type="password" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} className={inputBase} />
+                </div>
+              )}
               <div>
                 <label className={label}>Nível</label>
                 <select value={form.nivel} onChange={e => setForm(f => ({ ...f, nivel: e.target.value }))} className={inputBase}>
@@ -207,7 +211,7 @@ export default function AbaUsuarios() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={fecharModal} className={btnSecondarySm}>Cancelar</button>
-              <button onClick={salvar} disabled={!form.nome || !form.login || (!editando && !form.senha) || salvando} className={btnPrimary}>
+              <button onClick={salvar} disabled={!form.nome || !form.login || (!editando && !form.senha && form.nivel !== 'Desenvolvedor') || salvando} className={btnPrimary}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>

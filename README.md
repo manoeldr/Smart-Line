@@ -134,7 +134,7 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer instalação:
 - **Logs**: as últimas 2.000 linhas do log do backend desde que ele subiu, dentro do sistema, sem terminal — filtro por nível (tudo, avisos e erros, só erros) e por texto, atualização sozinha a cada 2 s, exceções abertas ao clicar. Somem ao reiniciar o backend.
 - **Coleta**: situação do broker MQTT (porta, WISE conectados, mensagens processadas, descartadas e perdidas) e cada coleta Semi Automática em andamento como o motor a vê: WISE e conexão, situação, parada aberta, última mensagem, sessão, sensores e contadores brutos.
-- **Licença** (só em desenvolvimento): gera a chave de licença de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. O controller fica dentro de `#if DEBUG` e só responde com `ASPNETCORE_ENVIRONMENT=Development`: o publish de produção (Release) não leva esse código, e a aba some.
+- **Licença** (só em desenvolvimento): gera a chave de licença e a **senha do Desenvolvedor** de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. O controller fica dentro de `#if DEBUG` e só responde com `ASPNETCORE_ENVIRONMENT=Development`: o publish de produção (Release) não leva esse código, e a aba some.
 - **Simulador de WISE**: os mesmos WISE simulados do console, ligados por dentro do backend — formulário com máquinas, pulsos por minuto (um pulso por unidade; o multiplicador é o da medição), paradas e quedas automáticas; cada máquina com os comandos como botões (rodando, falta, mínimo, saída, caixas, sem causa, sem energia, sem rede, reiniciar, automático/manual). Os IPs simulados (`127.0.0.21`…) aparecem em Dispositivos IoT como aparelhos reais.
 
 ### Usabilidade
@@ -363,6 +363,8 @@ SmartLine/
 | Desenvolvedor | ✅ | ✅ | ✅ | Mesmo acesso do Administrador | Logs, coleta (broker e motor) e simulador de WISE |
 | Auditor | ✅ | ✅ | ✅ | Clientes (somente gestão de Linhas), Máquinas | ❌ |
 | Cliente | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+O perfil **Desenvolvedor é reservado**: o Administrador não vê os usuários Desenvolvedor, não os edita nem dá esse nível a ninguém (o backend recusa, não só a tela), e o pacote de exportação/importação de quem não é Desenvolvedor não leva nem traz Desenvolvedores. A **senha do Desenvolvedor não fica no banco**: é derivada do segredo da licença e do MAC do computador (gerada na aba Licença ou pelo `LicenseGenerator`, junto com a chave), então nem editando o `.db` dá para trocá-la. O backend garante um usuário `desenvolvedor` em toda instalação e, em desenvolvimento, imprime a senha desta máquina no log ao subir.
 
 No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrador e do Desenvolvedor; escolher o WISE, editar regras e textos, iniciar, finalizar e classificar paradas também são do Auditor. O Cliente só visualiza.
 

@@ -43,7 +43,8 @@ public class ConfiguracaoService : IConfiguracaoService
             Id = Guid.NewGuid(),
             Nome = req.Nome,
             Login = req.Login,
-            SenhaHash = BCrypt.Net.BCrypt.HashPassword(req.Senha),
+            // Desenvolvedor não tem senha no banco (entra com a senha derivada do segredo da licença).
+            SenhaHash = nivel == NivelUsuario.Desenvolvedor ? "(senha derivada do segredo; não fica no banco)" : BCrypt.Net.BCrypt.HashPassword(req.Senha),
             Nivel = nivel,
             ClienteId = req.ClienteId is not null ? Guid.Parse(req.ClienteId) : null,
             Ativo = true,
@@ -70,7 +71,7 @@ public class ConfiguracaoService : IConfiguracaoService
         usuario.Nivel = novoNivel;
         usuario.Ativo = req.Ativo;
         usuario.ClienteId = req.ClienteId is not null ? Guid.Parse(req.ClienteId) : null;
-        if (!string.IsNullOrWhiteSpace(req.Senha))
+        if (!string.IsNullOrWhiteSpace(req.Senha) && novoNivel != NivelUsuario.Desenvolvedor)
             usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(req.Senha);
         await _context.SaveChangesAsync();
         return new UsuarioConfDto(
