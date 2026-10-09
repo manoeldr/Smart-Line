@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { Usuario } from '../types'
 
+// Último cliente escolhido por quem pode trocar de cliente (sobrevive ao logout).
+const CHAVE_ULTIMO_CLIENTE = 'smartline.ultimoCliente'
+function lerUltimoCliente(): string | null {
+  try { return localStorage.getItem(CHAVE_ULTIMO_CLIENTE) } catch { return null }
+}
+
 interface AuthState {
   usuario: Usuario | null
   token: string | null
@@ -57,9 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [state.token])
 
+  // Qualquer cliente em uso (escolhido agora ou já guardado de antes) vira o "último".
+  useEffect(() => {
+    if (state.clienteId) {
+      try { localStorage.setItem(CHAVE_ULTIMO_CLIENTE, state.clienteId) } catch { /* sem armazenamento */ }
+    }
+  }, [state.clienteId])
+
+  // O último cliente escolhido fica guardado além do logout (chave própria), para a próxima
+  // entrada abrir nele. Quem tem cliente fixo no cadastro usa o dele.
   function login(token: string, usuario: Usuario) {
     localStorage.setItem('token', token)
-    const clienteId = usuario.clienteId ?? null
+    const clienteId = usuario.clienteId ?? lerUltimoCliente()
     if (clienteId) localStorage.setItem('clienteId', clienteId)
     setState({ token, usuario, clienteId })
   }
@@ -72,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function setClienteId(id: string) {
     localStorage.setItem('clienteId', id)
+    try { localStorage.setItem(CHAVE_ULTIMO_CLIENTE, id) } catch { /* sem armazenamento: só nesta sessão */ }
     setState(s => ({ ...s, clienteId: id }))
   }
 
