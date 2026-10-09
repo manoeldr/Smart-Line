@@ -20,7 +20,7 @@ const NIVEIS: { id: NivelLog | ''; label: string }[] = [
 ]
 
 const COR_NIVEL: Record<string, string> = {
-  Information: 'text-zinc-400',
+  Information: 'text-texto-3',
   Warning: 'text-amber-600 dark:text-amber-400',
   Error: 'text-red-600 dark:text-red-400',
   Critical: 'text-red-600 dark:text-red-400 font-semibold',
@@ -127,8 +127,8 @@ export default function AbaLogs() {
               onClick={() => setNivelUrl(n.id || null)}
               className={`h-8 px-3 text-xs border transition-colors ${
                 nivel === n.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  ? 'bg-accent-600 text-accent-fg border-accent-600'
+                  : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
               }`}
             >
               {n.label}
@@ -141,16 +141,16 @@ export default function AbaLogs() {
           placeholder="Procurar no texto (ex.: WISE, 192.168, parada)"
           className={`${inputBase} w-72`}
         />
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <div className="flex items-center gap-1.5 text-xs text-texto-2">
           <Switch checked={!pausado} onChange={v => setPausado(!v)} />
           <span onClick={() => setPausado(p => !p)} className="cursor-pointer">Atualizar sozinho</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <div className="flex items-center gap-1.5 text-xs text-texto-2">
           <Switch checked={seguir} onChange={setSeguir} />
           <span onClick={() => setSeguir(s => !s)} className="cursor-pointer">Seguir o fim</span>
         </div>
         <button onClick={() => setLimparDesde(ultima)} className={btnSecondarySm}>Limpar tela</button>
-        <span className="text-xs text-zinc-400 ml-auto">
+        <span className="text-xs text-texto-3 ml-auto">
           {quantidade} {quantidade === 1 ? 'linha' : 'linhas'}
           {capacidade > 0 && ` · o backend guarda as últimas ${capacidade}`}
         </span>
@@ -160,9 +160,9 @@ export default function AbaLogs() {
 
       {/* Lista */}
       <div ref={lista} onScroll={aoRolar} className={`${cardBase} flex-1 min-h-[420px] overflow-auto font-mono text-[11px] leading-5`}>
-        {!carregado && <p className="p-4 text-zinc-400 font-sans text-xs">Carregando...</p>}
+        {!carregado && <p className="p-4 text-texto-3 font-sans text-xs">Carregando...</p>}
         {carregado && quantidade === 0 && (
-          <p className="p-4 text-zinc-400 font-sans text-xs">
+          <p className="p-4 text-texto-3 font-sans text-xs">
             {texto || nivel ? 'Nenhuma linha com esse filtro.' : 'Nada registrado ainda.'}
           </p>
         )}
@@ -170,15 +170,15 @@ export default function AbaLogs() {
           <div
             key={l.sequencia}
             onClick={l.excecao ? () => alternarExcecao(l.sequencia) : undefined}
-            className={`px-3 py-0.5 border-b border-zinc-100 dark:border-zinc-800/60 ${l.excecao ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50' : ''}`}
+            className={`px-3 py-0.5 border-b border-borda-suave ${l.excecao ? 'cursor-pointer hover:bg-superficie-2' : ''}`}
           >
             <div className="flex gap-3">
-              <span className="text-zinc-400 shrink-0">{horaComSegundos(l.instante)}</span>
-              <span className={`w-12 shrink-0 ${COR_NIVEL[l.nivel] ?? 'text-zinc-400'}`}>{SIGLA_NIVEL[l.nivel] ?? l.nivel}</span>
-              <span className="text-blue-600 dark:text-blue-400 shrink-0 w-44 truncate" title={l.categoria}>{l.categoria}</span>
-              <span className="text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap break-words min-w-0">
+              <span className="text-texto-3 shrink-0">{horaComSegundos(l.instante)}</span>
+              <span className={`w-12 shrink-0 ${COR_NIVEL[l.nivel] ?? 'text-texto-3'}`}>{SIGLA_NIVEL[l.nivel] ?? l.nivel}</span>
+              <span className="text-accent-600 dark:text-accent-400 shrink-0 w-44 truncate" title={l.categoria}>{l.categoria}</span>
+              <span className="text-texto whitespace-pre-wrap break-words min-w-0">
                 {l.mensagem}
-                {l.excecao && <span className="text-zinc-400"> {abertas.has(l.sequencia) ? '▾' : '▸ exceção'}</span>}
+                {l.excecao && <span className="text-texto-3"> {abertas.has(l.sequencia) ? '▾' : '▸ exceção'}</span>}
               </span>
             </div>
             {l.excecao && abertas.has(l.sequencia) && (

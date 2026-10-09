@@ -162,7 +162,7 @@ export default function Overview() {
 
   if (!clienteId) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+      <div className="flex items-center justify-center h-48 text-sm text-texto-3">
         Nenhum cliente selecionado
       </div>
     )
@@ -172,7 +172,7 @@ export default function Overview() {
 
   if (!carregado && !erro) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+      <div className="flex items-center justify-center h-48 text-sm text-texto-3">
         Carregando...
       </div>
     )
@@ -208,7 +208,7 @@ export default function Overview() {
         </div>
       )}
       {linhas.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+        <div className="flex items-center justify-center h-48 text-sm text-texto-3">
           Nenhuma linha cadastrada
         </div>
       ) : (

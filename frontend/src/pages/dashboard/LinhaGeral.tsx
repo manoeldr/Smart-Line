@@ -52,7 +52,7 @@ function minutos(ms: number) {
 }
 
 function corOee(oee: number | null) {
-  if (oee === null) return 'text-zinc-400'
+  if (oee === null) return 'text-texto-3'
   return oee >= 85
     ? 'text-green-600 dark:text-green-400'
     : oee >= 60
@@ -108,8 +108,8 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
       <div className={`${cardPadded} text-center`}>
         <div className="mb-4">
           <p className={`text-5xl font-medium ${corOee(dados.oee)}`}>{porcentagem(dados.oee)}</p>
-          <p className="text-sm text-zinc-500 mt-1">OEE da linha</p>
-          <p className="text-xs text-zinc-400">{referencia}</p>
+          <p className="text-sm text-texto-2 mt-1">OEE da linha</p>
+          <p className="text-xs text-texto-3">{referencia}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4 max-w-xl mx-auto">
@@ -118,7 +118,7 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
           <Indicador valor={porcentagem(dados.qualidade)} rotulo="Qualidade" />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-borda-suave">
           <Indicador valor={dados.producao.toLocaleString('pt-BR')} rotulo="Produção da linha" />
           <Indicador valor={dados.refugoTotal.toLocaleString('pt-BR')} rotulo="Refugo (soma)" />
           <Indicador valor={formatarHoras(dados.tempoParadoTotalMs)} rotulo="Tempo parado (soma)" />
@@ -130,8 +130,8 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
       <div className={cardPadded}>
         <div className="flex items-center justify-between gap-3 mb-3 min-h-7">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
-            Produção por hora{dados.maquinaReferencia && <span className="font-normal text-zinc-400"> · {dados.maquinaReferencia}</span>}
+          <p className="text-xs font-medium text-texto">
+            Produção por hora{dados.maquinaReferencia && <span className="font-normal text-texto-3"> · {dados.maquinaReferencia}</span>}
           </p>
         </div>
         <div className={`h-72 ${areaGrafico}`}>
@@ -142,7 +142,7 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
       {/* Gráficos das paradas somadas, empilhadas por máquina */}
       <div className={cardPadded}>
         <div className="flex items-center justify-between gap-3 mb-3">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Paradas de todas as máquinas</p>
+          <p className="text-xs font-medium text-texto">Paradas de todas as máquinas</p>
           <div className="flex">
             {OPCOES_GRAFICO.map(o => (
               <button
@@ -150,8 +150,8 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
                 onClick={() => setGrafico(o.valor)}
                 className={`h-7 px-3 -ml-px first:ml-0 text-[11px] font-medium border transition-colors ${
                   grafico === o.valor
-                    ? 'relative bg-blue-600 text-white border-blue-600'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                    ? 'relative bg-accent-600 text-accent-fg border-accent-600'
+                    : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
                 }`}
               >
                 {o.rotulo}
@@ -169,10 +169,10 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
 
       {/* Resumo de cada máquina — clicar abre o detalhe da máquina */}
       <div className={`${cardPadded} overflow-x-auto`}>
-        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Máquinas da linha</p>
+        <p className="text-xs font-medium text-texto mb-2">Máquinas da linha</p>
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+            <tr className="text-texto-3 border-b border-borda-suave">
               <th className="text-left font-normal py-1.5">Máquina</th>
               <th className="text-right font-normal py-1.5">OEE</th>
               <th className="text-right font-normal py-1.5">Produção</th>
@@ -196,12 +196,12 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
   return (
     <tr
       onClick={onClick}
-      className={`border-b border-zinc-50 dark:border-zinc-800/50 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${m.referencia ? 'font-medium' : ''}`}
+      className={`border-b border-borda-suave cursor-pointer hover:bg-superficie-2 ${m.referencia ? 'font-medium' : ''}`}
     >
       <td className="py-2">
         <div className="flex items-center gap-2">
           <span className="inline-block w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: cor }} />
-          <span className="text-zinc-900 dark:text-zinc-100">{m.nome}</span>
+          <span className="text-texto">{m.nome}</span>
           {m.critica && <span className={badgeCritica}>Crítica</span>}
           {m.aoVivo && <span className="text-[10px] text-green-600 dark:text-green-400">ao vivo</span>}
         </div>
@@ -209,13 +209,13 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
       {m.temSessao ? (
         <>
           <td className={`text-right ${corOee(m.oee)}`}>{porcentagem(m.oee)}</td>
-          <td className="text-right text-zinc-700 dark:text-zinc-300">{m.producao.toLocaleString('pt-BR')}</td>
-          <td className="text-right text-zinc-700 dark:text-zinc-300">{m.refugo.toLocaleString('pt-BR')}</td>
-          <td className="text-right text-zinc-700 dark:text-zinc-300">{formatarHoras(m.tempoParadoMs)}</td>
-          <td className="text-right text-zinc-700 dark:text-zinc-300">{m.numParadas}</td>
+          <td className="text-right text-texto-2">{m.producao.toLocaleString('pt-BR')}</td>
+          <td className="text-right text-texto-2">{m.refugo.toLocaleString('pt-BR')}</td>
+          <td className="text-right text-texto-2">{formatarHoras(m.tempoParadoMs)}</td>
+          <td className="text-right text-texto-2">{m.numParadas}</td>
         </>
       ) : (
-        <td colSpan={5} className="text-right text-zinc-400">sem sessão no período</td>
+        <td colSpan={5} className="text-right text-texto-3">sem sessão no período</td>
       )}
     </tr>
   )
@@ -225,7 +225,7 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
 // hora; a hora em andamento tracejada, mais clara e com o horário em destaque.
 function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
   if (dados.producaoPorHora.length === 0) {
-    return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma produção registrada ainda</p>
+    return <p className="text-xs text-texto-3 text-center pt-24">Nenhuma produção registrada ainda</p>
   }
 
   const pontos = dados.producaoPorHora.map(p => ({
@@ -250,7 +250,7 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
             return (
               <text
                 x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
-                fill={atual ? '#1961c0' : '#71717a'}
+                fill={atual ? 'var(--color-accent-600)' : '#71717a'}
                 fontWeight={atual ? 700 : 400}
               >
                 {payload.value}
@@ -268,12 +268,12 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
               : rotulo
           }}
         />
-        <Bar dataKey="producao" name="Produção" stackId="producao" fill="#1961c0">
+        <Bar dataKey="producao" name="Produção" stackId="producao" fill="var(--color-accent-600)">
           {pontos.map((p, i) => (
             <Cell
               key={i}
-              fill={p.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
-              stroke={p.parcial ? '#1961c0' : 'none'}
+              fill={p.parcial ? 'color-mix(in srgb, var(--color-accent-600) 30%, transparent)' : 'var(--color-accent-600)'}
+              stroke={p.parcial ? 'var(--color-accent-600)' : 'none'}
               strokeWidth={p.parcial ? 1.5 : 0}
               strokeDasharray={p.parcial ? '4 3' : undefined}
             />
@@ -304,7 +304,7 @@ function legendaClicavel(onAlternar: (maquinaLinhaId: string) => void) {
   }
 }
 
-const semParadas = <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nas máquinas da linha</p>
+const semParadas = <p className="text-xs text-texto-3 text-center pt-24">Nenhuma parada nas máquinas da linha</p>
 
 // Tempo parado por motivo (maior primeiro), uma barra por máquina lado a lado: o tamanho de
 // cada barra é o tempo daquela máquina (empilhado dava a entender que a última parou o total).
@@ -372,8 +372,8 @@ function GraficoPorHora({ dados, maquinas, cores, ocultas, onAlternar }: Grafico
 function Indicador({ valor, rotulo }: { valor: string; rotulo: string }) {
   return (
     <div className="flex flex-col items-center">
-      <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">{valor}</p>
-      <p className="text-xs text-zinc-400">{rotulo}</p>
+      <p className="text-lg font-medium text-texto">{valor}</p>
+      <p className="text-xs text-texto-3">{rotulo}</p>
     </div>
   )
 }

@@ -72,9 +72,11 @@ const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
 // Mesmas cores da linha do tempo: interna vermelho, externa amarelo, planejada laranja.
 // Cor de cada tipo de evento na linha do tempo (sem comunicação em cinza, fora do OEE).
 const COR_EVENTO = {
+  Inicio: { ponto: 'bg-accent-600', texto: 'text-texto' },
+  Fim: { ponto: 'bg-accent-600', texto: 'text-texto' },
   Marcha: { ponto: 'bg-green-600', texto: 'text-green-700 dark:text-green-400' },
   Parada: { ponto: 'bg-red-500', texto: 'text-red-700 dark:text-red-400' },
-  SemComunicacao: { ponto: 'bg-zinc-400', texto: 'text-zinc-500 dark:text-zinc-400' },
+  SemComunicacao: { ponto: 'bg-texto-3', texto: 'text-texto-2' },
 } as const
 
 const CORES_TIPO_PARADA = { Interna: '#ef4444', Externa: '#facc15', Planejada: '#f97316' } as const
@@ -100,6 +102,9 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
   const [erro, setErro] = useState<string | null>(null)
   const [camposSelecionados, setCamposSelecionados] = useState<Set<string>>(new Set())
   const [grafico, setGrafico] = useState<TipoGrafico>('producao')
+  // Gráficos ou linha do tempo (um de cada vez, para a linha do tempo ter altura); na URL para o F5.
+  const [painelUrl, setPainelUrl] = useParametroUrl('painel')
+  const painel: 'graficos' | 'linha' = painelUrl === 'linha' ? 'linha' : 'graficos'
 
   // Editar o motivo de uma parada da linha do tempo (Manual ou Semi Automático) e ver o histórico
   const { usuario } = useAuth()
@@ -223,7 +228,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
 
   return (
     <div className={modalOverlayDark}>
-      <div className={`${modalPanel} w-[900px] max-h-[90vh]`}>
+      <div className={`${modalPanel} w-[900px] h-[90vh]`}>
 
         {/* Header — fixo */}
         <div className={`${modalHeader} flex items-center justify-between flex-shrink-0`}>
@@ -236,7 +241,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
               </p>
             )}
           </div>
-          <button onClick={fechar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <button onClick={fechar} className="text-texto-3 hover:text-texto">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -251,15 +256,15 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
         )}
 
         {loading ? (
-          <p className="text-xs text-zinc-400 text-center py-8">Carregando...</p>
+          <p className="text-xs text-texto-3 text-center py-8">Carregando...</p>
         ) : erro ? (
           <p className="text-xs text-red-400 text-center py-8">{erro}</p>
         ) : !dados ? (
-          <p className="text-xs text-zinc-400 text-center py-8">Nenhuma sessão registrada para esta máquina</p>
+          <p className="text-xs text-texto-3 text-center py-8">Nenhuma sessão registrada para esta máquina</p>
         ) : (
           <>
-            {/* Conteúdo fixo — métricas, gráfico e seletor */}
-            <div className="px-5 py-4 flex-shrink-0">
+            {/* Métricas e o seletor Gráficos | Linha do tempo — fixos */}
+            <div className="px-5 pt-4 flex-shrink-0">
               {/* Grid de métricas */}
               <div className="grid grid-cols-5 gap-2 mb-6">
                 <MetricaCard label="OEE" valor={`${dados.oee}%`} destaque />
@@ -274,10 +279,24 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                 <MetricaCard label="MTBF" valor={dados.mtbfMs !== null ? formatarHoras(dados.mtbfMs) : '—'} />
               </div>
 
-              {/* Gráfico: produção por hora, paradas por hora ou paradas por motivo */}
-              <div className="mb-3">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Gráfico</p>
+              {/* O que ocupa o resto do modal: gráficos ou linha do tempo */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex">
+                  {([['graficos', 'Gráficos'], ['linha', 'Linha do tempo']] as const).map(([valor, rotulo]) => (
+                    <button
+                      key={valor}
+                      onClick={() => setPainelUrl(valor === 'graficos' ? null : valor)}
+                      className={`h-7 px-3 -ml-px first:ml-0 text-[11px] font-medium border transition-colors ${
+                        painel === valor
+                          ? 'relative bg-accent-600 text-accent-fg border-accent-600'
+                          : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
+                      }`}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+                {painel === 'graficos' && (
                   <div className="flex">
                     {OPCOES_GRAFICO.map(o => (
                       <button
@@ -285,18 +304,23 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                         onClick={() => setGrafico(o.valor)}
                         className={`h-7 px-3 -ml-px first:ml-0 text-[11px] font-medium border transition-colors ${
                           grafico === o.valor
-                            ? 'relative bg-blue-600 text-white border-blue-600'
-                            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                            ? 'relative bg-accent-600 text-accent-fg border-accent-600'
+                            : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
                         }`}
                       >
                         {o.rotulo}
                       </button>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
+            </div>
+
+            {painel === 'graficos' && (
+              <div className="px-5 pb-4 flex-1 min-h-0 flex flex-col">
                 {grafico === 'producao' && (
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-[10px] px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">Produção</span>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="text-[10px] px-2 py-1 bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400">Produção</span>
                     {dados.camposExtras.map((campo, i) => (
                       <button
                         key={campo.campoMaquinaId}
@@ -304,7 +328,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                         className={`text-[10px] px-2 py-1 border transition-colors ${
                           camposSelecionados.has(campo.campoMaquinaId)
                             ? 'text-white border-transparent'
-                            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                            : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
                         }`}
                         style={camposSelecionados.has(campo.campoMaquinaId) ? { backgroundColor: CORES_LINHA[i % CORES_LINHA.length] } : {}}
                       >
@@ -313,11 +337,10 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                     ))}
                   </div>
                 )}
-              </div>
 
               {/* select-none e sem contorno de foco: clicar no gráfico (ou perto dele) não marca
-                  área de seleção nem desenha a moldura azul do navegador */}
-              <div className={`h-64 ${areaGrafico}`}>
+                  área de seleção nem desenha a moldura do navegador */}
+              <div className={`flex-1 min-h-[16rem] ${areaGrafico}`}>
                 {grafico === 'producao' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={dadosGrafico} accessibilityLayer={false}>
@@ -326,12 +349,12 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                         dataKey="hora"
                         interval={0}
                         tick={({ x, y, payload, index }) => {
-                          // Hora em andamento: horário em azul e negrito, como a barra tracejada
+                          // Hora em andamento: horário na cor de destaque e negrito, como a barra tracejada
                           const atual = dadosGrafico[index]?.parcial === true
                           return (
                             <text
                               x={x} y={Number(y) + 12} textAnchor="middle" fontSize={10}
-                              fill={atual ? '#1961c0' : '#71717a'}
+                              fill={atual ? 'var(--color-accent-600)' : '#71717a'}
                               fontWeight={atual ? 700 : 400}
                             >
                               {payload.value}
@@ -350,12 +373,12 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar yAxisId="left" dataKey="Produção" stackId="producao" fill="#1961c0">
+                      <Bar yAxisId="left" dataKey="Produção" stackId="producao" fill="var(--color-accent-600)">
                         {dadosGrafico.map((ponto, i) => (
                           <Cell
                             key={i}
-                            fill={ponto.parcial ? 'rgba(25, 97, 192, 0.3)' : '#1961c0'}
-                            stroke={ponto.parcial ? '#1961c0' : 'none'}
+                            fill={ponto.parcial ? 'color-mix(in srgb, var(--color-accent-600) 30%, transparent)' : 'var(--color-accent-600)'}
+                            stroke={ponto.parcial ? 'var(--color-accent-600)' : 'none'}
                             strokeWidth={ponto.parcial ? 1.5 : 0}
                             strokeDasharray={ponto.parcial ? '4 3' : undefined}
                           />
@@ -385,27 +408,35 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                   <GraficoParadasPorMotivo motivos={dados.paradasPorMotivo ?? []} />
                 )}
               </div>
-            </div>
+              </div>
+            )}
 
-            {/* Timeline de eventos — única parte com scroll */}
+            {/* Linha do tempo — ocupa o resto do modal, com rolagem própria. O mais recente em cima:
+                o que está acontecendo agora aparece primeiro, sem rolar. */}
+            {painel === 'linha' && (
             <div className="flex-1 overflow-y-auto px-5 pb-4 min-h-0">
-              <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2 sticky top-0 bg-white dark:bg-zinc-900 py-1">Linha do tempo</p>
               <div className="flex flex-col">
-                {dados.eventos.map((evento, i) => (
-                  <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-                    <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${COR_EVENTO[evento.tipo].ponto}`} />
+                {[...dados.eventos].reverse().map((evento, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b border-borda-suave last:border-0">
+                    {/* A bolinha fica numa caixa da altura da linha do título, centrada nela */}
+                    <div className="h-4 flex items-center flex-shrink-0">
+                      <div className={`w-2 h-2 rounded-full ${COR_EVENTO[evento.tipo].ponto}`} />
+                    </div>
                     <div className="flex-1 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <span className={`text-xs font-medium ${COR_EVENTO[evento.tipo].texto}`}>
-                          {evento.tipo === 'SemComunicacao' ? 'Sem comunicação' : evento.tipo}
+                        <span className={`block text-xs leading-4 font-medium ${COR_EVENTO[evento.tipo].texto}`}>
+                          {evento.tipo === 'SemComunicacao' ? 'Sem comunicação'
+                            : evento.tipo === 'Inicio' ? 'Medição iniciada'
+                            : evento.tipo === 'Fim' ? (evento.motivoNome === 'ViradaDoDia' ? 'Dia encerrado à meia-noite' : 'Medição finalizada')
+                            : evento.tipo}
                         </span>
                         {evento.tipo === 'Parada' && (
-                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-texto-2 mt-0.5">
                             {evento.motivoNome ?? <span className="text-amber-600 dark:text-amber-400">sem motivo (conta como interna)</span>}
                           </p>
                         )}
                         {evento.tipo === 'SemComunicacao' && (
-                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-texto-2 mt-0.5">
                             Fora do OEE
                           </p>
                         )}
@@ -413,13 +444,13 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                           <div className="flex items-center gap-2 mt-1 text-[10px]">
                             {podeEditarMotivo && dados.maquinaId && (
                               <>
-                                <button onClick={() => setEditandoParada(evento.paradaId!)} className="text-blue-600 dark:text-blue-400 hover:underline">
+                                <button onClick={() => setEditandoParada(evento.paradaId!)} className="text-accent-600 dark:text-accent-400 hover:underline">
                                   Editar motivo
                                 </button>
-                                <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                                <span className="text-texto-4">|</span>
                               </>
                             )}
-                            <button onClick={() => setHistoricoParada(evento.paradaId!)} className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:underline">
+                            <button onClick={() => setHistoricoParada(evento.paradaId!)} className="text-[10px] text-texto-3 hover:text-texto hover:underline">
                               Histórico
                             </button>
                           </div>
@@ -431,7 +462,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                         <button
                           onClick={() => abrirFoto(evento.fotoPath!)}
                           title="Ver foto da parada"
-                          className="flex-shrink-0 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          className="flex-shrink-0 text-texto-3 hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
                         >
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
@@ -443,6 +474,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                 ))}
               </div>
             </div>
+            )}
           </>
         )}
       </div>
@@ -467,7 +499,7 @@ function HorarioEvento({ evento }: { evento: EventoTimelineDto }) {
   const ate = temPeriodo ? new Date(de.getTime() + evento.duracaoMs!) : null
 
   return (
-    <div className="flex-shrink-0 text-right text-[11px] text-zinc-500 tabular-nums">
+    <div className="flex-shrink-0 text-right text-[11px] text-texto-2 tabular-nums">
       <p>
         {data} - {formatarHorario(de)}
         {temPeriodo && (
@@ -476,7 +508,7 @@ function HorarioEvento({ evento }: { evento: EventoTimelineDto }) {
       </p>
       {temPeriodo && (
         <p className="mt-0.5">
-          {emAndamento ? 'Até agora' : 'Duração'}: <span className="font-medium text-zinc-700 dark:text-zinc-300">{formatarDuracao(evento.duracaoMs!)}</span>
+          {emAndamento ? 'Até agora' : 'Duração'}: <span className="font-medium text-texto-2">{formatarDuracao(evento.duracaoMs!)}</span>
         </p>
       )}
     </div>
@@ -486,7 +518,7 @@ function HorarioEvento({ evento }: { evento: EventoTimelineDto }) {
 function MetricaCard({ label, valor, destaque }: { label: string; valor: string; destaque?: boolean }) {
   return (
     <div className={metricaBox}>
-      <p className={`${metricaValor} ${destaque ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+      <p className={`${metricaValor} ${destaque ? 'text-accent-600 dark:text-accent-400' : ''}`}>
         {valor}
       </p>
       <p className={metricaLabel}>{label}</p>
@@ -496,7 +528,7 @@ function MetricaCard({ label, valor, destaque }: { label: string; valor: string;
 
 // Minutos parados em cada hora da sessão, empilhados por tipo (a hora 14:00 = das 14:00 às 14:59).
 function GraficoParadasPorHora({ horas }: { horas: ParadaPorHoraDto[] }) {
-  if (horas.length === 0) return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nesta sessão</p>
+  if (horas.length === 0) return <p className="text-xs text-texto-3 text-center pt-24">Nenhuma parada nesta sessão</p>
 
   const dadosHoras = horas.map(h => ({
     hora: formatarHora(h.hora),
@@ -523,7 +555,7 @@ function GraficoParadasPorHora({ horas }: { horas: ParadaPorHoraDto[] }) {
 
 // Tempo parado por motivo, do maior para o menor (Pareto), na cor do tipo do motivo.
 function GraficoParadasPorMotivo({ motivos }: { motivos: ParadaPorMotivoDto[] }) {
-  if (motivos.length === 0) return <p className="text-xs text-zinc-400 text-center pt-24">Nenhuma parada nesta sessão</p>
+  if (motivos.length === 0) return <p className="text-xs text-texto-3 text-center pt-24">Nenhuma parada nesta sessão</p>
 
   const dadosMotivos = motivos.map(m => ({
     motivo: m.motivo,

@@ -152,7 +152,7 @@ export default function Dashboard() {
       {/* Filtros */}
       <div className={`${cardPadded} flex items-end gap-3 flex-wrap`}>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500">Linha</label>
+          <label className="text-xs text-texto-2">Linha</label>
           <select
             value={linhaSelecionada}
             onChange={e => setLinhaSelecionada(e.target.value)}
@@ -166,12 +166,12 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500">Data</label>
+          <label className="text-xs text-texto-2">Data</label>
           <CampoData valor={data} onChange={setData} datasComSessao={datasComSessao} max={formatarDataInput(new Date())} />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500">Visão</label>
+          <label className="text-xs text-texto-2">Visão</label>
           <div className="flex">
             {OPCOES_VISAO.map(o => (
               <button
@@ -179,8 +179,8 @@ export default function Dashboard() {
                 onClick={() => escolherVisao(o.valor)}
                 className={`h-9 w-24 -ml-px first:ml-0 text-center text-xs font-medium border transition-colors ${
                   visao === o.valor
-                    ? 'relative bg-blue-600 text-white border-blue-600'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                    ? 'relative bg-accent-600 text-accent-fg border-accent-600'
+                    : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
                 }`}
               >
                 {o.rotulo}
@@ -190,7 +190,7 @@ export default function Dashboard() {
         </div>
 
         {atualizadoEm && (
-          <p className="ml-auto text-[10px] text-zinc-400 self-center">
+          <p className="ml-auto text-[10px] text-texto-3 self-center">
             Atualiza sozinho a cada 5 min · última às {atualizadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
@@ -198,15 +198,15 @@ export default function Dashboard() {
 
       {/* Grid de cards ou a visão geral da linha */}
       {loadingDados ? (
-        <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Carregando...</div>
+        <div className="flex items-center justify-center h-48 text-sm text-texto-3">Carregando...</div>
       ) : erro ? (
         <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro: {erro}</div>
       ) : visao === 'linha' ? (
         linhaGeral && linhaGeral.maquinas.length > 0
           ? <LinhaGeral dados={linhaGeral} onAbrirMaquina={abrirDetalhe} />
-          : <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Nenhuma máquina nesta linha</div>
+          : <div className="flex items-center justify-center h-48 text-sm text-texto-3">Nenhuma máquina nesta linha</div>
       ) : dados.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-sm text-zinc-400">Nenhuma máquina nesta linha</div>
+        <div className="flex items-center justify-center h-48 text-sm text-texto-3">Nenhuma máquina nesta linha</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {dados.map(m => (

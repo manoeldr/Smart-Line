@@ -40,7 +40,8 @@ export interface PontoProducaoDto {
 
 export interface EventoTimelineDto {
   // SemComunicacao: WISE fora (fica fora do OEE)
-  tipo: 'Marcha' | 'Parada' | 'SemComunicacao'
+  // Inicio e Fim: começo e término da medição (Fim: motivoNome diz 'ViradaDoDia' ou 'Manual')
+  tipo: 'Inicio' | 'Fim' | 'Marcha' | 'Parada' | 'SemComunicacao'
   horario: string
   motivoNome: string | null
   motivoTipo: string | null

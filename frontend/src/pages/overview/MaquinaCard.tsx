@@ -61,8 +61,8 @@ function statusColeta(maquina: MaquinaLinha) {
 function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-zinc-900 dark:text-zinc-100 font-medium truncate">{valor}</p>
-      <p className="text-zinc-400">{rotulo}</p>
+      <p className="text-texto font-medium truncate">{valor}</p>
+      <p className="text-texto-3">{rotulo}</p>
     </div>
   )
 }
@@ -75,19 +75,19 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
   const iot = !filtroAtivo && maquina.sessaoAtiva && !!maquina.acompanhamentoId
   const semDadosAoVivo = iot && maquina.situacaoColeta !== 'Rodando' && maquina.situacaoColeta !== 'Parada'
   const dotClass = filtroAtivo
-    ? 'bg-blue-600'
+    ? 'bg-accent-600'
     : temHistorico || semDadosAoVivo
-      ? 'bg-zinc-400' // sessão finalizada, sem comunicação ou aguardando o WISE — bolinha cinza neutra
-      : (dotColorByStatus[maquina.status] ?? 'bg-zinc-400')
+      ? 'bg-texto-3' // sessão finalizada, sem comunicação ou aguardando o WISE — bolinha cinza neutra
+      : (dotColorByStatus[maquina.status] ?? 'bg-texto-3')
   const semMotivo = iot ? (maquina.paradasSemMotivo ?? 0) : 0
   // Sem comunicação: borda amarela (por dentro, sem mudar o tamanho do card)
   const semComunicacao = iot && maquina.situacaoColeta === 'SemComunicacao'
-  const oeeColor = maquina.critica && !filtroAtivo ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'
+  const oeeColor = maquina.critica && !filtroAtivo ? 'text-accent-600 dark:text-accent-400' : 'text-texto'
 
   return (
     <div
       onClick={onAbrir}
-      className={`h-full flex flex-col ${cardPaddedSm} cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600 ${maquina.critica ? 'shadow-[inset_0_2px_0_0_#2563eb]' : ''} ${semComunicacao ? 'ring-2 ring-inset ring-amber-400 dark:ring-amber-500' : ''}`}
+      className={`h-full flex flex-col ${cardPaddedSm} cursor-pointer transition-colors hover:border-accent-400 dark:hover:border-accent-600 ${maquina.critica ? 'shadow-[inset_0_2px_0_0_var(--color-accent-600)]' : ''} ${semComunicacao ? 'ring-2 ring-inset ring-amber-400 dark:ring-amber-500' : ''}`}
     >
       {/* Topo */}
       <div className="flex items-center justify-between mb-1.5">
@@ -98,12 +98,12 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
         </div>
       </div>
       {/* Nome */}
-      <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate mb-0.5">
+      <p className="text-xs font-medium text-texto truncate mb-0.5">
         {maquina.maquinaNome}
       </p>
       {/* Status: última sessão (finalizada) prevalece sobre o status ao vivo */}
       {!filtroAtivo && (
-        <p className={`text-[10px] mb-2 truncate ${semComunicacao ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400'}`}>
+        <p className={`text-[10px] mb-2 truncate ${semComunicacao ? 'text-amber-600 dark:text-amber-400' : 'text-texto-3'}`}>
           {temHistorico
             ? `última sessão: ${formatarUltimaSessao(maquina.ultimaSessaoFim!)}`
             : iot
@@ -113,7 +113,7 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
       )}
       {/* Filtro por data: a sessão daquele dia (início e fim) */}
       {filtroAtivo && (
-        <p className="text-[10px] text-zinc-400 mb-2 truncate">
+        <p className="text-[10px] text-texto-3 mb-2 truncate">
           {maquina.sessaoDia
             ? `sessão ${hora(maquina.sessaoDia.inicio)} – ${maquina.sessaoDia.fim ? hora(maquina.sessaoDia.fim) : 'em andamento'}`
             : 'sem sessão neste dia'}
@@ -123,11 +123,11 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
       <p className={`text-base font-medium ${oeeColor}`}>
         {maquina.oee !== null ? `${maquina.oee}%` : '—'}
       </p>
-      <p className="text-[10px] text-zinc-400">OEE</p>
+      <p className="text-[10px] text-texto-3">OEE</p>
 
       {/* Filtro por data: os números da sessão daquele dia */}
       {filtroAtivo && maquina.sessaoDia && (
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-[10px]">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2 pt-2 border-t border-borda-suave text-[10px]">
           <Numero rotulo="Produção" valor={maquina.sessaoDia.producao.toLocaleString('pt-BR')} />
           <Numero rotulo="Refugo" valor={maquina.sessaoDia.refugo.toLocaleString('pt-BR')} />
           <Numero rotulo="Rodando" valor={formatarHoras(maquina.sessaoDia.tempoRodandoMs)} />

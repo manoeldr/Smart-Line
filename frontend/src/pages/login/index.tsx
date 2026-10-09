@@ -38,21 +38,21 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-fundo flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 bg-black dark:ring-1 dark:ring-zinc-700 rounded-xl flex items-center justify-center flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
           </div>
           <div>
-            <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">SmartLine</p>
-            <p className="text-xs text-zinc-500">Sanmartin</p>
+            <p className="text-lg font-medium text-texto">Smart Line Scan</p>
+            <p className="text-xs text-texto-2">Sanmartin</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
-          <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-5">Entrar na sua conta</h1>
+        <div className="bg-superficie border border-borda rounded-xl p-6">
+          <h1 className="text-sm font-medium text-texto mb-5">Entrar na sua conta</h1>
           {expirou && (
             <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-3 py-2 rounded-sm mb-4">
               Sua sessão expirou. Entre de novo para continuar de onde parou.

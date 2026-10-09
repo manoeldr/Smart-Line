@@ -109,7 +109,7 @@ public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
                 using (var resposta = await _http.GetAsync(url, cancellationToken))
                 {
                     if (resposta.StatusCode == HttpStatusCode.Unauthorized)
-                        return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do SmartLine.");
+                        return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do Smart Line Scan.");
                     resposta.EnsureSuccessStatusCode();
                     var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken);
                     registro = JsonNode.Parse(corpo) as JsonObject ?? new JsonObject();
@@ -122,7 +122,7 @@ public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
                 using var conteudo = new StringContent(registro.ToJsonString(), Encoding.UTF8, "application/json");
                 using var gravacao = await _http.PutAsync(url, conteudo, cancellationToken);
                 if (gravacao.StatusCode == HttpStatusCode.Unauthorized)
-                    return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do SmartLine.");
+                    return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do Smart Line Scan.");
                 if (!gravacao.IsSuccessStatusCode)
                 {
                     var detalhe = await gravacao.Content.ReadAsStringAsync(cancellationToken);

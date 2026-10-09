@@ -55,8 +55,8 @@ export default function AbaLicenca() {
   return (
     <div className="flex flex-col gap-4 max-w-2xl">
       <div className={`${cardPadded} flex flex-col gap-3`}>
-        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Gerar chave de licença</p>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs font-medium text-texto">Gerar chave de licença</p>
+        <p className="text-xs text-texto-2">
           Digite o MAC que aparece na tela de ativação do computador do cliente. A chave vale para aquele MAC;
           o sistema aceita se ele for de qualquer placa de rede física daquele computador.
         </p>
@@ -76,14 +76,14 @@ export default function AbaLicenca() {
             {gerando ? 'Gerando...' : 'Gerar chave'}
           </button>
         </div>
-        {mac && !macValido && <p className="text-[10px] text-zinc-400">O MAC tem 12 caracteres hexadecimais (com ou sem separadores).</p>}
+        {mac && !macValido && <p className="text-[10px] text-texto-3">O MAC tem 12 caracteres hexadecimais (com ou sem separadores).</p>}
         {erro && <p className="text-xs text-red-500">{erro}</p>}
 
         {chave && (
-          <div className="bg-zinc-50 dark:bg-zinc-800 p-3 flex flex-col gap-1">
-            <p className="text-[10px] text-zinc-400">MAC {formatarMac(chave.macAddress)}</p>
+          <div className="bg-superficie-2 p-3 flex flex-col gap-1">
+            <p className="text-[10px] text-texto-3">MAC {formatarMac(chave.macAddress)}</p>
             <div className="flex items-center gap-3">
-              <p className="font-mono text-base text-zinc-900 dark:text-zinc-100 select-all">{chave.chave}</p>
+              <p className="font-mono text-base text-texto select-all">{chave.chave}</p>
               <button onClick={copiar} className={btnSecondarySm}>{copiado ? 'Copiado' : 'Copiar'}</button>
             </div>
           </div>
@@ -92,20 +92,20 @@ export default function AbaLicenca() {
 
       {situacao && (
         <div className={`${cardPadded} flex flex-col gap-2`}>
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Este computador</p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs font-medium text-texto">Este computador</p>
+          <p className="text-xs text-texto-2">
             Licença: <span className={situacao.licencaAtiva ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
               {situacao.licencaAtiva ? 'ativa' : 'não ativada'}
             </span>
           </p>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-texto-2">
             Placas de rede físicas:
             <ul className="mt-1 flex flex-col gap-1">
               {situacao.macsFisicos.map(m => (
                 <li key={m} className="flex items-center gap-2">
-                  <span className="font-mono text-zinc-900 dark:text-zinc-100">{formatarMac(m)}</span>
-                  {m === situacao.macPreferido && <span className="text-[10px] text-zinc-400">(a tela de ativação mostra este)</span>}
-                  <button onClick={() => { setMac(m); setChave(null) }} className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">usar</button>
+                  <span className="font-mono text-texto">{formatarMac(m)}</span>
+                  {m === situacao.macPreferido && <span className="text-[10px] text-texto-3">(a tela de ativação mostra este)</span>}
+                  <button onClick={() => { setMac(m); setChave(null) }} className="text-[10px] text-accent-600 dark:text-accent-400 hover:underline">usar</button>
                 </li>
               ))}
             </ul>

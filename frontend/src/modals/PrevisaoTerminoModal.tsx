@@ -44,7 +44,7 @@ export default function PrevisaoTerminoModal({ open, onEstender, onFinalizar }: 
 
   return (
     <div className={modalOverlayDark}>
-      <div className="bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-700 w-96 p-6">
+      <div className="bg-superficie border border-amber-300 dark:border-amber-700 w-96 p-6">
 
         <div className="text-center mb-4">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-amber-50 dark:bg-amber-950 rounded-full mb-3">
@@ -52,10 +52,10 @@ export default function PrevisaoTerminoModal({ open, onEstender, onFinalizar }: 
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
           </div>
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <p className="text-sm font-medium text-texto">
             Previsão de término atingida
           </p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-texto-2 mt-1">
             A medição será finalizada automaticamente em
           </p>
           <p className="text-3xl font-medium text-amber-600 dark:text-amber-400 mt-2 tabular-nums">

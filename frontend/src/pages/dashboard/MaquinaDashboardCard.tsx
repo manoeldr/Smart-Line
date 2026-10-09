@@ -32,23 +32,23 @@ export default function MaquinaDashboardCard({ dados }: Props) {
   return (
     // Crítica: faixa azul no topo desenhada por dentro (sombra, não borda), para não mudar
     // a altura; h-full deixa os cards de uma mesma fileira sempre com a mesma altura.
-    <div className={`${cardPadded} relative h-full text-center ${dados.critica ? 'shadow-[inset_0_2px_0_0_#2563eb]' : ''}`}>
+    <div className={`${cardPadded} relative h-full text-center ${dados.critica ? 'shadow-[inset_0_2px_0_0_var(--color-accent-600)]' : ''}`}>
 
       {/* Header: a etiqueta "crítica" fica no canto, fora do fluxo, para os cards
           críticos e os demais ficarem com tudo na mesma altura lado a lado */}
       {dados.critica && <span className={`${badgeCritica} absolute top-3 right-3`}>Crítica</span>}
       {/* Sessão em andamento: situação agora, no canto (fora do fluxo, o card não muda de tamanho) */}
       {dados.aoVivo && (
-        <span className="absolute top-3 left-3 text-[10px] text-zinc-400" title="Sessão em andamento">
+        <span className="absolute top-3 left-3 text-[10px] text-texto-3" title="Sessão em andamento">
           ao vivo · <SituacaoColetaTexto situacao={dados.situacaoAoVivo} />
         </span>
       )}
-      <p className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-3 px-14 truncate">{dados.maquinaNome}</p>
+      <p className="text-base font-medium text-texto mb-3 px-14 truncate">{dados.maquinaNome}</p>
 
       {/* OEE grande */}
       <div className="mb-4">
         <p className={`text-4xl font-medium ${oeeColor}`}>{dados.oee}%</p>
-        <p className="text-xs text-zinc-400">OEE</p>
+        <p className="text-xs text-texto-3">OEE</p>
       </div>
 
       {/* Disponibilidade / Performance / Qualidade */}
@@ -59,13 +59,13 @@ export default function MaquinaDashboardCard({ dados }: Props) {
       </div>
 
       {/* Produção / Refugo */}
-      <div className="grid grid-cols-2 gap-2 mb-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="grid grid-cols-2 gap-2 mb-3 pt-3 border-t border-borda-suave">
         <Indicador valor={dados.producao.toLocaleString('pt-BR')} rotulo="Produção total" />
         <Indicador valor={dados.refugo.toLocaleString('pt-BR')} rotulo="Refugo total" />
       </div>
 
       {/* Tempo rodando / parado / início da sessão */}
-      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-borda-suave">
         <Indicador valor={formatarHoras(dados.tempoRodandoMs)} rotulo="rodando" />
         <Indicador valor={formatarHoras(dados.tempoParadoMs)} rotulo="parado" />
         <Indicador valor={formatarInicio(dados.sessaoInicio)} rotulo="início da sessão" />
@@ -78,8 +78,8 @@ export default function MaquinaDashboardCard({ dados }: Props) {
 function Indicador({ valor, rotulo }: { valor: string; rotulo: string }) {
   return (
     <div className="flex flex-col items-center">
-      <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">{valor}</p>
-      <p className="text-xs text-zinc-400">{rotulo}</p>
+      <p className="text-base font-medium text-texto">{valor}</p>
+      <p className="text-xs text-texto-3">{rotulo}</p>
     </div>
   )
 }

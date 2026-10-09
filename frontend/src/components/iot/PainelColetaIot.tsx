@@ -95,15 +95,15 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
   }
 
   return (
-    <div className="mx-5 mt-4 border border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+    <div className="mx-5 mt-4 border border-borda flex-shrink-0">
       {/* Cabeçalho do bloco */}
-      <div className={`px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between gap-3 ${aberto ? 'border-b border-zinc-200 dark:border-zinc-800' : ''}`}>
+      <div className={`px-3 py-2 bg-superficie-2 flex items-center justify-between gap-3 ${aberto ? 'border-b border-borda' : ''}`}>
         <button
           type="button"
           onClick={alternar}
           aria-expanded={aberto}
           title={aberto ? 'Recolher' : 'Ver detalhes da coleta'}
-          className="flex items-center gap-2 text-left text-xs text-zinc-500 min-w-0"
+          className="flex items-center gap-2 text-left text-xs text-texto-2 min-w-0"
         >
           <svg
             width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -112,7 +112,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
             <polyline points="9 18 15 12 9 6" />
           </svg>
           <span>
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">Coleta Semi Automática</span>
+            <span className="font-medium text-texto">Coleta Semi Automática</span>
             {' · '}<SituacaoColetaTexto situacao={painel.situacao} />
             {' · '}iniciada por {c.usuario} em {dataHora(c.iniciadoEm)}
           </span>
@@ -130,13 +130,13 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
       <div className="px-3 py-2.5 flex flex-col gap-2 text-xs">
 
         {/* Números principais */}
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-zinc-500">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-texto-2">
           <p>
             WISE {c.enderecoIp ?? ''} <SituacaoWiseTexto situacao={painel.wiseConectado ? 'Conectado' : 'Desconectado'} />
-            {painel.ultimaMensagem && <span className="text-zinc-400"> · última mensagem {tempoDesde(painel.ultimaMensagem, agora)}</span>}
+            {painel.ultimaMensagem && <span className="text-texto-3"> · última mensagem {tempoDesde(painel.ultimaMensagem, agora)}</span>}
           </p>
-          <p>Produção da sessão: <span className="font-medium text-zinc-900 dark:text-zinc-100">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>
-          <p>Refugo: <span className="text-zinc-900 dark:text-zinc-100">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
+          <p>Produção da sessão: <span className="font-medium text-texto">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>
+          <p>Refugo: <span className="text-texto">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
           {c.paradasNaoClassificadas > 0 && (
             <p className="text-amber-600 dark:text-amber-400">{c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada sem classificação' : 'paradas sem classificação'}</p>
           )}
@@ -150,7 +150,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
           </p>
         )}
         {c.semComunicacaoDesde && (
-          <p className="text-zinc-500">Sem comunicação com o WISE desde {dataHora(c.semComunicacaoDesde)}.</p>
+          <p className="text-texto-2">Sem comunicação com o WISE desde {dataHora(c.semComunicacaoDesde)}.</p>
         )}
 
         {/* Sensores em texto */}
@@ -163,7 +163,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
                 className={`text-[10px] px-1.5 py-0.5 border ${
                   s.emAlarme
                     ? 'border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'
+                    : 'border-borda-forte text-texto-2'
                 }`}
               >
                 {s.canal} - {s.texto}
@@ -173,7 +173,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
         )}
 
         {/* Canais lidos */}
-        <p className="text-[10px] text-zinc-400">
+        <p className="text-[10px] text-texto-3">
           Canais: {c.canais.map(x => `${x.canal}${x.multiplicador > 1 ? ` ×${x.multiplicador}` : ''}`).join(', ')}
           {' · '}parada após {c.tempoDeteccaoParadaSegundos} s sem produção
           {/* Valor bruto dos contadores do WISE: só para o Desenvolvedor (não é a produção) */}

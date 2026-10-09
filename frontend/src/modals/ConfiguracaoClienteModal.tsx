@@ -60,31 +60,31 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 py-2 px-2 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900"
+      className="flex items-center gap-2 py-2 px-2 border-b border-borda-suave bg-superficie"
     >
-      <button {...attributes} {...listeners} className="cursor-grab text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 touch-none">
+      <button {...attributes} {...listeners} className="cursor-grab text-texto-3 hover:text-texto-2 touch-none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
         </svg>
       </button>
       <div className="flex-1">
-        <p className="text-xs text-zinc-900 dark:text-zinc-100">
+        <p className="text-xs text-texto">
           {item.maquinaNome} {item.isNew && <span className={badgeNovo}>(novo)</span>}
         </p>
-        <p className="text-[10px] text-zinc-400">
+        <p className="text-[10px] text-texto-3">
           {item.velocidadeNominal} un/h {item.sobreVelocidade > 0 && `+ ${item.sobreVelocidade}%`}
           {!item.medeProducao && <span className="ml-1.5 text-amber-600 dark:text-amber-400">sem contagem de produção</span>}
         </p>
         {!item.isNew && (
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[10px] text-texto-3">
             Semi Auto: parada após {item.tempoDeteccaoParadaSegundos ?? 60} s
-            {' · '}{item.regrasPersonalizadas ? <span className="text-blue-600 dark:text-blue-400">regras personalizadas</span> : 'regras do catálogo'}
+            {' · '}{item.regrasPersonalizadas ? <span className="text-accent-600 dark:text-accent-400">regras personalizadas</span> : 'regras do catálogo'}
           </p>
         )}
       </div>
       {item.critica && <span className={badgeCritica}>Crítica</span>}
       {onConfigurarSemi && (
-        <button onClick={onConfigurarSemi} title="Semi Automático: tempo de parada e regras desta máquina" className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline">
+        <button onClick={onConfigurarSemi} title="Semi Automático: tempo de parada e regras desta máquina" className="text-[10px] text-accent-600 dark:text-accent-400 hover:underline">
           Semi Auto
         </button>
       )}
@@ -384,14 +384,14 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
             <p className={modalTitle}>
               {somenteLinhas ? cliente.nome : 'Editar cliente'}
             </p>
-            <button onClick={fechar} disabled={salvando} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-40">
+            <button onClick={fechar} disabled={salvando} className="text-texto-3 hover:text-texto disabled:opacity-40">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
 
           {/* Dados básicos — ocultos no modo Auditor (somenteLinhas) */}
           {!somenteLinhas && (
-            <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="px-5 py-4 border-b border-borda">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={label}>Nome</label>
@@ -410,7 +410,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Linhas de produção</p>
+              <p className="text-xs font-medium text-texto">Linhas de produção</p>
               <button onClick={() => setModalNovaLinhaOpen(true)} className={`${btnPrimaryXs} flex items-center gap-1`}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Nova linha
@@ -418,17 +418,17 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
             </div>
 
             {loadingLinhas ? (
-              <p className="text-xs text-zinc-400">Carregando...</p>
+              <p className="text-xs text-texto-3">Carregando...</p>
             ) : linhasVisiveis.length === 0 ? (
-              <p className="text-xs text-zinc-400">Nenhuma linha cadastrada</p>
+              <p className="text-xs text-texto-3">Nenhuma linha cadastrada</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {linhasVisiveis.map(linha => (
-                  <div key={linha.id} className="border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50">
+                  <div key={linha.id} className="border border-borda">
+                    <div className="flex items-center justify-between px-3 py-2 bg-superficie-2">
                       <button
                         onClick={() => toggleExpandirLinha(linha)}
-                        className="flex items-center gap-2 text-xs text-zinc-900 dark:text-zinc-100 font-medium"
+                        className="flex items-center gap-2 text-xs text-texto font-medium"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                           style={{ transform: linhaExpandida === linha.id ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
@@ -450,11 +450,11 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                     {linhaExpandida === linha.id && (
                       <div>
                         {loadingMaquinas === linha.id ? (
-                          <p className="text-xs text-zinc-400 px-3 py-2">Carregando máquinas...</p>
+                          <p className="text-xs text-texto-3 px-3 py-2">Carregando máquinas...</p>
                         ) : (
                           <>
                             {(maquinasPorLinha[linha.id] ?? []).filter(m => !m.isDeleted).length === 0 ? (
-                              <p className="text-xs text-zinc-400 px-3 py-2">Nenhuma máquina nesta linha</p>
+                              <p className="text-xs text-texto-3 px-3 py-2">Nenhuma máquina nesta linha</p>
                             ) : (
                               <DndContext
                                 sensors={sensors}
@@ -478,7 +478,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                             )}
                             <button
                               onClick={() => abrirAdicionarMaquina(linha.id)}
-                              className="w-full flex items-center justify-center gap-1.5 py-2 text-[10px] text-zinc-500 border-t border-dashed border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                              className="w-full flex items-center justify-center gap-1.5 py-2 text-[10px] text-texto-2 border-t border-dashed border-borda-forte hover:bg-superficie-2"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                               Adicionar máquina
@@ -577,15 +577,15 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   onChange={e => setFormMaquina(f => ({ ...f, tempoDeteccao: e.target.value }))}
                   className={inputBase}
                 />
-                <p className="text-[10px] text-zinc-400 mt-1">Segundos sem contar produção para considerar a máquina parada.</p>
+                <p className="text-[10px] text-texto-3 mt-1">Segundos sem contar produção para considerar a máquina parada.</p>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={formMaquina.critica} onChange={v => setFormMaquina(f => ({ ...f, critica: v }))} />
-                <span onClick={() => setFormMaquina(f => ({ ...f, critica: !f.critica }))} className="text-xs text-zinc-900 dark:text-zinc-100 cursor-pointer">Máquina crítica</span>
+                <span onClick={() => setFormMaquina(f => ({ ...f, critica: !f.critica }))} className="text-xs text-texto cursor-pointer">Máquina crítica</span>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={formMaquina.medeProducao} onChange={v => setFormMaquina(f => ({ ...f, medeProducao: v }))} />
-                <span onClick={() => setFormMaquina(f => ({ ...f, medeProducao: !f.medeProducao }))} className="text-xs text-zinc-900 dark:text-zinc-100 cursor-pointer">Mede produção</span>
+                <span onClick={() => setFormMaquina(f => ({ ...f, medeProducao: !f.medeProducao }))} className="text-xs text-texto cursor-pointer">Mede produção</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">

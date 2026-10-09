@@ -51,7 +51,7 @@ export default function WiseModal({ wise, onFechar, onSalvo }: Props) {
             <label className={label}>IP</label>
             <input value={ip} onChange={e => setIp(e.target.value)} className={inputMdFull} />
             {wise.medicao && (
-              <p className="text-[10px] text-zinc-400 mt-1">Em medição na {wise.medicao.maquina}: o IP só pode mudar depois de finalizar.</p>
+              <p className="text-[10px] text-texto-3 mt-1">Em medição na {wise.medicao.maquina}: o IP só pode mudar depois de finalizar.</p>
             )}
           </div>
           <div>

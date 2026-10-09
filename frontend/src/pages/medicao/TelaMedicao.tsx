@@ -332,31 +332,31 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
     <div className="flex flex-col h-full">
 
       {/* Cabeçalho */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center justify-between">
+      <div className="bg-superficie border-b border-borda px-6 py-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-zinc-400">{linha.nome}</p>
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <p className="text-xs text-texto-3">{linha.nome}</p>
+          <p className="text-sm font-medium text-texto flex items-center gap-2">
             {maquina.maquinaNome}
             {maquina.critica && (
-              <span className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">Crítica</span>
+              <span className="text-[10px] text-accent-600 bg-accent-50 dark:bg-accent-950 dark:text-accent-400 px-1.5 py-0.5 rounded font-medium">Crítica</span>
             )}
           </p>
         </div>
-        <p className="text-xs text-zinc-400">Iniciado às {horaInicioStr}</p>
+        <p className="text-xs text-texto-3">Iniciado às {horaInicioStr}</p>
       </div>
 
       {/* Layout duas colunas */}
       <div className="flex flex-1 overflow-hidden">
 
         {/* Coluna esquerda — Controles */}
-        <div className="w-1/2 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 flex flex-col overflow-y-auto">
+        <div className="w-1/2 flex-shrink-0 border-r border-borda flex flex-col overflow-y-auto">
 
           {/* Cronômetro */}
-          <div className="border-b border-zinc-200 dark:border-zinc-800 px-6 py-6 text-center">
-            <p className="text-5xl font-medium text-zinc-900 dark:text-zinc-100 tabular-nums tracking-widest">
+          <div className="border-b border-borda px-6 py-6 text-center">
+            <p className="text-5xl font-medium text-texto tabular-nums tracking-widest">
               {formatarTempo(segundos)}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">tempo de medição</p>
+            <p className="text-xs text-texto-3 mt-1">tempo de medição</p>
             <div className={`inline-flex items-center gap-1.5 text-xs mt-3 px-3 py-1 rounded-full ${badgeColor[status]}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${dotColor[status]}`} />
               {status}
@@ -364,29 +364,29 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
           </div>
 
           {/* Indicadores */}
-          <div className="grid grid-cols-3 border-b border-zinc-200 dark:border-zinc-800">
-            <div className={`${metricaBox} border-r border-zinc-200 dark:border-zinc-800`}>
+          <div className="grid grid-cols-3 border-b border-borda">
+            <div className={`${metricaBox} border-r border-borda`}>
               <p className={metricaLabel}>Tempo Medição</p>
               <p className={metricaValor}>{formatarTempo(segundos)}</p>
             </div>
-            <div className={`${metricaBox} border-r border-zinc-200 dark:border-zinc-800`}>
+            <div className={`${metricaBox} border-r border-borda`}>
               <p className={metricaLabel}>Total Parado</p>
               <p className={metricaValor}>{formatarTempo(segundosTotalParado)}</p>
             </div>
             <div className={metricaBox}>
               <p className={metricaLabel}>Parada Atual</p>
-              <p className={`text-sm font-medium ${status === 'Parada' ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
+              <p className={`text-sm font-medium ${status === 'Parada' ? 'text-red-600 dark:text-red-400' : 'text-texto'}`}>
                 {status === 'Parada' ? formatarTempo(segundosParada) : '—'}
               </p>
             </div>
           </div>
 
           {/* Marcha / Parada */}
-          <div className="grid grid-cols-2 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="grid grid-cols-2 border-b border-borda">
             <button
               onClick={handleMarcha}
               disabled={status === 'Pausada'}
-              className={`h-14 flex items-center justify-center gap-2 text-sm font-medium transition-colors border-r border-zinc-200 dark:border-zinc-800 ${
+              className={`h-14 flex items-center justify-center gap-2 text-sm font-medium transition-colors border-r border-borda ${
                 status === 'Rodando'
                   ? 'bg-green-600 text-white'
                   : status === 'Pausada'
@@ -447,7 +447,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
 
           {/* Foto strip */}
           {status === 'Parada' && paradaAtiva && (
-            <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-4 py-2.5 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 border-b border-borda px-4 py-2.5 text-xs text-texto-2">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
               </svg>
@@ -457,7 +457,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               ) : (
-                <label className="ml-auto text-xs border border-zinc-200 dark:border-zinc-700 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer">
+                <label className="ml-auto text-xs border border-borda-forte px-2 py-1 hover:bg-superficie-3 cursor-pointer">
                   {enviandoFoto ? 'Enviando...' : 'Tirar foto'}
                   <input
                     type="file"
@@ -477,7 +477,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             <button
               onClick={handlePausar}
               disabled={status === 'Pausada'}
-              className="h-11 flex items-center justify-center gap-1.5 text-xs text-zinc-500 border-r border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-11 flex items-center justify-center gap-1.5 text-xs text-texto-2 border-r border-t border-borda hover:bg-superficie-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>
@@ -487,7 +487,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
             <button
               onClick={handleAbrirFinalizar}
               disabled={finalizando}
-              className="h-11 flex items-center justify-center gap-1.5 text-xs text-red-600 dark:text-red-400 border-t border-zinc-200 dark:border-zinc-800 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+              className="h-11 flex items-center justify-center gap-1.5 text-xs text-red-600 dark:text-red-400 border-t border-borda hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
@@ -501,26 +501,26 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Header produção */}
-          <div className="border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center gap-2">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1961c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="border-b border-borda px-6 py-3 flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
-            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+            <span className="text-xs font-medium text-texto">
               {maquina.medeProducao ? 'Produção' : 'Coleta'}
             </span>
           </div>
 
           {/* Header tabela */}
           <div
-            className="grid border-b border-zinc-200 dark:border-zinc-800 px-6 py-2"
+            className="grid border-b border-borda px-6 py-2"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            <span className="min-w-0 text-[10px] font-medium text-zinc-400">Horário</span>
+            <span className="min-w-0 text-[10px] font-medium text-texto-3">Horário</span>
             {maquina.medeProducao && (
-              <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">Produção</span>
+              <span className="min-w-0 text-[10px] font-medium text-texto-3 truncate">Produção</span>
             )}
             {camposExtras.map(c => (
-              <span key={c.id} className="min-w-0 text-[10px] font-medium text-zinc-400 truncate">
+              <span key={c.id} className="min-w-0 text-[10px] font-medium text-texto-3 truncate">
                 {c.nome}{c.unidade ? ` (${c.unidade})` : ''}
               </span>
             ))}
@@ -532,11 +532,11 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
               <div
                 key={l.hora}
                 className={`grid items-center px-6 py-2 gap-2 ${
-                  i < leituras.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''
+                  i < leituras.length - 1 ? 'border-b border-borda-suave' : ''
                 }`}
                 style={{ gridTemplateColumns: gridTemplate }}
               >
-                <span className={`min-w-0 text-xs truncate ${l.inicial ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-zinc-400'}`}>
+                <span className={`min-w-0 text-xs truncate ${l.inicial ? 'text-accent-600 dark:text-accent-400 font-medium' : 'text-texto-3'}`}>
                   {l.hora}
                 </span>
 
@@ -549,12 +549,12 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                     onChange={e => handleLeitura(l.hora, e.target.value)}
                     disabled={l.inicial || leiturasSalvas.has(l.hora)}
                     placeholder={l === ultimaLeitura && !l.inicial ? 'agora' : '—'}
-                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-accent-500 border ${
                       l.inicial || leiturasSalvas.has(l.hora)
                         ? inputDisabled
                         : l === ultimaLeitura
-                          ? 'bg-zinc-50 dark:bg-zinc-800 border-green-300 dark:border-green-700 text-zinc-900 dark:text-zinc-100'
-                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
+                          ? 'bg-superficie-2 border-green-300 dark:border-green-700 text-texto'
+                          : 'bg-superficie border-borda-forte text-texto'
                     }`}
                   />
                 )}
@@ -568,10 +568,10 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                     onChange={e => handleLeituraExtra(l.hora, c.id, e.target.value)}
                     disabled={l.inicial || leiturasSalvas.has(l.hora)}
                     placeholder="—"
-                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border ${
+                    className={`min-w-0 w-full h-7 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-accent-500 border ${
                       l.inicial || leiturasSalvas.has(l.hora)
-                        ? 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
+                        ? 'bg-superficie-2 border-borda-forte text-texto-3 cursor-not-allowed'
+                        : 'bg-superficie border-borda-forte text-texto'
                     }`}
                   />
                 ))}
@@ -580,7 +580,7 @@ export default function TelaMedicao({ maquina, linha, sessao, leiturasIniciais, 
                   {!l.inicial && !leiturasSalvas.has(l.hora) && (maquina.medeProducao ? l.valor : true) && (
                     <button
                       onClick={() => handleSalvarLeitura(l.hora, l.valor)}
-                      className="h-7 w-7 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 text-[10px]"
+                      className="h-7 w-7 flex items-center justify-center bg-accent-600 text-accent-fg hover:bg-accent-700 text-[10px]"
                     >
                       ✓
                     </button>

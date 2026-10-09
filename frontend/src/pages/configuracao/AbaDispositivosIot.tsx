@@ -158,8 +158,8 @@ export default function AbaDispositivosIot() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Dispositivos IoT (WISE)</p>
-        <p className="text-[10px] text-zinc-400 mt-0.5">
+        <p className="text-sm font-medium text-texto">Dispositivos IoT (WISE)</p>
+        <p className="text-[10px] text-texto-3 mt-0.5">
           Os WISE cadastrados aqui podem ser escolhidos ao iniciar uma medição Semi Auto. O WISE fica associado à máquina só
           enquanto a medição dura e depois fica livre para outra.
         </p>
@@ -182,7 +182,7 @@ export default function AbaDispositivosIot() {
 
       {/* WISE cadastrados */}
       <div className={`${cardPadded} flex flex-col gap-3`}>
-        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">WISE cadastrados</p>
+        <p className="text-xs font-medium text-texto">WISE cadastrados</p>
 
         {/* Adicionar: ping antes de gravar */}
         <div className="flex flex-col gap-2">
@@ -218,7 +218,7 @@ export default function AbaDispositivosIot() {
             <p className="text-[10px] text-red-600 dark:text-red-400">Este IP já está cadastrado.</p>
           )}
           {etapa === 'testando' && emAdicao && (
-            <p className="text-[10px] text-zinc-400">Testando a conexão com {emAdicao.ip} (ping, 4 pacotes)...</p>
+            <p className="text-[10px] text-texto-3">Testando a conexão com {emAdicao.ip} (ping, 4 pacotes)...</p>
           )}
           {etapa === 'semResposta' && pingNovo && emAdicao && (
             <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex flex-wrap items-center justify-between gap-3">
@@ -237,9 +237,9 @@ export default function AbaDispositivosIot() {
         </div>
 
         {!carregado ? (
-          <p className="text-xs text-zinc-400">Carregando...</p>
+          <p className="text-xs text-texto-3">Carregando...</p>
         ) : cadastrados.length === 0 ? (
-          <p className="text-xs text-zinc-400">Nenhum WISE cadastrado.</p>
+          <p className="text-xs text-texto-3">Nenhum WISE cadastrado.</p>
         ) : (
           <table className={table}>
             <thead>
@@ -256,7 +256,7 @@ export default function AbaDispositivosIot() {
             <tbody>
               {cadastrados.map(w => (
                 <tr key={w.enderecoIp} className={tableBodyRow}>
-                  <td className={tableBodyCell}>{w.nome || <span className="text-zinc-400">—</span>}</td>
+                  <td className={tableBodyCell}>{w.nome || <span className="text-texto-3">—</span>}</td>
                   <td className={tableBodyCell}>{w.enderecoIp}</td>
                   <td className={tableBodyCellMuted}>{w.clientId || '—'}</td>
                   <td className="py-2.5 pr-4">
@@ -266,8 +266,8 @@ export default function AbaDispositivosIot() {
                   <td className={tableBodyCellMuted}>
                     {w.medicao ? (
                       <>
-                        <span className="text-blue-600 dark:text-blue-400">{w.medicao.maquina}</span>
-                        <span className="block text-[10px] text-zinc-400">
+                        <span className="text-accent-600 dark:text-accent-400">{w.medicao.maquina}</span>
+                        <span className="block text-[10px] text-texto-3">
                           {w.medicao.cliente} · {w.medicao.linha} · iniciada por {w.medicao.usuario} {tempoDesde(w.medicao.iniciadoEmUtc, agora)}
                         </span>
                       </>
@@ -299,9 +299,9 @@ export default function AbaDispositivosIot() {
       {/* Publicando sem cadastro */}
       {semCadastro.length > 0 && (
         <div className={cardPadded}>
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-1">Conectados sem cadastro</p>
-          <p className="text-[10px] text-zinc-400 mb-3">
-            Estes IPs estão se comunicando com o SmartLine, mas não estão na lista: não podem ser escolhidos numa medição até serem adicionados.
+          <p className="text-xs font-medium text-texto mb-1">Conectados sem cadastro</p>
+          <p className="text-[10px] text-texto-3 mb-3">
+            Estes IPs estão se comunicando com o Smart Line Scan, mas não estão na lista: não podem ser escolhidos numa medição até serem adicionados.
           </p>
           <table className={table}>
             <thead>

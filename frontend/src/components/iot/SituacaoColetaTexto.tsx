@@ -11,7 +11,7 @@ const textos: Record<SituacaoColeta, string> = {
 const cores: Record<SituacaoColeta, string> = {
   Rodando: 'text-green-600 dark:text-green-400',
   Parada: 'text-red-600 dark:text-red-400',
-  SemComunicacao: 'text-zinc-500',
+  SemComunicacao: 'text-texto-2',
   AguardandoPrimeiraAmostra: 'text-amber-600 dark:text-amber-400',
 }
 
@@ -22,6 +22,6 @@ interface Props {
 }
 
 export default function SituacaoColetaTexto({ situacao, className = '' }: Props) {
-  if (!situacao) return <span className={`text-zinc-400 ${className}`}>iniciando</span>
+  if (!situacao) return <span className={`text-texto-3 ${className}`}>iniciando</span>
   return <span className={`font-medium ${cores[situacao]} ${className}`}>{textos[situacao]}</span>
 }

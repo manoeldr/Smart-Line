@@ -53,11 +53,11 @@ export default function AbaColeta() {
       {status && <StatusBroker status={status} />}
 
       <div className={cardPadded}>
-        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-3">
-          Coletas em andamento {carregado && <span className="text-zinc-400 font-normal">({coletas.length})</span>}
+        <p className="text-xs font-medium text-texto mb-3">
+          Coletas em andamento {carregado && <span className="text-texto-3 font-normal">({coletas.length})</span>}
         </p>
-        {!carregado && <p className="text-xs text-zinc-400">Carregando...</p>}
-        {carregado && coletas.length === 0 && <p className="text-xs text-zinc-400">Nenhuma máquina em medição Semi Automática.</p>}
+        {!carregado && <p className="text-xs text-texto-3">Carregando...</p>}
+        {carregado && coletas.length === 0 && <p className="text-xs text-texto-3">Nenhuma máquina em medição Semi Automática.</p>}
         {coletas.length > 0 && (
           <table className={table}>
             <thead>
@@ -76,29 +76,29 @@ export default function AbaColeta() {
                 <tr key={coleta.acompanhamentoId} className={tableBodyRow}>
                   <td className={tableBodyCell}>
                     {coleta.maquina}
-                    <span className="block text-[10px] text-zinc-400">{coleta.cliente} · {coleta.linha}</span>
-                    <span className="block text-[10px] text-zinc-400">
+                    <span className="block text-[10px] text-texto-3">{coleta.cliente} · {coleta.linha}</span>
+                    <span className="block text-[10px] text-texto-3">
                       desde {hora(coleta.iniciadoEm)} por {coleta.usuario} · parada após {coleta.tempoDeteccaoParadaSegundos} s
                     </span>
                   </td>
                   <td className={tableBodyCell}>
                     <span className="font-mono">{coleta.enderecoIp ?? '—'}</span>
-                    <span className={`block text-[10px] ${wiseConectado ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
+                    <span className={`block text-[10px] ${wiseConectado ? 'text-emerald-600 dark:text-emerald-400' : 'text-texto-3'}`}>
                       {wiseConectado ? 'conectado ao broker' : 'sem conexão'}
                     </span>
-                    <span className="block text-[10px] text-zinc-400">
+                    <span className="block text-[10px] text-texto-3">
                       {coleta.canais.map(c => c.multiplicador > 1 ? `${c.canal}×${c.multiplicador}` : c.canal).join(' ')}
                     </span>
                   </td>
                   <td className={tableBodyCell}>
                     <SituacaoColetaTexto situacao={situacao} />
                     {coleta.paradaAberta && (
-                      <span className="block text-[10px] text-zinc-400">
+                      <span className="block text-[10px] text-texto-3">
                         {coleta.paradaAberta.motivo ?? 'sem classificação'} · há {duracaoDesde(coleta.paradaAberta.inicio, agora)}
                       </span>
                     )}
                     {coleta.semComunicacaoDesde && (
-                      <span className="block text-[10px] text-zinc-400">sem comunicação há {duracaoDesde(coleta.semComunicacaoDesde, agora)}</span>
+                      <span className="block text-[10px] text-texto-3">sem comunicação há {duracaoDesde(coleta.semComunicacaoDesde, agora)}</span>
                     )}
                     {coleta.paradasNaoClassificadas > 0 && (
                       <span className="block text-[10px] text-amber-600 dark:text-amber-400">

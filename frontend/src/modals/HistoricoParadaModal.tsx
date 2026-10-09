@@ -39,19 +39,19 @@ function Conteudo({ paradaId, onFechar }: { paradaId: string; onFechar: () => vo
           {erro ? (
             <p className="text-xs text-red-600 dark:text-red-400">{erro}</p>
           ) : !historico ? (
-            <p className="text-xs text-zinc-400">Carregando...</p>
+            <p className="text-xs text-texto-3">Carregando...</p>
           ) : historico.length === 0 ? (
-            <p className="text-xs text-zinc-400">Nenhuma classificação registrada: a parada ficou sem motivo desde o início.</p>
+            <p className="text-xs text-texto-3">Nenhuma classificação registrada: a parada ficou sem motivo desde o início.</p>
           ) : (
             <div className="flex flex-col">
               {historico.map((h, i) => (
-                <div key={i} className="py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0 text-xs">
-                  <p className="text-zinc-900 dark:text-zinc-100">
+                <div key={i} className="py-2 border-b border-borda-suave last:border-0 text-xs">
+                  <p className="text-texto">
                     {h.motivoAnterior === null && h.usuarioId === null
                       ? <>Sensor classificou como <span className="font-medium">{h.motivoNovo ?? 'sem motivo'}</span></>
                       : <>{h.motivoAnterior ?? 'sem motivo'} {'->'} <span className="font-medium">{h.motivoNovo ?? 'sem motivo'}</span></>}
                   </p>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">{h.autor} · {dataHora(h.alteradoEm)}</p>
+                  <p className="text-[10px] text-texto-3 mt-0.5">{h.autor} · {dataHora(h.alteradoEm)}</p>
                 </div>
               ))}
             </div>

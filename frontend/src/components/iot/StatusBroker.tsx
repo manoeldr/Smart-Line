@@ -14,11 +14,11 @@ export default function StatusBroker({ status }: { status: StatusColetaIotDto })
 
   return (
     <div className={`${cardPadded} flex flex-wrap items-center gap-x-6 gap-y-2 text-xs`}>
-      <p className="text-zinc-500">Broker MQTT: <span className={`font-medium ${situacao.cor}`}>{situacao.texto}</span></p>
-      <p className="text-zinc-500">WISE conectados: <span className="font-medium text-zinc-900 dark:text-zinc-100">{status.wiseConectados}</span></p>
-      <p className="text-zinc-500">Mensagens processadas: <span className="text-zinc-900 dark:text-zinc-100">{numero(status.mensagensProcessadas)}</span></p>
-      <p className="text-zinc-500" title="WISE livre (sem medição) ou mensagem fora do formato">
-        Descartadas: <span className="text-zinc-900 dark:text-zinc-100">{numero(status.mensagensDescartadas)}</span>
+      <p className="text-texto-2">Broker MQTT: <span className={`font-medium ${situacao.cor}`}>{situacao.texto}</span></p>
+      <p className="text-texto-2">WISE conectados: <span className="font-medium text-texto">{status.wiseConectados}</span></p>
+      <p className="text-texto-2">Mensagens processadas: <span className="text-texto">{numero(status.mensagensProcessadas)}</span></p>
+      <p className="text-texto-2" title="WISE livre (sem medição) ou mensagem fora do formato">
+        Descartadas: <span className="text-texto">{numero(status.mensagensDescartadas)}</span>
       </p>
       {status.mensagensPerdidasFilaCheia > 0 && (
         <p className="text-red-600 dark:text-red-400">Perdidas por fila cheia: {numero(status.mensagensPerdidasFilaCheia)}</p>

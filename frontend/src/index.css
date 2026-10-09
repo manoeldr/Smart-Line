@@ -8,6 +8,167 @@
   --radius-lg: 8px;
   --radius-xl: 10px;
   --radius-2xl: 12px;
+
+  /* Cor de destaque (o antigo azul): muda conforme a área da tela e o tema (abaixo).
+     As classes accent-* (bg-accent-600, text-accent-400, border-accent-200...) apontam
+     para estas variáveis, e accent-fg é o texto por cima do accent-600 (botões). */
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+  --color-accent-950: var(--accent-950);
+  --color-accent-fg: var(--accent-fg);
+
+  /* Neutros com nome (fundos, bordas, textos): trocam sozinhos com o tema, então as telas
+     não precisam mais de dark:... para eles. Valores abaixo, em "Neutros". */
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-superficie-3: var(--superficie-3);
+  --color-borda: var(--borda);
+  --color-borda-forte: var(--borda-forte);
+  --color-borda-suave: var(--borda-suave);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-texto-3: var(--texto-3);
+  --color-texto-4: var(--texto-4);
+  --color-campo: var(--campo);
+}
+
+/* ── Neutros ──────────────────────────────────────────────────────────────────
+   fundo = a página; superficie = cards, menu, modais; superficie-2 = campos, realce e hover;
+   superficie-3 = trilho do switch, etiquetas; campo = fundo dos campos de formulário;
+   borda / borda-forte (campos e botões) / borda-suave (linhas de tabela);
+   texto / texto-2 (secundário) / texto-3 (apagado) / texto-4 (separadores). */
+:root {
+  --fundo: #f4f4f5;          /* zinc-100 */
+  --superficie: #ffffff;
+  --superficie-2: #fafafa;   /* zinc-50 */
+  --superficie-3: #e4e4e7;   /* zinc-200 */
+  --borda: #e4e4e7;          /* zinc-200 */
+  --borda-forte: #e4e4e7;    /* zinc-200 */
+  --borda-suave: #f4f4f5;    /* zinc-100 */
+  --texto: #18181b;          /* zinc-900 */
+  --texto-2: #71717a;        /* zinc-500 */
+  --texto-3: #a1a1aa;        /* zinc-400 */
+  --texto-4: #d4d4d8;        /* zinc-300: separadores, dias indisponíveis */
+  --campo: #ffffff;          /* fundo de campos de formulário */
+}
+.dark {
+  --fundo: #09090b;          /* zinc-950 */
+  --superficie: #18181b;     /* zinc-900 */
+  --superficie-2: #27272a;   /* zinc-800 */
+  --superficie-3: #3f3f46;   /* zinc-700 */
+  --borda: #27272a;          /* zinc-800 */
+  --borda-forte: #3f3f46;    /* zinc-700 */
+  --borda-suave: #27272a;    /* zinc-800 */
+  --texto: #f4f4f5;          /* zinc-100 */
+  --texto-2: #a1a1aa;        /* zinc-400 */
+  --texto-3: #a1a1aa;        /* zinc-400 */
+  --texto-4: #52525b;        /* zinc-600 */
+  --campo: #27272a;          /* zinc-800 */
+}
+
+/* ── Destaque por área ─────────────────────────────────────────────────────────
+   O Layout põe data-area no <html>: "operacional" (Medição, Overview, Dashboard, login),
+   "configuracao" (Configurações) e "desenvolvedor" (Área do Desenvolvedor).
+   Nas classes, 50/100/200 são fundos e bordas claros, 600/700 o cheio (botões, item ativo),
+   400/500 texto; no escuro, 950/900/800 fundos e bordas, 400/500 texto, 600/700 o cheio. */
+
+/* Operacional: preto (a cor da Sanmartin). No escuro, o preto vira branco. */
+:root, [data-area="operacional"] {
+  --accent-50: #f4f4f5;
+  --accent-100: #e4e4e7;
+  --accent-200: #d4d4d8;
+  --accent-300: #a1a1aa;
+  --accent-400: #3f3f46;
+  --accent-500: #27272a;
+  --accent-600: #09090b;
+  --accent-700: #27272a;
+  --accent-800: #3f3f46;
+  --accent-900: #18181b;
+  --accent-950: #e4e4e7;
+  --accent-fg: #ffffff;
+}
+.dark, .dark[data-area="operacional"] {
+  --accent-50: #27272a;
+  --accent-100: #3f3f46;
+  --accent-200: #52525b;
+  --accent-300: #71717a;
+  --accent-400: #e4e4e7;
+  --accent-500: #d4d4d8;
+  --accent-600: #fafafa;
+  --accent-700: #e4e4e7;
+  --accent-800: #52525b;
+  --accent-900: #3f3f46;
+  --accent-950: #27272a;
+  --accent-fg: #09090b;
+}
+
+/* Configurações: cinza. */
+[data-area="configuracao"] {
+  --accent-50: #f4f4f5;
+  --accent-100: #e4e4e7;
+  --accent-200: #d4d4d8;
+  --accent-300: #a1a1aa;
+  --accent-400: #52525b;
+  --accent-500: #52525b;
+  --accent-600: #52525b;
+  --accent-700: #3f3f46;
+  --accent-800: #52525b;
+  --accent-900: #3f3f46;
+  --accent-950: #e4e4e7;
+  --accent-fg: #ffffff;
+}
+.dark[data-area="configuracao"] {
+  --accent-50: #27272a;
+  --accent-100: #3f3f46;
+  --accent-200: #52525b;
+  --accent-300: #71717a;
+  --accent-400: #a1a1aa;
+  --accent-500: #a1a1aa;
+  --accent-600: #a1a1aa;
+  --accent-700: #d4d4d8;
+  --accent-800: #52525b;
+  --accent-900: #3f3f46;
+  --accent-950: #27272a;
+  --accent-fg: #18181b;
+}
+
+/* Área do Desenvolvedor: vermelho. */
+[data-area="desenvolvedor"] {
+  --accent-50: #fef2f2;
+  --accent-100: #fee2e2;
+  --accent-200: #fecaca;
+  --accent-300: #fca5a5;
+  --accent-400: #f87171;
+  --accent-500: #ef4444;
+  --accent-600: #dc2626;
+  --accent-700: #b91c1c;
+  --accent-800: #991b1b;
+  --accent-900: #7f1d1d;
+  --accent-950: #450a0a;
+  --accent-fg: #ffffff;
+}
+.dark[data-area="desenvolvedor"] {
+  --accent-50: #450a0a;
+  --accent-100: #7f1d1d;
+  --accent-200: #991b1b;
+  --accent-300: #b91c1c;
+  --accent-400: #f87171;
+  --accent-500: #ef4444;
+  --accent-600: #dc2626;
+  --accent-700: #b91c1c;
+  --accent-800: #991b1b;
+  --accent-900: #7f1d1d;
+  --accent-950: #450a0a;
+  --accent-fg: #ffffff;
 }
 /* Barras de rolagem minimalistas, sempre visíveis, no tom do tema (claro e escuro):
    um fio de 4px, meio transparente, que escurece ao passar o mouse. Sem trilho nem setas.

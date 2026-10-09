@@ -115,9 +115,9 @@ function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado }: 
           {erro && <p className="text-xs text-red-600 dark:text-red-400">{erro}</p>}
 
           {!paradas ? (
-            !erro && <p className="text-xs text-zinc-400">Carregando...</p>
+            !erro && <p className="text-xs text-texto-3">Carregando...</p>
           ) : paradas.length === 0 ? (
-            <p className="text-xs text-zinc-400">Nenhuma parada sem classificação neste período.</p>
+            <p className="text-xs text-texto-3">Nenhuma parada sem classificação neste período.</p>
           ) : (
             <table className={table}>
               <thead>
@@ -133,14 +133,14 @@ function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado }: 
                   <tr key={p.id} className={tableBodyRow}>
                     <td className={tableBodyCell}>
                       {p.maquina}
-                      <span className="block text-[10px] text-zinc-400">{p.linha}</span>
+                      <span className="block text-[10px] text-texto-3">{p.linha}</span>
                     </td>
                     <td className={tableBodyCellMuted}>{dataHora(p.inicio)}</td>
                     <td className={tableBodyCellMuted}>
                       {duracao(p.duracaoSegundos)}{p.fim ? '' : ' (em andamento)'}
                     </td>
                     <td className={tableActionsCell}>
-                      <button onClick={() => setHistorico(p.id)} className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:underline">
+                      <button onClick={() => setHistorico(p.id)} className="text-[10px] text-texto-3 hover:text-texto hover:underline">
                         Histórico
                       </button>
                       {podeClassificar && (

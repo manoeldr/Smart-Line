@@ -156,12 +156,12 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     const c = canais[canal]
     return (
       <div key={canal} className="grid grid-cols-[1fr_auto_5.5rem] items-center gap-3 py-1.5">
-        <div className="flex items-center gap-2 min-w-0 text-xs text-zinc-900 dark:text-zinc-100">
+        <div className="flex items-center gap-2 min-w-0 text-xs text-texto">
           <Switch checked={c.ligado} onChange={v => alterar(canal, { ligado: v })} />
           <span onClick={() => alterar(canal, { ligado: !c.ligado })} className="truncate cursor-pointer">{canal} - {nome(canal)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-400">Multiplicador</span>
+          <span className="text-[10px] text-texto-3">Multiplicador</span>
           <Switch
             checked={c.comMultiplicador}
             disabled={!c.ligado}
@@ -226,21 +226,21 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
 
         {/* Contadores */}
         <div>
-          <label className="text-xs text-zinc-500 mb-1 block">Produção</label>
+          <label className="text-xs text-texto-2 mb-1 block">Produção</label>
           {CONTADORES_PRODUCAO.map(linhaContador)}
           {semProducao && <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">Marque ao menos um contador de produção.</p>}
         </div>
         <div>
-          <label className="text-xs text-zinc-500 mb-1 block">Refugo</label>
+          <label className="text-xs text-texto-2 mb-1 block">Refugo</label>
           {CONTADORES_REJEITO.map(linhaContador)}
         </div>
 
         {/* Sensores */}
         <div>
-          <label className="text-xs text-zinc-500 mb-1 block">Sensores</label>
+          <label className="text-xs text-texto-2 mb-1 block">Sensores</label>
           {SENSORES.map(canal => (
             <div key={canal} className="flex items-center justify-between gap-2 py-1.5">
-              <span className="text-xs text-zinc-900 dark:text-zinc-100 truncate">{canal} - {nome(canal)}</span>
+              <span className="text-xs text-texto truncate">{canal} - {nome(canal)}</span>
               <Switch checked={canais[canal].ligado} onChange={v => alterar(canal, { ligado: v })} />
             </div>
           ))}

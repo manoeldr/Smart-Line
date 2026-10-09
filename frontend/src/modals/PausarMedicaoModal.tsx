@@ -57,7 +57,7 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
             <p className={modalTitle}>Pausar medição</p>
             <p className={modalSubtitle}>Selecione o motivo da pausa planejada</p>
           </div>
-          <button onClick={onCancelar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <button onClick={onCancelar} className="text-texto-3 hover:text-texto">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -67,9 +67,9 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
             {/* Lista de motivos planejados */}
             <div className="flex flex-col gap-1 max-h-52 overflow-y-auto mb-3">
               {loading ? (
-                <p className="text-xs text-zinc-400 text-center py-4">Carregando...</p>
+                <p className="text-xs text-texto-3 text-center py-4">Carregando...</p>
               ) : planejados.length === 0 ? (
-                <p className="text-xs text-zinc-400 text-center py-4">Nenhum motivo planejado cadastrado</p>
+                <p className="text-xs text-texto-3 text-center py-4">Nenhum motivo planejado cadastrado</p>
               ) : (
                 planejados.map(m => (
                   <button
@@ -77,12 +77,12 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
                     onClick={() => setSelecionado(m.id)}
                     className={`flex items-center justify-between px-3 py-2 rounded border text-left transition-colors ${
                       selecionado === m.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                        : 'border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                        ? 'border-accent-500 bg-accent-50 dark:bg-accent-950'
+                        : 'border-borda-suave hover:bg-superficie-2'
                     }`}
                   >
-                    <span className="text-xs text-zinc-900 dark:text-zinc-100">{m.nome}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ml-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-500">
+                    <span className="text-xs text-texto">{m.nome}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ml-2 bg-superficie-3 text-texto-2">
                       planejada
                     </span>
                   </button>
@@ -93,7 +93,7 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
             {/* Cadastrar novo */}
             <button
               onClick={() => setCadastrando(true)}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 mb-3 text-xs text-zinc-500 border border-dashed border-zinc-300 dark:border-zinc-700 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 mb-3 text-xs text-texto-2 border border-dashed border-borda-forte rounded hover:bg-superficie-2 transition-colors"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -122,8 +122,8 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
                   className={inputBase.replace('h-8', 'h-9')}
                 />
               </div>
-              <div className="bg-zinc-50 dark:bg-zinc-800 rounded px-3 py-2 text-xs text-zinc-400">
-                Motivos cadastrados aqui são do tipo <span className="font-medium text-zinc-600 dark:text-zinc-300">planejada</span> — não penalizam o OEE da máquina.
+              <div className="bg-superficie-2 rounded px-3 py-2 text-xs text-texto-3">
+                Motivos cadastrados aqui são do tipo <span className="font-medium text-texto-2">planejada</span> — não penalizam o OEE da máquina.
               </div>
             </div>
 

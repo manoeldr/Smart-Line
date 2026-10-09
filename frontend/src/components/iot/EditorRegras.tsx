@@ -57,7 +57,7 @@ export default function EditorRegras({ regras, onChange, motivos, textos }: Prop
   return (
     <div>
       {regras.length === 0 && (
-        <p className="text-xs text-zinc-400 py-2">Nenhuma regra: todas as paradas ficarão sem motivo até alguém classificar.</p>
+        <p className="text-xs text-texto-3 py-2">Nenhuma regra: todas as paradas ficarão sem motivo até alguém classificar.</p>
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={aoArrastar}>
         <SortableContext items={regras.map(r => r.chave)} strategy={verticalListSortingStrategy}>
@@ -105,16 +105,16 @@ function RegraItem({ regra, posicao, motivos, textos, onAlterar, onRemover }: It
     <div
       ref={setNodeRef}
       style={style}
-      className={`border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-2 ${regra.ativa ? '' : 'opacity-60'}`}
+      className={`border border-borda bg-superficie mb-2 ${regra.ativa ? '' : 'opacity-60'}`}
     >
       {/* Cabeçalho: ordem, motivo, nome, ativa */}
-      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800">
-        <button {...attributes} {...listeners} title="Arraste para mudar a prioridade" className="cursor-grab text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 touch-none">
+      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-borda-suave">
+        <button {...attributes} {...listeners} title="Arraste para mudar a prioridade" className="cursor-grab text-texto-3 hover:text-texto-2 touch-none">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
           </svg>
         </button>
-        <span className="text-[10px] text-zinc-400 w-4 text-right">{posicao}</span>
+        <span className="text-[10px] text-texto-3 w-4 text-right">{posicao}</span>
         <select
           value={regra.motivoParadaId}
           onChange={e => onAlterar({ motivoParadaId: e.target.value })}
@@ -143,7 +143,7 @@ function RegraItem({ regra, posicao, motivos, textos, onAlterar, onRemover }: It
       <div className="px-2 py-1.5 pl-9 flex flex-col gap-1.5">
         {regra.condicoes.map((c, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-400 w-5">{i === 0 ? 'Se' : 'e'}</span>
+            <span className="text-[10px] text-texto-3 w-5">{i === 0 ? 'Se' : 'e'}</span>
             <select
               value={c.tipo}
               onChange={e => alterarCondicao(i, { tipo: e.target.value as TipoCondicao })}
@@ -159,7 +159,7 @@ function RegraItem({ regra, posicao, motivos, textos, onAlterar, onRemover }: It
                   onChange={e => alterarCondicao(i, { minutos: e.target.value })}
                   className={`${inputBase} w-20`}
                 />
-                <span className="text-[10px] text-zinc-400">minutos</span>
+                <span className="text-[10px] text-texto-3">minutos</span>
               </div>
             ) : (
               <select value={c.canal} onChange={e => alterarCondicao(i, { canal: e.target.value })} className={`${inputBase} flex-1`}>
@@ -179,14 +179,14 @@ function RegraItem({ regra, posicao, motivos, textos, onAlterar, onRemover }: It
         ))}
         <button
           onClick={() => onAlterar({ condicoes: [...regra.condicoes, { tipo: 'SensorEmAlarme', canal: 'S8', minutos: '' }] })}
-          className="self-start text-[10px] text-blue-600 dark:text-blue-400 hover:underline"
+          className="self-start text-[10px] text-accent-600 dark:text-accent-400 hover:underline"
         >
           + condição
         </button>
 
         {/* Resumo em texto corrido */}
         {regra.condicoes.length > 0 && (
-          <p className="text-[10px] text-zinc-500">
+          <p className="text-[10px] text-texto-2">
             Se {regra.condicoes.map(c => textoCondicao(c, textos)).join(' e ')}
             {' -> '}{motivo ? `${motivo.nome} (${motivo.tipo.toLowerCase()})` : 'motivo não escolhido'}
           </p>

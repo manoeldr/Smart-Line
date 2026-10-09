@@ -5,25 +5,25 @@ export function badgeStatus(ativo: boolean) {
   return `px-1.5 py-0.5 text-[10px] ${
     ativo
       ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400'
-      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
+      : 'bg-superficie-2 text-texto-3'
   }`
 }
 
 // Badges de tipo de motivo de parada (Interna = azul, Externa = âmbar)
-export const badgeInterna = 'text-[10px] text-blue-600 dark:text-blue-400'
+export const badgeInterna = 'text-[10px] text-accent-600 dark:text-accent-400'
 export const badgeExterna = 'text-[10px] text-amber-600 dark:text-amber-400'
 
 // Badge "crítica" em máquinas marcadas como críticas para a linha
-export const badgeCritica = 'text-[9px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5'
+export const badgeCritica = 'text-[9px] font-medium text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-950 px-1.5 py-0.5'
 
 // Badge "IoT" em máquinas com coleta Semi Automática (WISE) em andamento
 export const badgeIot = 'text-[9px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950 px-1.5 py-0.5'
 
 // Badge "fixo" — usado no campo Produção, que é sempre coletado e não pode ser removido
-export const badgeFixo = 'text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
+export const badgeFixo = 'text-[10px] px-1.5 py-0.5 bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400'
 
 // Badge "(novo)" — indica um item ainda não salvo no banco (staged changes)
-export const badgeNovo = 'text-[9px] text-blue-500'
+export const badgeNovo = 'text-[9px] text-accent-500'
 
 // Badge verde de sessão em andamento (ex: no modal de detalhes da máquina)
 export const badgeAtivaVerde = 'text-[10px] px-1.5 py-0.5 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400'
@@ -34,5 +34,5 @@ export const dotColorByStatus: Record<string, string> = {
   ParadaInterna:   'bg-red-500',
   ParadaExterna:   'bg-yellow-400',
   ParadaPlanejada: 'bg-orange-500',
-  SemSessao:       'bg-zinc-400',
+  SemSessao:       'bg-texto-3',
 }

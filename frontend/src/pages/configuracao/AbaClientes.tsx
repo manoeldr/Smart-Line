@@ -87,7 +87,7 @@ export default function AbaClientes() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        <p className="text-sm font-medium text-texto">
           {somenteLinhas ? 'Clientes — Linhas de produção' : 'Clientes'}
         </p>
         {!somenteLinhas && (
@@ -99,7 +99,7 @@ export default function AbaClientes() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-zinc-400">Carregando...</p>
+        <p className="text-xs text-texto-3">Carregando...</p>
       ) : (
         <table className={table}>
           <thead>
@@ -146,8 +146,8 @@ export default function AbaClientes() {
         <div className={modalOverlay}>
           <div className={modalContainerMd}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Novo cliente</p>
-              <button onClick={() => setModalNovoOpen(false)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+              <p className="text-sm font-medium text-texto">Novo cliente</p>
+              <button onClick={() => setModalNovoOpen(false)} className="text-texto-3 hover:text-texto">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>

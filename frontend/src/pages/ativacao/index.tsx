@@ -31,37 +31,37 @@ export default function Ativacao({ macAddress, onAtivado }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-fundo flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 bg-black dark:ring-1 dark:ring-zinc-700 rounded-xl flex items-center justify-center flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
           </div>
           <div>
-            <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">SmartLine</p>
-            <p className="text-xs text-zinc-500">Ativação necessária</p>
+            <p className="text-lg font-medium text-texto">Smart Line Scan</p>
+            <p className="text-xs text-texto-2">Ativação necessária</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
-          <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">Ativar este computador</h1>
-          <p className="text-xs text-zinc-500 mb-4">
+        <div className="bg-superficie border border-borda rounded-xl p-6">
+          <h1 className="text-sm font-medium text-texto mb-2">Ativar este computador</h1>
+          <p className="text-xs text-texto-2 mb-4">
             Envie o código abaixo ao suporte para receber sua chave de ativação.
           </p>
 
           <div className="mb-5">
             <label className={label}>Código do computador</label>
             <div className="flex items-center gap-2">
-              <code className="flex-1 h-9 px-3 flex items-center border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 rounded-sm font-mono">
+              <code className="flex-1 h-9 px-3 flex items-center border border-borda-forte bg-superficie-2 text-sm text-texto rounded-sm font-mono">
                 {macAddress}
               </code>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(macAddress)}
                 title="Copiar"
-                className="h-9 w-9 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-sm"
+                className="h-9 w-9 flex items-center justify-center border border-borda-forte text-texto-2 hover:bg-superficie-2 rounded-sm"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>

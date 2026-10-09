@@ -159,7 +159,7 @@ export default function AbaSimulador() {
   const comando = (n: number, acao: AcaoSimulada) =>
     executar(() => desenvolvedorService.comando(n, acao), 'O comando não foi aplicado.')
 
-  if (!situacao && !erro) return <p className="text-xs text-zinc-400">Carregando...</p>
+  if (!situacao && !erro) return <p className="text-xs text-texto-3">Carregando...</p>
 
   const ligado = situacao?.ligado ?? false
 
@@ -169,18 +169,18 @@ export default function AbaSimulador() {
 
       {/* Cabeçalho: ligado/desligado */}
       <div className={`${cardPadded} flex items-center gap-4`}>
-        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ligado ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
-        <div className="flex-1 text-xs text-zinc-600 dark:text-zinc-300">
+        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ligado ? 'bg-emerald-500' : 'bg-superficie-3'}`} />
+        <div className="flex-1 text-xs text-texto-2">
           {ligado && situacao ? (
             <>
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">Simulador ligado</span>
+              <span className="font-medium text-texto">Simulador ligado</span>
               {' '}desde {horaCurta(situacao.ligadoEm)} · {situacao.maquinas.length} WISE publicando
               no broker (porta {situacao.portaBroker}) a cada {situacao.opcoes?.intervaloSegundos} s
               {situacao.maquinas.some(m => m.interfaceHttp) && ` · interface HTTP na porta ${situacao.opcoes?.portaHttp}`}
             </>
           ) : (
             <>
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">Simulador desligado.</span>
+              <span className="font-medium text-texto">Simulador desligado.</span>
               {' '}Ao ligar, cada WISE simulado entra no cadastro de Dispositivos IoT ("Simulado N") e já pode ser escolhido na medição; ao desligar, sai do cadastro.
             </>
           )}
@@ -219,12 +219,12 @@ export default function AbaSimulador() {
             </Campo>
           </div>
 
-          <div className="flex flex-wrap gap-6 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+          <div className="flex flex-wrap gap-6 pt-3 border-t border-borda-suave">
+            <div className="flex items-center gap-1.5 text-xs text-texto-2">
               <Switch checked={form.automatico} onChange={v => campo('automatico', v)} />
               <span onClick={() => campo('automatico', !form.automatico)} className="cursor-pointer">Paradas automáticas</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+            <div className="flex items-center gap-1.5 text-xs text-texto-2">
               <Switch checked={form.quedas} onChange={v => campo('quedas', v)} disabled={!form.automatico} />
               <span onClick={() => form.automatico && campo('quedas', !form.quedas)} className={form.automatico ? 'cursor-pointer' : 'opacity-60'}>Quedas de comunicação automáticas</span>
             </div>
@@ -251,7 +251,7 @@ export default function AbaSimulador() {
             </Campo>
           </div>
 
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[10px] text-texto-3">
             Pulsos por minuto: um valor ou um por máquina, separados por vírgula (a lista curta repete o último).
             Cada pulso vale o multiplicador configurado na medição (ex.: a máquina que conta caixas de 84 manda 7 pulsos/min e usa multiplicador 84).
             "Entre paradas" e "Entre quedas" são tempos médios (sorteados entre 50% e 150%).
@@ -264,10 +264,10 @@ export default function AbaSimulador() {
       {ligado && situacao && (
         <div className={cardPadded}>
           <div className="flex items-center gap-3 mb-3">
-            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Máquinas simuladas</p>
-            <span className="text-[10px] text-zinc-400">Já cadastrados em Dispositivos IoT como "Simulado N": é só escolher o WISE ao iniciar a medição.</span>
+            <p className="text-xs font-medium text-texto">Máquinas simuladas</p>
+            <span className="text-[10px] text-texto-3">Já cadastrados em Dispositivos IoT como "Simulado N": é só escolher o WISE ao iniciar a medição.</span>
             <div className="ml-auto flex items-center gap-1">
-              <span className="text-[10px] text-zinc-400 mr-1">Todas:</span>
+              <span className="text-[10px] text-texto-3 mr-1">Todas:</span>
               <BotoesComando maquina={null} ocupado={ocupado} onComando={acao => comando(0, acao)} />
             </div>
           </div>
@@ -287,13 +287,13 @@ export default function AbaSimulador() {
                 <tr key={m.numero} className={tableBodyRow}>
                   <td className={tableBodyCell}>
                     {m.numero}
-                    <span className="block text-[10px] text-zinc-400">
+                    <span className="block text-[10px] text-texto-3">
                       {m.garrafasPorMinuto} pulsos/min
                     </span>
                   </td>
                   <td className={tableBodyCell}>
                     <span className="font-mono">{m.enderecoIp}</span>
-                    <span className={`block text-[10px] ${m.conectada ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
+                    <span className={`block text-[10px] ${m.conectada ? 'text-emerald-600 dark:text-emerald-400' : 'text-texto-3'}`}>
                       {m.conectada ? 'conectado ao broker' : 'sem conexão'}
                     </span>
                   </td>
@@ -336,7 +336,7 @@ export default function AbaSimulador() {
 function SituacaoMaquina({ m }: { m: MaquinaSimuladaDto }) {
   const rodando = m.cenario === 'Rodando' && !m.falha
   const cor = m.falha
-    ? 'text-zinc-500'
+    ? 'text-texto-2'
     : rodando ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
   return (
     <span className={cor}>
@@ -357,10 +357,10 @@ function BotoesComando({ maquina, ocupado, onComando }: {
   const botao = (ativo: boolean, tom: 'normal' | 'atencao' = 'normal') =>
     `h-6 px-1.5 text-[10px] border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
       ativo
-        ? 'bg-blue-600 text-white border-blue-600'
+        ? 'bg-accent-600 text-accent-fg border-accent-600'
         : tom === 'atencao'
           ? 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950'
-          : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+          : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
     }`
   return (
     <div className="flex flex-wrap gap-1">

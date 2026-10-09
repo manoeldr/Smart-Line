@@ -232,13 +232,13 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
           <p className={modalTitle}>
             {maquina ? 'Editar máquina' : 'Nova máquina'}
           </p>
-          <button onClick={onFechar} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <button onClick={onFechar} className="text-texto-3 hover:text-texto">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
           {/* Dados básicos */}
-          <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="px-5 py-4 border-b border-borda">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={label}>Nome</label>
@@ -254,7 +254,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
           {/* Abas — só aparecem ao editar uma máquina existente */}
           {maquina && (
             <>
-              <div className="flex justify-center border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex justify-center border-b border-borda">
                 {(['manual', 'semi', 'auto'] as AbaModal[]).map(a => (
                   <button key={a} onClick={() => setAbaModal(a)} className={tabButton(abaModal === a)}>
                     {a === 'manual' ? 'Manual' : a === 'semi' ? 'Semi Automático' : 'Automático'}
@@ -270,7 +270,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                     {/* Campos de coleta */}
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Campos de coleta</p>
+                        <p className="text-xs font-medium text-texto">Campos de coleta</p>
                         <button onClick={abrirNovoCampo} className={`${btnPrimaryXs} flex items-center gap-1`}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                           Adicionar
@@ -278,23 +278,23 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                       </div>
 
                       {/* Produção é sempre fixo — não pode ser removido, coletado em toda medição */}
-                      <div className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
-                        <p className="text-xs text-zinc-900 dark:text-zinc-100">Produção</p>
+                      <div className="flex items-center justify-between py-2 border-b border-borda-suave">
+                        <p className="text-xs text-texto">Produção</p>
                         <span className={badgeFixo}>fixo</span>
                       </div>
 
                       {loadingCampos ? (
-                        <p className="text-xs text-zinc-400 mt-2">Carregando...</p>
+                        <p className="text-xs text-texto-3 mt-2">Carregando...</p>
                       ) : camposVisiveis.length === 0 ? (
-                        <p className="text-xs text-zinc-400 mt-2">Nenhum campo extra</p>
+                        <p className="text-xs text-texto-3 mt-2">Nenhum campo extra</p>
                       ) : camposVisiveis.map(c => (
-                        <div key={c.id} className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
+                        <div key={c.id} className="flex items-center justify-between py-2 border-b border-borda-suave">
                           <div>
-                            <p className="text-xs text-zinc-900 dark:text-zinc-100">
-                              {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
+                            <p className="text-xs text-texto">
+                              {c.nome} {c.unidade && <span className="text-texto-3">({c.unidade})</span>}
                               {c.isNew && <span className={`${badgeNovo} ml-1`}>(novo)</span>}
                             </p>
-                            <p className="text-[10px] text-zinc-400">ordem {c.ordem}</p>
+                            <p className="text-[10px] text-texto-3">ordem {c.ordem}</p>
                           </div>
                           <button onClick={() => setAcaoPendente({ tipo: 'campo', id: c.id })} className={btnIconDanger}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -304,9 +304,9 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                     </div>
 
                     {/* Motivos de parada */}
-                    <div className="flex-1 border-l border-zinc-200 dark:border-zinc-800 pl-6">
+                    <div className="flex-1 border-l border-borda pl-6">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Motivos de parada</p>
+                        <p className="text-xs font-medium text-texto">Motivos de parada</p>
                         <button onClick={abrirNovoMotivo} className={`${btnPrimaryXs} flex items-center gap-1`}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                           Adicionar
@@ -314,13 +314,13 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                       </div>
 
                       {loadingMotivos ? (
-                        <p className="text-xs text-zinc-400">Carregando...</p>
+                        <p className="text-xs text-texto-3">Carregando...</p>
                       ) : motivosVisiveis.length === 0 ? (
-                        <p className="text-xs text-zinc-400">Nenhum motivo cadastrado</p>
+                        <p className="text-xs text-texto-3">Nenhum motivo cadastrado</p>
                       ) : motivosVisiveis.map(m => (
-                        <div key={m.id} className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
+                        <div key={m.id} className="flex items-center justify-between py-2 border-b border-borda-suave">
                           <div>
-                            <p className="text-xs text-zinc-900 dark:text-zinc-100">
+                            <p className="text-xs text-texto">
                               {m.nome} {m.isNew && <span className={badgeNovo}>(novo)</span>}
                             </p>
                             <span className={m.tipo === 'Interna' ? badgeInterna : badgeExterna}>
@@ -344,7 +344,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                 {/* Ainda não implementado — reservado para o modo Automático */}
 
                 {abaModal === 'auto' && (
-                  <div className="flex items-center justify-center h-32 text-xs text-zinc-400">Em desenvolvimento</div>
+                  <div className="flex items-center justify-center h-32 text-xs text-texto-3">Em desenvolvimento</div>
                 )}
               </div>
             </>
@@ -410,15 +410,15 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => setFormMotivo(f => ({ ...f, tipo: 'Interna' }))} className={
                     formMotivo.tipo === 'Interna'
-                      ? 'h-8 text-xs font-medium border bg-blue-600 text-white border-blue-600 transition-colors'
-                      : 'h-8 text-xs font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors'
+                      ? 'h-8 text-xs font-medium border bg-accent-600 text-accent-fg border-accent-600 transition-colors'
+                      : 'h-8 text-xs font-medium border border-borda-forte text-texto-2 hover:bg-superficie-2 transition-colors'
                   }>
                     Interna
                   </button>
                   <button onClick={() => setFormMotivo(f => ({ ...f, tipo: 'Externa' }))} className={
                     formMotivo.tipo === 'Externa'
                       ? 'h-8 text-xs font-medium border bg-amber-500 text-white border-amber-500 transition-colors'
-                      : 'h-8 text-xs font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors'
+                      : 'h-8 text-xs font-medium border border-borda-forte text-texto-2 hover:bg-superficie-2 transition-colors'
                   }>
                     Externa
                   </button>

@@ -50,7 +50,7 @@ function Conteudo({ ip, onFechar }: Props & { ip: string }) {
       <div className={`${modalPanel} w-[480px] max-h-[90vh]`}>
         <div className={modalHeader}>
           <p className={modalTitle}>Teste de ping</p>
-          <p className={modalSubtitle}>WISE {ip} · a partir do computador do SmartLine</p>
+          <p className={modalSubtitle}>WISE {ip} · a partir do computador do Smart Line Scan</p>
         </div>
 
         <div className={modalBody}>
@@ -60,7 +60,7 @@ function Conteudo({ ip, onFechar }: Props & { ip: string }) {
             </div>
           )}
 
-          {testando && <p className="text-xs text-zinc-400">Enviando 4 pacotes para {ip}...</p>}
+          {testando && <p className="text-xs text-texto-3">Enviando 4 pacotes para {ip}...</p>}
 
           {resultado && (
             <>
@@ -75,15 +75,15 @@ function Conteudo({ ip, onFechar }: Props & { ip: string }) {
                 <tbody>
                   {resultado.respostas.map(r => (
                     <tr key={r.sequencia} className={tableBodyRow}>
-                      <td className="py-2 pr-4 text-zinc-500">{r.sequencia}</td>
+                      <td className="py-2 pr-4 text-texto-2">{r.sequencia}</td>
                       <td className={`py-2 pr-4 ${r.respondeu ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{r.situacao}</td>
-                      <td className="py-2 pr-4 text-zinc-900 dark:text-zinc-100">{r.tempoMs !== null ? `${r.tempoMs} ms` : '—'}</td>
+                      <td className="py-2 pr-4 text-texto">{r.tempoMs !== null ? `${r.tempoMs} ms` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-texto-2">
                 Enviados {resultado.enviados}, recebidos {resultado.recebidos}, perda de {resultado.perdaPercentual}%
                 {resultado.tempoMedioMs !== null && (
                   <> · mínimo {resultado.tempoMinimoMs} ms, médio {resultado.tempoMedioMs} ms, máximo {resultado.tempoMaximoMs} ms</>

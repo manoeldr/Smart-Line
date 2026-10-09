@@ -34,7 +34,7 @@ export default function Configuracao() {
 
   if (abasVisiveis.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+      <div className="flex items-center justify-center h-48 text-sm text-texto-3">
         Sem permissão para acessar configurações
       </div>
     )
@@ -42,7 +42,7 @@ export default function Configuracao() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 flex">
+      <div className="border-b border-borda flex">
         {abasVisiveis.map(aba => (
           <button key={aba.id} onClick={() => setAbaAtiva(aba.id)} className={tabButton(abaAtiva === aba.id)}>
             {aba.label}

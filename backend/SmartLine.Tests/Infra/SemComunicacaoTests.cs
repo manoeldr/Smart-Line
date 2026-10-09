@@ -60,9 +60,9 @@ public class SemComunicacaoTests : IDisposable
             detalhe.PontosProducao.Select(p => (p.Hora, p.Quantidade, p.SemComunicacao)));
 
         Assert.Equal(
-            new[] { ("Marcha", T0.UtcDateTime), ("SemComunicacao", Em(600)), ("Marcha", Em(4200)) },
+            new[] { ("Inicio", T0.UtcDateTime), ("Marcha", T0.UtcDateTime), ("SemComunicacao", Em(600)), ("Marcha", Em(4200)) },
             detalhe.Eventos.Select(e => (e.Tipo, e.Horario)));
-        Assert.Equal(3_600_000d, detalhe.Eventos[1].DuracaoMs);
+        Assert.Equal(3_600_000d, detalhe.Eventos[2].DuracaoMs);
     }
 
     [Fact]

@@ -118,7 +118,7 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
             <div>
               <label className={label}>Tempo para detectar parada (segundos)</label>
               <input type="number" min={Z_MINIMO} max={Z_MAXIMO} step="1" value={z} onChange={e => setZ(e.target.value)} className={inputBase} />
-              <p className="text-[10px] text-zinc-400 mt-1">
+              <p className="text-[10px] text-texto-3 mt-1">
                 Sem produção por este tempo, a máquina é considerada parada (o início da parada é a última produção).
                 Deve ser maior que o intervalo de publicação do WISE.
               </p>
@@ -127,7 +127,7 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-xs font-medium text-texto">
                 Regras de classificação {personalizado ? '(personalizadas para esta máquina)' : '(do catálogo)'}
               </p>
               {carregado && (personalizado
@@ -136,24 +136,24 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
             </div>
 
             {!carregado ? (
-              !erro && <p className="text-xs text-zinc-400">Carregando...</p>
+              !erro && <p className="text-xs text-texto-3">Carregando...</p>
             ) : personalizado ? (
               <EditorRegras regras={regras} onChange={setRegras} motivos={motivos} textos={textos} />
             ) : (
               <div className="flex flex-col gap-1">
-                <p className="text-[10px] text-zinc-400 mb-1">
+                <p className="text-[10px] text-texto-3 mb-1">
                   Esta máquina usa as regras padrão da {item.maquinaNome}, editadas em Configurações &gt; Máquinas &gt; aba Semi Automático.
                 </p>
                 {paraEdicao(regrasCatalogo).map((r, i) => {
                   const motivo = motivos.find(m => m.id === r.motivoParadaId)
                   return (
-                    <p key={r.chave} className={`text-xs ${r.ativa ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 line-through'}`}>
+                    <p key={r.chave} className={`text-xs ${r.ativa ? 'text-texto-2' : 'text-texto-3 line-through'}`}>
                       {i + 1}. Se {r.condicoes.map(c => textoCondicao(c, textos)).join(' e ')}
                       {' -> '}{motivo ? `${motivo.nome} (${motivo.tipo.toLowerCase()})` : '—'}
                     </p>
                   )
                 })}
-                {regrasCatalogo.length === 0 && <p className="text-xs text-zinc-400">Nenhuma regra no catálogo.</p>}
+                {regrasCatalogo.length === 0 && <p className="text-xs text-texto-3">Nenhuma regra no catálogo.</p>}
               </div>
             )}
           </div>

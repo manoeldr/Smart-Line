@@ -69,7 +69,7 @@ export default function AbaMaquinas() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Máquinas</p>
+        <p className="text-sm font-medium text-texto">Máquinas</p>
         <button onClick={abrirNovo} className={`${btnPrimarySm} flex items-center gap-1.5`}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nova máquina
@@ -77,7 +77,7 @@ export default function AbaMaquinas() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-zinc-400">Carregando...</p>
+        <p className="text-xs text-texto-3">Carregando...</p>
       ) : (
         <table className={table}>
           <thead>

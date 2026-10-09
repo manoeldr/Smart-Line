@@ -282,10 +282,14 @@ public class SessaoDetalheService : ISessaoDetalheService
         // Gráficos de paradas: a parada em curso conta até agora (como no OEE).
         var agoraGraficos = DateTime.UtcNow;
 
-        // Timeline de eventos (Marcha/Parada)
+        // Timeline de eventos: início e fim da medição, marchas, paradas e trechos sem comunicação.
         var eventos = new List<EventoTimelineDto>();
 
+        eventos.Add(new EventoTimelineDto("Inicio", sessao.Inicio, null, null, null, null));
         eventos.Add(new EventoTimelineDto("Marcha", sessao.Inicio, null, null, null, null));
+        // MotivoNome diz como terminou: "ViradaDoDia" (continua na sessão do dia seguinte) ou "Manual".
+        if (sessao.Fim is { } fimSessao)
+            eventos.Add(new EventoTimelineDto("Fim", fimSessao, sessao.MotivoFechamento?.ToString(), null, null, null));
 
         // Uma parada que continua noutra no mesmo instante (reclassificação da coleta automática,
         // virada do dia) não teve marcha no meio.
@@ -335,7 +339,8 @@ public class SessaoDetalheService : ISessaoDetalheService
                 eventos.Add(new EventoTimelineDto("Marcha", volta, null, null, null, null));
         }
 
-        eventos = eventos.OrderBy(e => e.Horario).ThenBy(e => e.Tipo == "Marcha" ? 1 : 0).ToList();
+        // No mesmo instante: início antes de tudo, marcha depois de parada/sem comunicação, fim por último.
+        eventos = eventos.OrderBy(e => e.Horario).ThenBy(e => e.Tipo switch { "Inicio" => -1, "Marcha" => 1, "Fim" => 2, _ => 0 }).ToList();
 
         return new SessaoDetalheDto(
             SessaoId: sessao.Id.ToString(),

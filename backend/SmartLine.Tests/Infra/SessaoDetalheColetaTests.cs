@@ -26,10 +26,10 @@ public class SessaoDetalheColetaTests : IDisposable
 
         var parada = Assert.Single(_c.Paradas());
         Assert.Equal(
-            new[] { ("Marcha", T0.UtcDateTime), ("Parada", Em(60)), ("Marcha", Em(300)) },
+            new[] { ("Inicio", T0.UtcDateTime), ("Marcha", T0.UtcDateTime), ("Parada", Em(60)), ("Marcha", Em(300)) },
             detalhe.Eventos.Select(e => (e.Tipo, e.Horario)));
         Assert.Equal((parada.Id.ToString(), _c.Motivo("Falta de garrafas na entrada").ToString(), (double?)240_000),
-            (detalhe.Eventos[1].ParadaId, detalhe.Eventos[1].MotivoId, detalhe.Eventos[1].DuracaoMs));
+            (detalhe.Eventos[2].ParadaId, detalhe.Eventos[2].MotivoId, detalhe.Eventos[2].DuracaoMs));
         Assert.Equal(_c.MaquinaCatalogo.ToString(), detalhe.MaquinaId);
     }
 

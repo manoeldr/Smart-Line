@@ -15,7 +15,7 @@ export default function Switch({ checked, onChange, disabled }: Props) {
         onChange={e => onChange?.(e.target.checked)}
         className="sr-only peer"
       />
-      <div className="w-9 h-5 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-blue-600 transition-colors" />
+      <div className="w-9 h-5 bg-superficie-3 rounded-full peer-checked:bg-accent-600 transition-colors" />
       <div className="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform peer-checked:translate-x-4" />
     </label>
   )

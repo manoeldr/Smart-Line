@@ -7,8 +7,8 @@ import { useAuth } from '../../contexts/AuthContext'
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
     isActive
-      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-      : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+      ? 'bg-accent-50 text-accent-600 dark:bg-accent-950 dark:text-accent-400'
+      : 'text-texto-2 hover:bg-superficie-2 hover:text-texto'
   }`
 }
 
@@ -25,17 +25,17 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-52 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col h-full flex-shrink-0">
+    <aside className="w-52 bg-superficie border-r border-borda flex flex-col h-full flex-shrink-0">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+      <div className="px-4 py-5 border-b border-borda flex items-center gap-3">
+        <div className="w-8 h-8 bg-black dark:ring-1 dark:ring-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
         </div>
         <div>
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">SmartLine</p>
-          <p className="text-xs text-zinc-500">Sanmartin</p>
+          <p className="text-sm font-medium text-texto">Smart Line Scan</p>
+          <p className="text-xs text-texto-2">Sanmartin</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function Sidebar() {
 
         {/* Monitoramento */}
         <div>
-          <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-zinc-400">
+          <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-texto-3">
             Monitoramento
           </p>
           <NavLink to="/medicao" className={navLinkClass}>
@@ -70,7 +70,7 @@ export default function Sidebar() {
         {/* Configurações — empurrado para baixo */}
         {temConfiguracao && (
           <div className="mt-auto">
-            <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-zinc-400">
+            <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-texto-3">
               Sistema
             </p>
             <NavLink to="/configuracao" className={navLinkClass}>
@@ -92,23 +92,23 @@ export default function Sidebar() {
       </nav>
 
       {/* Usuário */}
-      <div className="px-2 py-3 border-t border-zinc-200 dark:border-zinc-800">
+      <div className="px-2 py-3 border-t border-borda">
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg">
-          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+          <div className="w-7 h-7 rounded-full bg-accent-600 flex items-center justify-center text-accent-fg text-xs font-medium flex-shrink-0">
             {usuario?.nome?.slice(0, 2).toUpperCase() ?? 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+            <p className="text-xs font-medium text-texto truncate">
               {usuario?.nome ?? 'Usuário'}
             </p>
-            <p className="text-[10px] text-zinc-500 truncate">
+            <p className="text-[10px] text-texto-2 truncate">
               {usuario?.nivel ?? '—'}
             </p>
           </div>
           <button
             onClick={handleLogout}
             title="Sair"
-            className="text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+            className="text-texto-3 hover:text-red-500 transition-colors flex-shrink-0"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>

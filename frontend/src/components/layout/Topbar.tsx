@@ -34,14 +34,14 @@ export default function Topbar({
   }
 
   return (
-    <header className="h-12 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-4 gap-3 flex-shrink-0">
+    <header className="h-12 bg-superficie border-b border-borda flex items-center px-4 gap-3 flex-shrink-0">
       <div className="flex items-center gap-2 flex-1">
         {/* Seletor de cliente */}
         {isSuperAdmin && onOpenSeletor ? (
           <button
             ref={seletorAnchorRef}
             onClick={onOpenSeletor}
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-texto hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
           >
             {clienteNome ?? 'Selecionar cliente'}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,33 +49,33 @@ export default function Topbar({
             </svg>
           </button>
         ) : (
-          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-            {clienteNome ?? 'SmartLine'}
+          <span className="text-sm font-medium text-texto">
+            {clienteNome ?? 'Smart Line Scan'}
           </span>
         )}
-        <span className="text-zinc-300 dark:text-zinc-600">/</span>
-        <span className="text-sm text-zinc-500">{titulo}</span>
+        <span className="text-texto-4">/</span>
+        <span className="text-sm text-texto-2">{titulo}</span>
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-2 text-xs text-texto-2">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
           <span>{usuario?.nome ?? 'Usuário'}</span>
           {usuario?.nivel && (
-            <span className="text-[10px] bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">
+            <span className="text-[10px] bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400 px-1.5 py-0.5 rounded font-medium">
               {nivelLabel[usuario.nivel] ?? usuario.nivel}
             </span>
           )}
         </div>
 
-        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <div className="w-px h-5 bg-superficie-3 mx-1" />
 
         <span className={`text-xs px-2 py-1 rounded-md border ${
           dataFiltro
-            ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-            : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700'
+            ? 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400 border-accent-200 dark:border-accent-800'
+            : 'bg-superficie-2 text-texto-2 border-borda-forte'
         }`}>
           {dataFiltro
             ? `${dataFiltro.split('-').reverse().join('/')} · histórico`
@@ -87,8 +87,8 @@ export default function Topbar({
           onClick={() => onOpenFiltro(filtroRef)}
           className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
             dataFiltro
-              ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-600'
-              : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              ? 'bg-accent-50 dark:bg-accent-950 border-accent-200 dark:border-accent-800 text-accent-600'
+              : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
           }`}
           title="Filtrar por data"
         >
@@ -99,7 +99,7 @@ export default function Topbar({
 
         <button
           onClick={toggleTheme}
-          className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-8 h-8 rounded-lg border border-borda-forte flex items-center justify-center text-texto-2 hover:bg-superficie-2 transition-colors"
           title="Alternar tema"
         >
           {theme === 'light' ? (

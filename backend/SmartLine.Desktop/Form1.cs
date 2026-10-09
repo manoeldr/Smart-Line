@@ -19,7 +19,7 @@ public partial class Form1 : Form
     {
         InitializeComponent();
 
-        Text = "SmartLine";
+        Text = "Smart Line Scan";
         WindowState = FormWindowState.Maximized;
         StartPosition = FormStartPosition.CenterScreen;
 

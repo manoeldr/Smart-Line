@@ -100,7 +100,7 @@ export default function AbaUsuarios() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Usuários</p>
+        <p className="text-sm font-medium text-texto">Usuários</p>
         <button onClick={abrirNovo} className={`${btnPrimarySm} flex items-center gap-1.5`}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo usuário
@@ -108,7 +108,7 @@ export default function AbaUsuarios() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-zinc-400">Carregando...</p>
+        <p className="text-xs text-texto-3">Carregando...</p>
       ) : (
         <table className={table}>
           <thead>
@@ -151,10 +151,10 @@ export default function AbaUsuarios() {
         <div className={modalOverlay}>
           <div className={modalContainerMd}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-sm font-medium text-texto">
                 {editando ? 'Editar usuário' : 'Novo usuário'}
               </p>
-              <button onClick={fecharModal} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+              <button onClick={fecharModal} className="text-texto-3 hover:text-texto">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>

@@ -120,7 +120,7 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
   }
 
   if (erro && !entradas) return <p className="text-xs text-red-600 dark:text-red-400">{erro}</p>
-  if (!entradas) return <p className="text-xs text-zinc-400">Carregando...</p>
+  if (!entradas) return <p className="text-xs text-texto-3">Carregando...</p>
 
   return (
     <div className="flex flex-col gap-6">
@@ -129,15 +129,15 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
       {/* Entradas do WISE */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Entradas do WISE</p>
+          <p className="text-xs font-medium text-texto">Entradas do WISE</p>
           <button onClick={() => setRestaurar('entradas')} className={btnSecondarySm}>Restaurar textos padrão</button>
         </div>
-        <p className="text-[10px] text-zinc-400 mb-2">
+        <p className="text-[10px] text-texto-3 mb-2">
           Como cada entrada aparece nas regras, no Validar entradas e no detalhe da máquina. Mudar o texto não muda o que é alarme em cada sensor.
         </p>
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400">
+            <tr className="border-b border-borda text-left text-texto-3">
               <th className="py-1.5 pr-2 font-medium w-20">Entrada</th>
               <th className="py-1.5 pr-2 font-medium">Nome</th>
               <th className="py-1.5 pr-2 font-medium">Quando ativo</th>
@@ -149,15 +149,15 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
               const t = textos[e.canal]
               const sensor = e.tipo === 'Estado'
               return (
-                <tr key={e.canal} className="border-b border-zinc-100 dark:border-zinc-800">
-                  <td className="py-1.5 pr-2 text-zinc-500 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
+                <tr key={e.canal} className="border-b border-borda-suave">
+                  <td className="py-1.5 pr-2 text-texto-2 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
                   <td className="py-1.5 pr-2">
                     <input value={t.nome} maxLength={TAMANHO_MAXIMO_TEXTO} onChange={x => alterarTexto(e.canal, { nome: x.target.value })} className={inputBase} />
                   </td>
                   <td className="py-1.5 pr-2">
                     {sensor
                       ? <input value={t.ativo ?? ''} maxLength={TAMANHO_MAXIMO_TEXTO} onChange={x => alterarTexto(e.canal, { ativo: x.target.value })} className={inputBase} />
-                      : <span className="text-[10px] text-zinc-400">contador</span>}
+                      : <span className="text-[10px] text-texto-3">contador</span>}
                   </td>
                   <td className="py-1.5">
                     {sensor && <input value={t.normal ?? ''} maxLength={TAMANHO_MAXIMO_TEXTO} onChange={x => alterarTexto(e.canal, { normal: x.target.value })} className={inputBase} />}
@@ -172,15 +172,15 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
       {/* Regras */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Regras de classificação (padrão desta máquina)</p>
+          <p className="text-xs font-medium text-texto">Regras de classificação (padrão desta máquina)</p>
           <button onClick={() => setRestaurar('regras')} className={btnSecondarySm}>Restaurar regras padrão</button>
         </div>
-        <p className="text-[10px] text-zinc-400 mb-2">
+        <p className="text-[10px] text-texto-3 mb-2">
           Quando a máquina para, as regras são testadas de cima para baixo: a primeira com todas as condições verdadeiras dá o motivo.
           Sem nenhuma, a parada fica sem motivo (conta como interna). Vale para as coletas iniciadas depois de salvar; uma máquina da linha pode ter regras próprias.
         </p>
         <EditorRegras regras={regras} onChange={alterarRegras} motivos={motivos} textos={textos} />
-        <p className="text-[10px] text-zinc-400 mt-2">Motivos novos criados na aba Manual aparecem aqui depois de salvar a máquina.</p>
+        <p className="text-[10px] text-texto-3 mt-2">Motivos novos criados na aba Manual aparecem aqui depois de salvar a máquina.</p>
       </div>
 
       <ConfirmModal

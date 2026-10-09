@@ -18,7 +18,7 @@ export default function ConfirmModal({ open, titulo = 'Confirmar ação', mensag
     <div className={modalOverlayNested}>
       <div className={modalContainerSm}>
         <p className={`${modalTitle} mb-2`}>{titulo}</p>
-        <p className="text-xs text-zinc-500 mb-4">{mensagem}</p>
+        <p className="text-xs text-texto-2 mb-4">{mensagem}</p>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={onCancelar} className={btnSecondarySm}>Cancelar</button>
           <button onClick={onConfirmar} className={btnDanger}>Confirmar</button>

@@ -32,18 +32,18 @@ export default function WiseDaMedicao({ ip, onChangeIp, wises, erroLista, agora 
   }
 
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 flex flex-col gap-2 text-xs">
+    <div className="border border-borda px-3 py-2.5 flex flex-col gap-2 text-xs">
       <label className={label}>WISE desta medição</label>
 
       {!wises ? (
-        <p className="text-zinc-400">{erroLista ?? 'Consultando os WISE...'}</p>
+        <p className="text-texto-3">{erroLista ?? 'Consultando os WISE...'}</p>
       ) : cadastrados.length === 0 ? (
-        <p className="text-zinc-400">
+        <p className="text-texto-3">
           Nenhum WISE cadastrado.{' '}
           {podeCadastrar ? 'Cadastre em Configurações → Dispositivos IoT.' : 'Peça a um Administrador para cadastrar em Configurações → Dispositivos IoT.'}
         </p>
       ) : (
-        <div className="flex flex-col border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-800 max-h-48 overflow-y-auto">
+        <div className="flex flex-col border border-borda divide-y divide-borda max-h-48 overflow-y-auto">
           {cadastrados.map(w => {
             const { situacao } = situacaoDoIp(w.enderecoIp, cadastrados)
             const disponivel = situacao === 'Conectado'
@@ -56,17 +56,17 @@ export default function WiseDaMedicao({ ip, onChangeIp, wises, erroLista, agora 
                 disabled={!disponivel && !escolhido}
                 className={`flex items-center gap-3 px-3 py-2 text-left transition-colors disabled:cursor-not-allowed ${
                   escolhido
-                    ? 'bg-blue-50 dark:bg-blue-950'
-                    : disponivel ? 'hover:bg-zinc-50 dark:hover:bg-zinc-800' : 'opacity-70'
+                    ? 'bg-accent-50 dark:bg-accent-950'
+                    : disponivel ? 'hover:bg-superficie-2' : 'opacity-70'
                 }`}
               >
-                <span className={`w-3 h-3 flex-shrink-0 rounded-full border ${escolhido ? 'border-blue-600 bg-blue-600' : 'border-zinc-300 dark:border-zinc-600'}`} />
+                <span className={`w-3 h-3 flex-shrink-0 rounded-full border ${escolhido ? 'border-accent-600 bg-accent-600' : 'border-borda-forte'}`} />
                 <span className="min-w-0 flex-1">
-                  <span className="text-zinc-900 dark:text-zinc-100">
+                  <span className="text-texto">
                     {w.nome ? `${w.nome} · ` : ''}{w.enderecoIp}
                   </span>{' '}
                   <SituacaoWiseTexto situacao={situacao} />
-                  {detalhe(w) && <span className="block text-[10px] text-zinc-400 truncate">{detalhe(w)}</span>}
+                  {detalhe(w) && <span className="block text-[10px] text-texto-3 truncate">{detalhe(w)}</span>}
                 </span>
               </button>
             )
@@ -74,7 +74,7 @@ export default function WiseDaMedicao({ ip, onChangeIp, wises, erroLista, agora 
         </div>
       )}
 
-      <p className="text-[10px] text-zinc-400">
+      <p className="text-[10px] text-texto-3">
         Só dá para escolher um WISE conectado e livre. Ele fica associado a esta máquina até a medição ser finalizada.
       </p>
     </div>

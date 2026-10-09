@@ -60,9 +60,9 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
 
   // Valor atual da entrada: o número do contador, ou 0/1 no sensor (como chega do WISE).
   function status(e: EntradaAoVivoDto) {
-    if (!e.recebida) return <span className="text-zinc-400">sem leitura</span>
+    if (!e.recebida) return <span className="text-texto-3">sem leitura</span>
     const valor = e.tipo === 'Contador' ? numero(e.valor ?? 0) : e.valorBruto ? '1' : '0'
-    return <span className="font-medium text-zinc-900 dark:text-zinc-100">{valor}</span>
+    return <span className="font-medium text-texto">{valor}</span>
   }
 
   return (
@@ -81,21 +81,21 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
           )}
 
           {!situacao ? (
-            !erro && <p className="text-xs text-zinc-400">Carregando...</p>
+            !erro && <p className="text-xs text-texto-3">Carregando...</p>
           ) : (
             <>
               <div className="flex items-start justify-between gap-3 text-xs">
                 <div>
-                  <p className="text-zinc-500">
+                  <p className="text-texto-2">
                     WISE {situacao.enderecoIp} <SituacaoWiseTexto situacao={situacao.conectado ? 'Conectado' : 'Desconectado'} />
                   </p>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">
+                  <p className="text-[10px] text-texto-3 mt-0.5">
                     {situacao.medicao
                       ? `Em medição na ${situacao.medicao.maquina} (${situacao.medicao.linha} · ${situacao.medicao.cliente}): nomes das entradas desta máquina.`
                       : 'Livre (sem medição): nomes padrão das entradas.'}
                   </p>
                 </div>
-                <p className="text-zinc-400 text-right">
+                <p className="text-texto-3 text-right">
                   última mensagem: {situacao.ultimaMensagemUtc ? tempoDesde(situacao.ultimaMensagemUtc, agora) : 'nenhuma desde que o sistema iniciou'}
                 </p>
               </div>
@@ -111,15 +111,15 @@ function Conteudo({ titulo = 'Validar entradas', subtitulo, carregar, onFechar }
                 <tbody>
                   {situacao.entradas.map(e => (
                     <tr key={e.canal} className={tableBodyRow}>
-                      <td className="py-2 pr-4 text-zinc-500 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
-                      <td className="py-2 pr-4 text-zinc-900 dark:text-zinc-100">{e.nome}</td>
+                      <td className="py-2 pr-4 text-texto-2 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
+                      <td className="py-2 pr-4 text-texto">{e.nome}</td>
                       <td className="py-2 pr-4">{status(e)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              <p className="text-[10px] text-zinc-400">
+              <p className="text-[10px] text-texto-3">
                 "Sem leitura": o WISE ainda não enviou essa entrada. Confira a fiação e a configuração dela.
               </p>
             </>

@@ -205,7 +205,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   // Seletor "Forma de medição" — compartilhado entre o conteúdo Manual e o Semi Automático.
   const seletorForma = (
     <div>
-      <label className="text-xs text-zinc-500 mb-2 block">Forma de medição</label>
+      <label className="text-xs text-texto-2 mb-2 block">Forma de medição</label>
       <div className="grid grid-cols-3 gap-2">
         {(['Manual', 'SemiAutomatico', 'Automatico'] as TipoColeta[]).map(t => (
           <button
@@ -228,7 +228,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     <>
       <div className="max-w-lg mx-auto mt-8">
         <div className={cardPadded}>
-          <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-4">Nova medição</h2>
+          <h2 className="text-sm font-medium text-texto mb-4">Nova medição</h2>
 
           {sucesso && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-3 py-2 mb-4 text-xs text-green-700 dark:text-green-400">
@@ -355,27 +355,27 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
 
               {/* Campos a coletar — escolha primeiro o quê medir */}
               <div>
-                <label className="text-xs text-zinc-500 mb-2 block">Campos a coletar</label>
+                <label className="text-xs text-texto-2 mb-2 block">Campos a coletar</label>
 
                 {/* Produção fixo — só aparece se a máquina mede produção */}
                 {maquinaSelecionada.medeProducao && (
                   <div className="flex items-center justify-between gap-2 py-1.5">
-                    <span className="text-xs text-zinc-900 dark:text-zinc-100">
-                      Produção <span className="text-[10px] text-zinc-400">(sempre coletado)</span>
+                    <span className="text-xs text-texto">
+                      Produção <span className="text-[10px] text-texto-3">(sempre coletado)</span>
                     </span>
                     <Switch checked disabled />
                   </div>
                 )}
 
                 {loadingCampos ? (
-                  <p className="text-xs text-zinc-400 mt-1">Carregando campos...</p>
+                  <p className="text-xs text-texto-3 mt-1">Carregando campos...</p>
                 ) : camposDisponiveis.length === 0 ? (
-                  <p className="text-xs text-zinc-400 mt-1">Nenhum campo extra cadastrado para esta máquina</p>
+                  <p className="text-xs text-texto-3 mt-1">Nenhum campo extra cadastrado para esta máquina</p>
                 ) : (
                   camposDisponiveis.map(c => (
                     <div key={c.id} className="flex items-center justify-between gap-2 py-1.5">
-                      <span className="text-xs text-zinc-900 dark:text-zinc-100">
-                        {c.nome} {c.unidade && <span className="text-zinc-400">({c.unidade})</span>}
+                      <span className="text-xs text-texto">
+                        {c.nome} {c.unidade && <span className="text-texto-3">({c.unidade})</span>}
                       </span>
                       <Switch checked={camposSelecionados.has(c.id)} onChange={() => toggleCampo(c.id)} />
                     </div>
@@ -410,7 +410,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
                   onChange={e => setPrevisaoTermino(e.target.value)}
                   className={inputMdFull}
                 />
-                <p className="text-[10px] text-zinc-400 mt-1">
+                <p className="text-[10px] text-texto-3 mt-1">
                   Ao atingir este horário, a medição será finalizada automaticamente após 5 minutos
                 </p>
               </div>

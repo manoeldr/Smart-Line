@@ -151,7 +151,7 @@ export default function Medicao() {
 
   if (restaurando) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+      <div className="flex items-center justify-center h-48 text-sm text-texto-3">
         Carregando...
       </div>
     )

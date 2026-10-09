@@ -42,7 +42,7 @@ export default function Desenvolvedor() {
 
   if (usuario?.nivel !== 'Desenvolvedor') {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-zinc-400">
+      <div className="flex items-center justify-center h-48 text-sm text-texto-3">
         Área reservada ao Desenvolvedor
       </div>
     )
@@ -50,7 +50,7 @@ export default function Desenvolvedor() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 flex">
+      <div className="border-b border-borda flex">
         {abas.map(aba => (
           <button key={aba.id} onClick={() => setParams({ aba: aba.id }, { replace: true })} className={tabButton(abaAtiva === aba.id)}>
             {aba.label}
