@@ -3,10 +3,15 @@ namespace SmartLine.Core.Interfaces;
 public interface IConfiguracaoService
 {
     // Usuários
-    Task<IList<UsuarioConfDto>> GetUsuariosAsync();
-    Task<UsuarioConfDto> CriarUsuarioAsync(CriarUsuarioRequest req);
-    Task<UsuarioConfDto> EditarUsuarioAsync(Guid id, EditarUsuarioRequest req);
-    Task DeletarUsuarioAsync(Guid id);
+    /// <summary>
+    /// Usuários. O perfil Desenvolvedor é reservado: só um Desenvolvedor vê, cria, edita, troca a senha
+    /// ou desativa um usuário Desenvolvedor, e só ele dá esse nível a alguém. Um Administrador que
+    /// tente recebe <see cref="PerfilReservadoException"/>.
+    /// </summary>
+    Task<IList<UsuarioConfDto>> GetUsuariosAsync(bool chamadorDesenvolvedor);
+    Task<UsuarioConfDto> CriarUsuarioAsync(CriarUsuarioRequest req, bool chamadorDesenvolvedor);
+    Task<UsuarioConfDto> EditarUsuarioAsync(Guid id, EditarUsuarioRequest req, bool chamadorDesenvolvedor);
+    Task DeletarUsuarioAsync(Guid id, bool chamadorDesenvolvedor);
 
     // Clientes
     Task<IList<ClienteConfDto>> GetClientesAsync();
@@ -34,6 +39,12 @@ public interface IConfiguracaoService
 }
 
 // ── DTOs ──────────────────────────────────────────────────────
+/// <summary>Tentativa de mexer no perfil Desenvolvedor sem ser Desenvolvedor.</summary>
+public class PerfilReservadoException : Exception
+{
+    public PerfilReservadoException() : base("O perfil Desenvolvedor só pode ser alterado por um Desenvolvedor.") { }
+}
+
 public record UsuarioConfDto(string Id, string Nome, string Login, string Nivel, bool Ativo, string? ClienteId, string? ClienteNome);
 public record ClienteConfDto(string Id, string Nome, string? Estado, bool Ativo);
 public record LinhaConfDto(string Id, string Nome, string ClienteId, string ClienteNome, bool Ativo);

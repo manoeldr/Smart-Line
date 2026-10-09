@@ -20,14 +20,14 @@ public class ExportImportService : IExportImportService
     }
 
     // ── EXPORTAÇÃO ──────────────────────────────────────────────
-    public async Task<byte[]> ExportarAsync(ExportOpcoes opcoes)
+    public async Task<byte[]> ExportarAsync(ExportOpcoes opcoes, bool chamadorDesenvolvedor = false)
     {
         var pacote = new ExportPacoteDto(
             GeradoEm: DateTime.UtcNow,
             Clientes: opcoes.ClientesLinhas ? await MontarClientesAsync() : new List<ClienteExportDto>(),
             Maquinas: opcoes.Maquinas ? await MontarMaquinasAsync() : new List<MaquinaExportDto>(),
             Sessoes: opcoes.SessoesMedicoes ? await MontarSessoesAsync() : new List<SessaoExportDto>(),
-            Usuarios: opcoes.Usuarios ? await MontarUsuariosAsync() : new List<UsuarioExportDto>(),
+            Usuarios: opcoes.Usuarios ? await MontarUsuariosAsync(chamadorDesenvolvedor) : new List<UsuarioExportDto>(),
             PeriodosSemComunicacao: opcoes.SessoesMedicoes ? await MontarPeriodosSemComunicacaoAsync() : new List<PeriodoSemComunicacaoExportDto>(),
             Wises: opcoes.ClientesLinhas ? await MontarWisesAsync() : new List<WiseExportDto>()
         );
@@ -160,9 +160,12 @@ public class ExportImportService : IExportImportService
         return wises.Select(w => new WiseExportDto(w.Id, w.EnderecoIp, w.Nome, w.CriadoEm)).ToList();
     }
 
-    private async Task<List<UsuarioExportDto>> MontarUsuariosAsync()
+    private async Task<List<UsuarioExportDto>> MontarUsuariosAsync(bool chamadorDesenvolvedor)
     {
-        var usuarios = await _context.Usuarios.ToListAsync();
+        // O perfil Desenvolvedor é reservado: só sai no pacote de um Desenvolvedor.
+        var usuarios = await _context.Usuarios
+            .Where(u => chamadorDesenvolvedor || u.Nivel != Core.Enums.NivelUsuario.Desenvolvedor)
+            .ToListAsync();
         return usuarios.Select(u => new UsuarioExportDto(
             u.Id, u.ClienteId, u.Nome, u.Login, u.SenhaHash, u.Nivel.ToString(), u.Ativo
         )).ToList();
@@ -176,7 +179,7 @@ public class ExportImportService : IExportImportService
     }
 
     // ── IMPORTAÇÃO ──────────────────────────────────────────────
-    public async Task<ImportResumoDto> ImportarAsync(byte[] arquivoZip)
+    public async Task<ImportResumoDto> ImportarAsync(byte[] arquivoZip, bool chamadorDesenvolvedor = false)
     {
         var pacote = await LerPacoteAsync(arquivoZip);
 
@@ -310,11 +313,14 @@ public class ExportImportService : IExportImportService
             }
         }
 
-        // 3) Usuários (upsert por Id)
+        // 3) Usuários (upsert por Id). Quem não é Desenvolvedor não traz um Desenvolvedor no pacote
+        // nem muda um que já exista aqui (seria o jeito de trocar a senha dele por fora).
         foreach (var usuarioDto in pacote.Usuarios)
         {
             var usuario = await _context.Usuarios.FindAsync(usuarioDto.Id);
             var nivel = Enum.Parse<Core.Enums.NivelUsuario>(usuarioDto.Nivel);
+            if (!chamadorDesenvolvedor && (nivel == Core.Enums.NivelUsuario.Desenvolvedor || usuario?.Nivel == Core.Enums.NivelUsuario.Desenvolvedor))
+                continue;
             if (usuario is null)
             {
                 usuario = new Usuario { Id = usuarioDto.Id };

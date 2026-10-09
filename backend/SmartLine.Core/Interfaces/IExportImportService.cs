@@ -2,8 +2,9 @@ namespace SmartLine.Core.Interfaces;
 
 public interface IExportImportService
 {
-    Task<byte[]> ExportarAsync(ExportOpcoes opcoes);
-    Task<ImportResumoDto> ImportarAsync(byte[] arquivoZip);
+    /// <param name="chamadorDesenvolvedor">Só o Desenvolvedor leva ou traz usuários Desenvolvedor; para os demais eles ficam de fora do pacote e da importação.</param>
+    Task<byte[]> ExportarAsync(ExportOpcoes opcoes, bool chamadorDesenvolvedor = false);
+    Task<ImportResumoDto> ImportarAsync(byte[] arquivoZip, bool chamadorDesenvolvedor = false);
     Task<ImportResumoDto> PreviaImportacaoAsync(byte[] arquivoZip);
 }
 

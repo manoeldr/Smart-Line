@@ -19,9 +19,11 @@ public class ConfiguracaoService : IConfiguracaoService
     }
 
     // ── Usuários ──────────────────────────────────────────────
-    public async Task<IList<UsuarioConfDto>> GetUsuariosAsync() =>
+    public async Task<IList<UsuarioConfDto>> GetUsuariosAsync(bool chamadorDesenvolvedor) =>
         await _context.Usuarios
             .Include(u => u.Cliente)
+            // O Administrador nem vê os Desenvolvedores.
+            .Where(u => chamadorDesenvolvedor || u.Nivel != NivelUsuario.Desenvolvedor)
             .OrderBy(u => u.Nome)
             .Select(u => new UsuarioConfDto(
                 u.Id.ToString(), u.Nome, u.Login,
@@ -31,9 +33,11 @@ public class ConfiguracaoService : IConfiguracaoService
             ))
             .ToListAsync();
 
-    public async Task<UsuarioConfDto> CriarUsuarioAsync(CriarUsuarioRequest req)
+    public async Task<UsuarioConfDto> CriarUsuarioAsync(CriarUsuarioRequest req, bool chamadorDesenvolvedor)
     {
         var nivel = Enum.Parse<NivelUsuario>(req.Nivel);
+        if (nivel == NivelUsuario.Desenvolvedor && !chamadorDesenvolvedor)
+            throw new PerfilReservadoException();
         var usuario = new Usuario
         {
             Id = Guid.NewGuid(),
@@ -53,13 +57,17 @@ public class ConfiguracaoService : IConfiguracaoService
         );
     }
 
-    public async Task<UsuarioConfDto> EditarUsuarioAsync(Guid id, EditarUsuarioRequest req)
+    public async Task<UsuarioConfDto> EditarUsuarioAsync(Guid id, EditarUsuarioRequest req, bool chamadorDesenvolvedor)
     {
         var usuario = await _context.Usuarios.FindAsync(id)
             ?? throw new Exception("Usuário não encontrado");
+        var novoNivel = Enum.Parse<NivelUsuario>(req.Nivel);
+        // Nem mexer num Desenvolvedor, nem promover alguém (inclusive a si mesmo) a Desenvolvedor.
+        if (!chamadorDesenvolvedor && (usuario.Nivel == NivelUsuario.Desenvolvedor || novoNivel == NivelUsuario.Desenvolvedor))
+            throw new PerfilReservadoException();
         usuario.Nome = req.Nome;
         usuario.Login = req.Login;
-        usuario.Nivel = Enum.Parse<NivelUsuario>(req.Nivel);
+        usuario.Nivel = novoNivel;
         usuario.Ativo = req.Ativo;
         usuario.ClienteId = req.ClienteId is not null ? Guid.Parse(req.ClienteId) : null;
         if (!string.IsNullOrWhiteSpace(req.Senha))
@@ -72,10 +80,12 @@ public class ConfiguracaoService : IConfiguracaoService
         );
     }
 
-    public async Task DeletarUsuarioAsync(Guid id)
+    public async Task DeletarUsuarioAsync(Guid id, bool chamadorDesenvolvedor)
     {
         var usuario = await _context.Usuarios.FindAsync(id)
             ?? throw new Exception("Usuário não encontrado");
+        if (usuario.Nivel == NivelUsuario.Desenvolvedor && !chamadorDesenvolvedor)
+            throw new PerfilReservadoException();
         usuario.Ativo = false;
         await _context.SaveChangesAsync();
     }

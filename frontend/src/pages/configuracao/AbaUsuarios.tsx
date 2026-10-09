@@ -1,7 +1,11 @@
 // Aba "Usuários" da tela de Configurações — acesso exclusivo do Administrador/Desenvolvedor.
 // CRUD completo: nome, login, senha, nível de acesso e cliente vinculado (opcional).
+// O perfil Desenvolvedor é reservado: o Administrador não vê os Desenvolvedores (o backend não os
+// manda) nem pode dar esse nível a alguém; aqui a opção nem aparece para ele.
 import { useEffect, useState } from 'react'
 import { useParametroUrl } from '../../hooks/useParametroUrl'
+import { useAuth } from '../../contexts/AuthContext'
+import { mensagemErro } from '../../services/api'
 import { configuracaoService, type UsuarioConfDto } from '../../services/configuracaoService'
 import type { ClienteConfDto } from '../../services/configuracaoService'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -14,6 +18,9 @@ import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableB
 const NIVEIS = ['Administrador', 'Auditor', 'Cliente', 'Desenvolvedor']
 
 export default function AbaUsuarios() {
+  const { usuario } = useAuth()
+  const niveis = usuario?.nivel === 'Desenvolvedor' ? NIVEIS : NIVEIS.filter(n => n !== 'Desenvolvedor')
+  const [erro, setErro] = useState<string | null>(null)
   const [usuarios, setUsuarios] = useState<UsuarioConfDto[]>([])
   const [clientes, setClientes] = useState<ClienteConfDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,6 +78,7 @@ export default function AbaUsuarios() {
 
   async function salvar() {
     setSalvando(true)
+    setErro(null)
     try {
       const data = {
         nome: form.nome,
@@ -87,18 +95,30 @@ export default function AbaUsuarios() {
       }
       fecharModal()
       await carregar()
+    } catch (e) {
+      setErro(mensagemErro(e, 'Não foi possível salvar o usuário.'))
     } finally { setSalvando(false) }
   }
 
   async function confirmarDeletar() {
     if (!usuarioParaDeletar) return
-    await configuracaoService.deletarUsuario(usuarioParaDeletar)
+    try {
+      await configuracaoService.deletarUsuario(usuarioParaDeletar)
+    } catch (e) {
+      setErro(mensagemErro(e, 'Não foi possível desativar o usuário.'))
+    }
     setUsuarioParaDeletar(null)
     await carregar()
   }
 
   return (
     <div>
+      {erro && (
+        <div className="mb-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400 flex items-center justify-between">
+          <span>{erro}</span>
+          <button onClick={() => setErro(null)} className="text-red-400 hover:text-red-600">fechar</button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-texto">Usuários</p>
         <button onClick={abrirNovo} className={`${btnPrimarySm} flex items-center gap-1.5`}>
@@ -174,7 +194,7 @@ export default function AbaUsuarios() {
               <div>
                 <label className={label}>Nível</label>
                 <select value={form.nivel} onChange={e => setForm(f => ({ ...f, nivel: e.target.value }))} className={inputBase}>
-                  {NIVEIS.map(n => <option key={n} value={n}>{n}</option>)}
+                  {niveis.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>

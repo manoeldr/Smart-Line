@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Controllers;
 
 [ApiController]
 [Route("api/export-import")]
-[Authorize]
+[Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
 public class ExportImportController : ControllerBase
 {
     private readonly IExportImportService _service;
@@ -16,10 +17,12 @@ public class ExportImportController : ControllerBase
         _service = service;
     }
 
+    private bool ChamadorDesenvolvedor => User.FindFirst("nivel")?.Value == "Desenvolvedor";
+
     [HttpPost("exportar")]
     public async Task<IActionResult> Exportar([FromBody] ExportOpcoes opcoes)
     {
-        var zipBytes = await _service.ExportarAsync(opcoes);
+        var zipBytes = await _service.ExportarAsync(opcoes, ChamadorDesenvolvedor);
         var nomeArquivo = $"smartline-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
         return File(zipBytes, "application/zip", nomeArquivo);
     }
@@ -38,7 +41,7 @@ public class ExportImportController : ControllerBase
     {
         using var stream = new MemoryStream();
         await arquivo.CopyToAsync(stream);
-        var resumo = await _service.ImportarAsync(stream.ToArray());
+        var resumo = await _service.ImportarAsync(stream.ToArray(), ChamadorDesenvolvedor);
         return Ok(resumo);
     }
 }

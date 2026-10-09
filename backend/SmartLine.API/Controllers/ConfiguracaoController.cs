@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Controllers;
@@ -17,22 +18,40 @@ public class ConfiguracaoController : ControllerBase
     }
 
     // ── Usuários ──────────────────────────────────────────────
+    // Só Administrador e Desenvolvedor; o perfil Desenvolvedor é reservado ao Desenvolvedor
+    // (ver IConfiguracaoService), e a recusa vem como 403 com mensagem para a tela.
+    private bool ChamadorDesenvolvedor => User.FindFirst("nivel")?.Value == "Desenvolvedor";
+
+    private ObjectResult Reservado(PerfilReservadoException e) =>
+        StatusCode(StatusCodes.Status403Forbidden, new { mensagem = e.Message });
+
     [HttpGet("usuarios")]
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
     public async Task<IActionResult> GetUsuarios() =>
-        Ok(await _service.GetUsuariosAsync());
+        Ok(await _service.GetUsuariosAsync(ChamadorDesenvolvedor));
 
     [HttpPost("usuarios")]
-    public async Task<IActionResult> CriarUsuario([FromBody] CriarUsuarioRequest req) =>
-        Ok(await _service.CriarUsuarioAsync(req));
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
+    public async Task<IActionResult> CriarUsuario([FromBody] CriarUsuarioRequest req)
+    {
+        try { return Ok(await _service.CriarUsuarioAsync(req, ChamadorDesenvolvedor)); }
+        catch (PerfilReservadoException e) { return Reservado(e); }
+    }
 
     [HttpPut("usuarios/{id}")]
-    public async Task<IActionResult> EditarUsuario(Guid id, [FromBody] EditarUsuarioRequest req) =>
-        Ok(await _service.EditarUsuarioAsync(id, req));
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
+    public async Task<IActionResult> EditarUsuario(Guid id, [FromBody] EditarUsuarioRequest req)
+    {
+        try { return Ok(await _service.EditarUsuarioAsync(id, req, ChamadorDesenvolvedor)); }
+        catch (PerfilReservadoException e) { return Reservado(e); }
+    }
 
     [HttpDelete("usuarios/{id}")]
+    [Authorize(Policy = Politicas.AdministradorOuDesenvolvedor)]
     public async Task<IActionResult> DeletarUsuario(Guid id)
     {
-        await _service.DeletarUsuarioAsync(id);
+        try { await _service.DeletarUsuarioAsync(id, ChamadorDesenvolvedor); }
+        catch (PerfilReservadoException e) { return Reservado(e); }
         return NoContent();
     }
 
