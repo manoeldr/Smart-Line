@@ -120,6 +120,16 @@ public sealed class ColetaIotService : BackgroundService
         _vistos.Values.OrderBy(w => w.EnderecoIp).ToList();
 
     /// <summary>
+    /// Esquece um IP que publicou (WISE simulado desligado): some de "publicando sem
+    /// cadastro" e do Validar entradas. Uma coleta em andamento com esse IP não é afetada.
+    /// </summary>
+    public void EsquecerWise(string enderecoIp)
+    {
+        _vistos.TryRemove(enderecoIp, out _);
+        _leituras.Esquecer(enderecoIp);
+    }
+
+    /// <summary>
     /// Últimas leituras das entradas de um WISE (em medição ou livre), para o
     /// Validar entradas. Nulo se nada chegou desse IP desde que o backend subiu.
     /// </summary>

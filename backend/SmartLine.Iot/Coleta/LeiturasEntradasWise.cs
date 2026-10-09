@@ -31,6 +31,8 @@ public sealed class LeiturasEntradasWise
 
     public LeituraEntradas? Obter(string enderecoIp) => _porIp.TryGetValue(enderecoIp, out var leitura) ? leitura : null;
 
+    public void Esquecer(string enderecoIp) => _porIp.TryRemove(enderecoIp, out _);
+
     public void Registrar(string enderecoIp, AmostraWise amostra) =>
         _porIp.AddOrUpdate(
             enderecoIp,

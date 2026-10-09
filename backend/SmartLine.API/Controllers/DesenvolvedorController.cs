@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartLine.API.Autorizacao;
+using SmartLine.Core.Interfaces;
 using SmartLine.Iot.Broker;
+using SmartLine.Iot.Coleta;
 using SmartLine.Iot.Diagnostico;
 using SmartLine.Iot.Simulacao;
 
@@ -19,12 +21,16 @@ public class DesenvolvedorController : ControllerBase
     private readonly LogEmMemoria _log;
     private readonly SimuladorWise _simulador;
     private readonly OpcoesBrokerMqtt _broker;
+    private readonly IWiseService _wises;
+    private readonly ColetaIotService _coleta;
 
-    public DesenvolvedorController(LogEmMemoria log, SimuladorWise simulador, OpcoesBrokerMqtt broker)
+    public DesenvolvedorController(LogEmMemoria log, SimuladorWise simulador, OpcoesBrokerMqtt broker, IWiseService wises, ColetaIotService coleta)
     {
         _log = log;
         _simulador = simulador;
         _broker = broker;
+        _wises = wises;
+        _coleta = coleta;
     }
 
     // ── Logs ──────────────────────────────────────────────────────────────
@@ -86,7 +92,7 @@ public class DesenvolvedorController : ControllerBase
         bool Conectada, bool Automatico, DateTime? ProximaMudanca, DateTime? ProximaMudancaComunicacao,
         double GarrafasPorMinuto, double GarrafasPorPulso, bool InterfaceHttp);
 
-    public sealed record SimuladorDto(bool Ligado, DateTime? LigadoEm, int PortaBroker, LigarSimuladorRequest? Opcoes, IReadOnlyList<MaquinaSimuladaDto> Maquinas);
+    public sealed record SimuladorDto(bool Ligado, DateTime? LigadoEm, int PortaBroker, LigarSimuladorRequest? Opcoes, IReadOnlyList<MaquinaSimuladaDto> Maquinas, string? Aviso = null);
 
     [HttpGet("simulador")]
     public ActionResult<SimuladorDto> Simulador() => Situacao();
@@ -125,7 +131,31 @@ public class DesenvolvedorController : ControllerBase
             pedido.PortaHttp);
 
         await _simulador.LigarAsync(opcoes, cancellationToken);
+        await CadastrarSimuladosAsync(cancellationToken);
         return Situacao();
+    }
+
+    /// <summary>
+    /// Os WISE simulados entram no cadastro ao ligar (nome "Simulado N") e saem ao desligar, para
+    /// aparecerem na lista da medição sem cadastro à mão e não ficarem confundindo depois.
+    /// Saem mesmo em medição: a medição guarda o IP e segue como "sem comunicação", como se o
+    /// aparelho tivesse sido desligado.
+    /// </summary>
+    private async Task CadastrarSimuladosAsync(CancellationToken cancellationToken)
+    {
+        var cadastrados = (await _wises.ListarAsync(cancellationToken)).Select(w => w.EnderecoIp).ToHashSet();
+        foreach (var m in _simulador.Situacao())
+        {
+            if (cadastrados.Contains(m.EnderecoIp)) continue;
+            await _wises.AdicionarAsync(new SalvarWiseRequest(m.EnderecoIp, $"Simulado {m.Numero}"), cancellationToken);
+        }
+    }
+
+    private async Task DescadastrarSimuladosAsync()
+    {
+        var ips = _simulador.Situacao().Select(m => m.EnderecoIp).ToHashSet();
+        foreach (var w in (await _wises.ListarAsync()).Where(w => ips.Contains(w.EnderecoIp)))
+            await _wises.RemoverMesmoEmMedicaoAsync(w.Id);
     }
 
     private static List<double> Positivos(double[]? valores, double padrao) =>
@@ -134,7 +164,12 @@ public class DesenvolvedorController : ControllerBase
     [HttpPost("simulador/desligar")]
     public async Task<ActionResult<SimuladorDto>> Desligar()
     {
+        var ips = _simulador.Situacao().Select(m => m.EnderecoIp).ToList();
+        await DescadastrarSimuladosAsync();
         await _simulador.DesligarAsync();
+        // Também somem de "publicando sem cadastro" e do Validar entradas.
+        foreach (var ip in ips)
+            _coleta.EsquecerWise(ip);
         return Situacao();
     }
 

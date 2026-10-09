@@ -1,6 +1,7 @@
 // Aba "Simulador de WISE" da Área do Desenvolvedor: liga WISE simulados dentro do próprio
 // backend (publicam no broker como aparelhos reais, com IPs 127.0.0.21, .22…), com paradas e
 // quedas de comunicação automáticas, e botões com os mesmos comandos do simulador de console.
+// O simulador manda pulsos (um pulso = uma unidade); o multiplicador (garrafas por pulso) é o da medição.
 // O formulário fica guardado no navegador para a próxima vez. Atualiza a cada 2 s.
 import { useEffect, useState, type ReactNode } from 'react'
 import {
@@ -13,7 +14,8 @@ import {
 } from '../../services/desenvolvedorService'
 import { mensagemErro } from '../../services/api'
 import { btnPrimarySm, btnDangerSm } from '../../styles/buttons'
-import { inputBase, checkbox, label as labelClass } from '../../styles/inputs'
+import { inputBase, label as labelClass } from '../../styles/inputs'
+import Switch from '../../components/Switch'
 import { cardPadded } from '../../styles/cards'
 import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableBodyCellMuted } from '../../styles/tables'
 
@@ -90,13 +92,14 @@ export default function AbaSimulador() {
   const [situacao, setSituacao] = useState<SimuladorDto | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [erroComando, setErroComando] = useState<string | null>(null)
+  // Aviso de uma ação (ex.: WISE que ficou cadastrado ao desligar); a atualização periódica não o apaga.
+  const [aviso, setAviso] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [agora, setAgora] = useState(new Date())
 
   // Formulário de ligar (texto cru das listas para o usuário digitar à vontade).
   const [form, setForm] = useState<OpcoesSimuladorDto>(lerFormulario)
   const [ritmoTexto, setRitmoTexto] = useState(() => listaTexto(lerFormulario().garrafasPorMinuto))
-  const [pulsoTexto, setPulsoTexto] = useState(() => listaTexto(lerFormulario().garrafasPorPulso))
 
   useEffect(() => {
     let ativo = true
@@ -130,7 +133,9 @@ export default function AbaSimulador() {
     setOcupado(true)
     setErroComando(null)
     try {
-      setSituacao(await acao())
+      const r = await acao()
+      setSituacao(r)
+      setAviso(r.aviso ?? null)
       setAgora(new Date())
     } catch (e) {
       setErroComando(mensagemErro(e, erroPadrao))
@@ -143,7 +148,8 @@ export default function AbaSimulador() {
     const opcoes: OpcoesSimuladorDto = {
       ...form,
       garrafasPorMinuto: textoLista(ritmoTexto, 600),
-      garrafasPorPulso: textoLista(pulsoTexto, 1),
+      // Um pulso por unidade: o multiplicador é configurado na medição, não aqui.
+      garrafasPorPulso: [1],
     }
     try { localStorage.setItem(CHAVE_FORMULARIO, JSON.stringify(opcoes)) } catch { /* sem armazenamento: segue */ }
     executar(() => desenvolvedorService.ligarSimulador(opcoes), 'Não foi possível ligar o simulador.')
@@ -175,7 +181,7 @@ export default function AbaSimulador() {
           ) : (
             <>
               <span className="font-medium text-zinc-900 dark:text-zinc-100">Simulador desligado.</span>
-              {' '}Ao ligar, cada WISE simulado aparece em Configurações → Dispositivos IoT com o IP abaixo, como um aparelho real.
+              {' '}Ao ligar, cada WISE simulado entra no cadastro de Dispositivos IoT ("Simulado N") e já pode ser escolhido na medição; ao desligar, sai do cadastro.
             </>
           )}
         </div>
@@ -187,6 +193,7 @@ export default function AbaSimulador() {
       </div>
 
       {erroComando && <p className="text-xs text-red-500">{erroComando}</p>}
+      {aviso && <p className="text-xs text-amber-600 dark:text-amber-400">{aviso}</p>}
 
       {/* Formulário (só desligado): rótulos de uma linha só, para os campos ficarem alinhados. */}
       {!ligado && (
@@ -198,11 +205,8 @@ export default function AbaSimulador() {
             <Campo rotulo="Publicação a cada (s)">
               <input type="number" min={1} max={3600} className={inputBase} value={form.intervaloSegundos} onChange={e => numero('intervaloSegundos', e.target.value)} />
             </Campo>
-            <Campo rotulo="Garrafas por minuto">
-              <input className={inputBase} value={ritmoTexto} onChange={e => setRitmoTexto(e.target.value)} placeholder="600 ou 600, 600, 500" />
-            </Campo>
-            <Campo rotulo="Garrafas por pulso">
-              <input className={inputBase} value={pulsoTexto} onChange={e => setPulsoTexto(e.target.value)} placeholder="1 ou 1, 1, 84" />
+            <Campo rotulo="Pulsos por minuto">
+              <input className={inputBase} value={ritmoTexto} onChange={e => setRitmoTexto(e.target.value)} placeholder="600 ou 600, 600, 7" />
             </Campo>
             <Campo rotulo="Refugo (% da produção)">
               <input type="number" min={0} max={100} step="0.1" className={inputBase} value={form.rejeitoPercentual} onChange={e => numero('rejeitoPercentual', e.target.value)} />
@@ -216,14 +220,14 @@ export default function AbaSimulador() {
           </div>
 
           <div className="flex flex-wrap gap-6 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
-              <input type="checkbox" className={checkbox} checked={form.automatico} onChange={e => campo('automatico', e.target.checked)} />
-              Paradas automáticas
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
-              <input type="checkbox" className={checkbox} checked={form.quedas} onChange={e => campo('quedas', e.target.checked)} disabled={!form.automatico} />
-              Quedas de comunicação automáticas
-            </label>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+              <Switch checked={form.automatico} onChange={v => campo('automatico', v)} />
+              <span onClick={() => campo('automatico', !form.automatico)} className="cursor-pointer">Paradas automáticas</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+              <Switch checked={form.quedas} onChange={v => campo('quedas', v)} disabled={!form.automatico} />
+              <span onClick={() => form.automatico && campo('quedas', !form.quedas)} className={form.automatico ? 'cursor-pointer' : 'opacity-60'}>Quedas de comunicação automáticas</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-3">
@@ -248,8 +252,8 @@ export default function AbaSimulador() {
           </div>
 
           <p className="text-[10px] text-zinc-400">
-            Garrafas por minuto e por pulso: um valor ou um por máquina, separados por vírgula (a lista curta repete o último).
-            Garrafas por pulso maior que 1 pede o mesmo número como multiplicador da máquina na medição.
+            Pulsos por minuto: um valor ou um por máquina, separados por vírgula (a lista curta repete o último).
+            Cada pulso vale o multiplicador configurado na medição (ex.: a máquina que conta caixas de 84 manda 7 pulsos/min e usa multiplicador 84).
             "Entre paradas" e "Entre quedas" são tempos médios (sorteados entre 50% e 150%).
             A porta HTTP é a mesma de WISE_HTTP_PORTA no backend (zerar contadores).
           </p>
@@ -261,7 +265,7 @@ export default function AbaSimulador() {
         <div className={cardPadded}>
           <div className="flex items-center gap-3 mb-3">
             <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Máquinas simuladas</p>
-            <span className="text-[10px] text-zinc-400">Cadastre cada IP em Configurações → Dispositivos IoT e escolha o WISE ao iniciar a medição.</span>
+            <span className="text-[10px] text-zinc-400">Já cadastrados em Dispositivos IoT como "Simulado N": é só escolher o WISE ao iniciar a medição.</span>
             <div className="ml-auto flex items-center gap-1">
               <span className="text-[10px] text-zinc-400 mr-1">Todas:</span>
               <BotoesComando maquina={null} ocupado={ocupado} onComando={acao => comando(0, acao)} />
@@ -284,7 +288,7 @@ export default function AbaSimulador() {
                   <td className={tableBodyCell}>
                     {m.numero}
                     <span className="block text-[10px] text-zinc-400">
-                      {m.garrafasPorMinuto} garrafas/min{m.garrafasPorPulso > 1 && ` · ${m.garrafasPorPulso} por pulso`}
+                      {m.garrafasPorMinuto} pulsos/min
                     </span>
                   </td>
                   <td className={tableBodyCell}>

@@ -82,6 +82,17 @@ public class WiseService : IWiseService
         return ResultadoCadastro<bool>.Ok(true);
     }
 
+    public async Task<ResultadoCadastro<bool>> RemoverMesmoEmMedicaoAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var wise = await _context.Wises.FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
+        if (wise is null)
+            return ResultadoCadastro<bool>.Inexistente();
+
+        _context.Wises.Remove(wise);
+        await _context.SaveChangesAsync(cancellationToken);
+        return ResultadoCadastro<bool>.Ok(true);
+    }
+
     // ── Apoio ───────────────────────────────────────────────────────
 
     private async Task<(string? Ip, string? Nome, string? Erro)> ValidarAsync(

@@ -6,7 +6,8 @@ import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { desenvolvedorService, type LinhaLogDto, type NivelLog } from '../../services/desenvolvedorService'
 import { mensagemErro } from '../../services/api'
 import { btnSecondarySm } from '../../styles/buttons'
-import { inputBase, checkbox } from '../../styles/inputs'
+import { inputBase } from '../../styles/inputs'
+import Switch from '../../components/Switch'
 import { cardBase } from '../../styles/cards'
 
 const INTERVALO_MS = 2000
@@ -140,14 +141,14 @@ export default function AbaLogs() {
           placeholder="Procurar no texto (ex.: WISE, 192.168, parada)"
           className={`${inputBase} w-72`}
         />
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-          <input type="checkbox" className={checkbox} checked={!pausado} onChange={e => setPausado(!e.target.checked)} />
-          Atualizar sozinho
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-          <input type="checkbox" className={checkbox} checked={seguir} onChange={e => setSeguir(e.target.checked)} />
-          Seguir o fim
-        </label>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <Switch checked={!pausado} onChange={v => setPausado(!v)} />
+          <span onClick={() => setPausado(p => !p)} className="cursor-pointer">Atualizar sozinho</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <Switch checked={seguir} onChange={setSeguir} />
+          <span onClick={() => setSeguir(s => !s)} className="cursor-pointer">Seguir o fim</span>
+        </div>
         <button onClick={() => setLimparDesde(ultima)} className={btnSecondarySm}>Limpar tela</button>
         <span className="text-xs text-zinc-400 ml-auto">
           {quantidade} {quantidade === 1 ? 'linha' : 'linhas'}

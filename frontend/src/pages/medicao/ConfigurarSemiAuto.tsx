@@ -18,7 +18,7 @@ import Switch from '../../components/Switch'
 import WiseDaMedicao from '../../components/iot/WiseDaMedicao'
 import { situacaoDoIp } from '../../components/iot/situacaoWise'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
-import { inputBase, inputMdFull, label, checkbox } from '../../styles/inputs'
+import { inputBase, inputMdFull, label } from '../../styles/inputs'
 import { modalBody, modalFooter } from '../../styles/modals'
 
 const CONTADORES_PRODUCAO = ['S2', 'S5', 'S6']
@@ -156,10 +156,10 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
     const c = canais[canal]
     return (
       <div key={canal} className="grid grid-cols-[1fr_auto_5.5rem] items-center gap-3 py-1.5">
-        <label className="flex items-center gap-2 min-w-0 text-xs text-zinc-900 dark:text-zinc-100">
-          <input type="checkbox" checked={c.ligado} onChange={e => alterar(canal, { ligado: e.target.checked })} className={checkbox} />
-          <span className="truncate">{canal} - {nome(canal)}</span>
-        </label>
+        <div className="flex items-center gap-2 min-w-0 text-xs text-zinc-900 dark:text-zinc-100">
+          <Switch checked={c.ligado} onChange={v => alterar(canal, { ligado: v })} />
+          <span onClick={() => alterar(canal, { ligado: !c.ligado })} className="truncate cursor-pointer">{canal} - {nome(canal)}</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-zinc-400">Multiplicador</span>
           <Switch

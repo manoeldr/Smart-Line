@@ -17,7 +17,8 @@ import ConfirmModal from '../components/ConfirmModal'
 import MaquinaLinhaSemiModal from './MaquinaLinhaSemiModal'
 import { useAlterarUrl } from '../hooks/useParametroUrl'
 import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
-import { inputBase, label, checkbox } from '../styles/inputs'
+import { inputBase, label } from '../styles/inputs'
+import Switch from '../components/Switch'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
 import { modalOverlay, modalOverlayNested, modalContainerSm, modalPanel, modalHeader, modalTitle, modalFooter } from '../styles/modals'
 
@@ -578,24 +579,14 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">Segundos sem contar produção para considerar a máquina parada.</p>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formMaquina.critica}
-                  onChange={e => setFormMaquina(f => ({ ...f, critica: e.target.checked }))}
-                  className={checkbox}
-                />
-                <span className="text-xs text-zinc-900 dark:text-zinc-100">Máquina crítica</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formMaquina.medeProducao}
-                  onChange={e => setFormMaquina(f => ({ ...f, medeProducao: e.target.checked }))}
-                  className={checkbox}
-                />
-                <span className="text-xs text-zinc-900 dark:text-zinc-100">Mede produção</span>
-              </label>
+              <div className="flex items-center gap-2">
+                <Switch checked={formMaquina.critica} onChange={v => setFormMaquina(f => ({ ...f, critica: v }))} />
+                <span onClick={() => setFormMaquina(f => ({ ...f, critica: !f.critica }))} className="text-xs text-zinc-900 dark:text-zinc-100 cursor-pointer">Máquina crítica</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={formMaquina.medeProducao} onChange={v => setFormMaquina(f => ({ ...f, medeProducao: v }))} />
+                <span onClick={() => setFormMaquina(f => ({ ...f, medeProducao: !f.medeProducao }))} className="text-xs text-zinc-900 dark:text-zinc-100 cursor-pointer">Mede produção</span>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setModalAdicionarMaquinaOpen(false)} className={btnSecondarySm}>

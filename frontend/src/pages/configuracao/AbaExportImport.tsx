@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { exportImportService, type ExportOpcoes, type ImportResumoDto } from '../../services/exportImportService'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
-import { checkbox } from '../../styles/inputs'
+import Switch from '../../components/Switch'
 import { cardPadded } from '../../styles/cards'
 
 export default function AbaExportImport() {
@@ -95,22 +95,22 @@ export default function AbaExportImport() {
         </p>
 
         <div className="flex flex-col gap-2 mb-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={opcoes.clientesLinhas} onChange={() => toggleOpcao('clientesLinhas')} className={checkbox} />
-            <span className="text-xs text-zinc-900 dark:text-zinc-100">Clientes + Linhas <span className="text-zinc-400">(máquinas da linha, regras personalizadas, cadastro de WISE)</span></span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={opcoes.maquinas} onChange={() => toggleOpcao('maquinas')} className={checkbox} />
-            <span className="text-xs text-zinc-900 dark:text-zinc-100">Máquinas <span className="text-zinc-400">(catálogo, campos de coleta, motivos de parada, regras e textos das entradas)</span></span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={opcoes.sessoesMedicoes} onChange={() => toggleOpcao('sessoesMedicoes')} className={checkbox} />
-            <span className="text-xs text-zinc-900 dark:text-zinc-100">Sessões / Medições <span className="text-zinc-400">(produção, paradas, leituras, trechos sem comunicação)</span></span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={opcoes.usuarios} onChange={() => toggleOpcao('usuarios')} className={checkbox} />
-            <span className="text-xs text-zinc-900 dark:text-zinc-100">Usuários <span className="text-zinc-400">(login e senha)</span></span>
-          </label>
+          <div className="flex items-center gap-2">
+            <Switch checked={opcoes.clientesLinhas} onChange={() => toggleOpcao('clientesLinhas')} />
+            <span onClick={() => toggleOpcao('clientesLinhas')} className="cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">Clientes + Linhas <span className="text-zinc-400">(máquinas da linha, regras personalizadas, cadastro de WISE)</span></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={opcoes.maquinas} onChange={() => toggleOpcao('maquinas')} />
+            <span onClick={() => toggleOpcao('maquinas')} className="cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">Máquinas <span className="text-zinc-400">(catálogo, campos de coleta, motivos de parada, regras e textos das entradas)</span></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={opcoes.sessoesMedicoes} onChange={() => toggleOpcao('sessoesMedicoes')} />
+            <span onClick={() => toggleOpcao('sessoesMedicoes')} className="cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">Sessões / Medições <span className="text-zinc-400">(produção, paradas, leituras, trechos sem comunicação)</span></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={opcoes.usuarios} onChange={() => toggleOpcao('usuarios')} />
+            <span onClick={() => toggleOpcao('usuarios')} className="cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">Usuários <span className="text-zinc-400">(login e senha)</span></span>
+          </div>
         </div>
 
         {erroExport && (

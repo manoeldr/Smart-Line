@@ -200,6 +200,23 @@ public sealed class SimuladorWise : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Zera os contadores de uma máquina simulada pelo IP (o que o SmartLine faz por HTTP no WISE
+    /// real). Falso se o IP não é de uma máquina simulada ligada.
+    /// </summary>
+    public async Task<bool> ZerarContadoresAsync(string enderecoIp, CancellationToken cancellationToken = default)
+    {
+        var execucao = _execucao;
+        var p = execucao?.Publicadores.FirstOrDefault(p => p.EnderecoOrigem == enderecoIp);
+        if (p is null) return false;
+
+        await _trava.WaitAsync(cancellationToken);
+        try { p.Maquina.Reiniciar(DateTime.UtcNow); }
+        finally { _trava.Release(); }
+        Avisar($"Máquina {p.Maquina.Numero} ({enderecoIp}): contadores zerados pelo SmartLine ao iniciar a medição.");
+        return true;
+    }
+
     public static CenarioSimulado Cenario(AcaoSimulada acao) => acao switch
     {
         AcaoSimulada.Rodando => CenarioSimulado.Rodando,

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SmartLine.Core.Iot;
 using SmartLine.Iot.Broker;
 using SmartLine.Iot.Diagnostico;
+using SmartLine.Iot.Rede;
 using SmartLine.Iot.Simulacao;
 using SmartLine.Iot.Wise;
 
@@ -220,6 +221,27 @@ public class SimuladorWiseEmbutidoTests : IAsyncLifetime
 
         Assert.Equal(3, simulador.Situacao().Count);
         Assert.Equal(3, simulador.Opcoes!.Maquinas);
+    }
+
+    [Fact]
+    public async Task ZerarContadores_DeUmWiseSimulado_NaoPassaPeloHttp_ENuncaFalha()
+    {
+        await using var simulador = new SimuladorWise();
+        await simulador.LigarAsync(Opcoes(maquinas: 1)); // sem interface HTTP (PortaHttp = 0)
+        await Proxima();
+
+        // Deixa o contador andar e zera pelo caminho que o backend usa ao iniciar a medição.
+        var maquina = simulador.Situacao().Single();
+        using var real = new ZeradorContadoresWise(new OpcoesHttpWise { Porta = 1, Timeout = TimeSpan.FromMilliseconds(300) });
+        var zerador = new ZeradorComSimulador(simulador, real);
+
+        var r = await zerador.ZerarAsync(maquina.EnderecoIp, [CanalWise.S2, CanalWise.S3]);
+
+        Assert.True(r.Sucesso, r.Erro);
+        Assert.Equal(0u, simulador.Situacao().Single().ContadorProducao);
+
+        // IP que não é simulado: segue para o HTTP de verdade (aqui ninguém escuta: falha).
+        Assert.False((await zerador.ZerarAsync("127.0.0.250", [CanalWise.S2])).Sucesso);
     }
 
     [Fact]

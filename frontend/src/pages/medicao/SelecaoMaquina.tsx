@@ -237,7 +237,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
           )}
           {aviso && (
             <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-4 text-xs text-amber-700 dark:text-amber-400">
-              {aviso} A produção continua certa (o sistema conta a diferença do contador), mas o WISE segue com o valor antigo.
+              {aviso} A medição começou normalmente e a produção fica certa do mesmo jeito.
             </div>
           )}
 

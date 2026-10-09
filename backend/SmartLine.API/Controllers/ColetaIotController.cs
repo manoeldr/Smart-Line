@@ -23,19 +23,22 @@ public class ColetaIotController : ControllerBase
     private readonly ColetaIotService _coleta;
     private readonly BrokerMqttService _broker;
     private readonly IZeradorContadoresWise _zerador;
+    private readonly ILogger<ColetaIotController> _log;
 
     public ColetaIotController(
         IAcompanhamentoService acompanhamentos,
         IEntradasWiseService entradas,
         ColetaIotService coleta,
         BrokerMqttService broker,
-        IZeradorContadoresWise zerador)
+        IZeradorContadoresWise zerador,
+        ILogger<ColetaIotController> log)
     {
         _acompanhamentos = acompanhamentos;
         _entradas = entradas;
         _coleta = coleta;
         _broker = broker;
         _zerador = zerador;
+        _log = log;
     }
 
     /// <summary>Os oito canais do WISE, para montar a tela de iniciar (o mapa é fixo).</summary>
@@ -99,9 +102,13 @@ public class ColetaIotController : ControllerBase
             .ToList();
         var zerar = await _zerador.ZerarAsync(enderecoIp!, contadores, cancellationToken);
 
+        // O motivo técnico vai para o log (Área do Desenvolvedor); a tela recebe uma frase simples.
+        if (!zerar.Sucesso)
+            _log.LogWarning("Não zerou os contadores do WISE {EnderecoIp} ao iniciar a medição: {Erro}", enderecoIp, zerar.Erro);
+
         return Ok(resultado.Iniciado! with
         {
-            AvisoContadores = zerar.Sucesso ? null : $"Os contadores do WISE não foram zerados: {zerar.Erro}"
+            AvisoContadores = zerar.Sucesso ? null : "Não foi possível zerar os contadores do WISE."
         });
     }
 

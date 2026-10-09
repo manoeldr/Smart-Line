@@ -20,6 +20,12 @@ public interface IWiseService
     /// medições já feitas guardam o IP e não são afetadas.
     /// </summary>
     Task<ResultadoCadastro<bool>> RemoverAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tira do cadastro mesmo em medição (WISE simulado sendo desligado: a medição guarda o IP
+    /// e segue como "sem comunicação"). Só para a Área do Desenvolvedor.
+    /// </summary>
+    Task<ResultadoCadastro<bool>> RemoverMesmoEmMedicaoAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 /// <param name="EnderecoIp">Como digitado (ex.: "192.168.10.21").</param>

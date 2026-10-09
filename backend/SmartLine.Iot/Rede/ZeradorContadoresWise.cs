@@ -53,6 +53,29 @@ public sealed class OpcoesHttpWise
     };
 }
 
+/// <summary>
+/// Antes de ir ao HTTP, vê se o IP é de um WISE simulado ligado dentro do backend: esse é
+/// zerado direto, sem rede, e nunca falha (o simulador existe para testar o resto).
+/// </summary>
+public sealed class ZeradorComSimulador : IZeradorContadoresWise
+{
+    private readonly Simulacao.SimuladorWise _simulador;
+    private readonly IZeradorContadoresWise _real;
+
+    public ZeradorComSimulador(Simulacao.SimuladorWise simulador, IZeradorContadoresWise real)
+    {
+        _simulador = simulador;
+        _real = real;
+    }
+
+    public async Task<ResultadoZerarContadores> ZerarAsync(string enderecoIp, IReadOnlyCollection<CanalWise> contadores, CancellationToken cancellationToken = default)
+    {
+        if (contadores.Count > 0 && await _simulador.ZerarContadoresAsync(enderecoIp, cancellationToken))
+            return ResultadoZerarContadores.Ok;
+        return await _real.ZerarAsync(enderecoIp, contadores, cancellationToken);
+    }
+}
+
 public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
 {
     private readonly OpcoesHttpWise _opcoes;

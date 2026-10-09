@@ -63,6 +63,8 @@ export interface SimuladorDto {
   portaBroker: number
   opcoes: OpcoesSimuladorDto | null
   maquinas: MaquinaSimuladaDto[]
+  // Ao desligar: WISE simulados que continuaram cadastrados por estarem em medição
+  aviso?: string | null
 }
 
 // As mesmas ações do console do simulador.

@@ -73,7 +73,11 @@ builder.Services.AddSingleton<BrokerMqttService>();
 builder.Services.AddSingleton<SmartLine.Iot.Rede.ITestePing, SmartLine.Iot.Rede.TestePing>();
 // Zera os contadores do WISE (pela interface HTTP dele) ao iniciar cada medição.
 builder.Services.AddSingleton(SmartLine.Iot.Rede.OpcoesHttpWise.LerDoAmbiente());
-builder.Services.AddSingleton<SmartLine.Iot.Rede.IZeradorContadoresWise, SmartLine.Iot.Rede.ZeradorContadoresWise>();
+builder.Services.AddSingleton<SmartLine.Iot.Rede.ZeradorContadoresWise>();
+// WISE simulado dentro do backend é zerado direto, sem HTTP; o real vai pela rede.
+builder.Services.AddSingleton<SmartLine.Iot.Rede.IZeradorContadoresWise>(sp => new SmartLine.Iot.Rede.ZeradorComSimulador(
+    sp.GetRequiredService<SmartLine.Iot.Simulacao.SimuladorWise>(),
+    sp.GetRequiredService<SmartLine.Iot.Rede.ZeradorContadoresWise>()));
 
 // Área do Desenvolvedor: as últimas linhas do log ficam em memória para a tela, e o
 // simulador de WISE pode ser ligado por dentro do sistema (publica no broker acima).
@@ -138,6 +142,16 @@ using (var scope = app.Services.CreateScope())
     // (instalação nova, máquinas vindas de importação). Idempotente: não mexe no que existe.
     var regrasPadrao = scope.ServiceProvider.GetRequiredService<IRegrasPadraoService>();
     await regrasPadrao.GarantirParaTodasAsync();
+
+    // WISE simulados (IP 127.0.0.x) só existem enquanto o simulador da Área do Desenvolvedor
+    // está ligado; um que tenha sobrado no cadastro (backend derrubado com ele ligado) sai aqui.
+    // Um WISE real nunca tem endereço de loopback.
+    var simuladosSobrando = await db.Wises.Where(w => w.EnderecoIp.StartsWith("127.")).ToListAsync();
+    if (simuladosSobrando.Count > 0)
+    {
+        db.Wises.RemoveRange(simuladosSobrando);
+        await db.SaveChangesAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())
