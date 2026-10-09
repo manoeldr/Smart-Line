@@ -83,6 +83,9 @@ export interface ColetaIotPainelDto {
 }
 
 export const coletaIotService = {
+  // Todas as coletas ligadas (Área do Desenvolvedor)
+  painel: () => api.get<ColetaIotPainelDto[]>('/coleta-iot'),
+
   // Coleta ligada na máquina; a API responde 404 quando a máquina não está em coleta.
   painelDaMaquina: (maquinaLinhaId: string) => api.get<ColetaIotPainelDto>(`/coleta-iot/maquina/${maquinaLinhaId}`),
 

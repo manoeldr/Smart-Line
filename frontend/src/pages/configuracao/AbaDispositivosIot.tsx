@@ -4,10 +4,9 @@
 // iniciar a medição e fica livre ao finalizar.
 // Adicionar: antes de gravar faz o ping no IP; se não responder, avisa e deixa adicionar
 // mesmo assim (ex.: WISE que ainda vai ser instalado). Abaixo da lista, os WISE que estão
-// publicando sem estar cadastrados. No topo, a situação do broker. Atualiza a cada 5 s.
+// publicando sem estar cadastrados. Aviso no topo se o broker não estiver no ar. Atualiza a cada 5 s.
 import { useEffect, useState } from 'react'
 import { useParametroUrl } from '../../hooks/useParametroUrl'
-import { useAuth } from '../../contexts/AuthContext'
 import { dispositivoIotService, type ResultadoPingDto, type StatusColetaIotDto, type WiseDto } from '../../services/dispositivoIotService'
 import { mensagemErro } from '../../services/api'
 import ValidarEntradasModal from '../../modals/ValidarEntradasModal'
@@ -50,10 +49,6 @@ export default function AbaDispositivosIot() {
   const [adicionado, setAdicionado] = useState<string | null>(null)
 
   // Modais abertos na URL (?validar=, ?ping=, ?editar= com o IP) para o F5 reabri-los.
-  // Situação do broker e contadores de mensagens: só para o Desenvolvedor.
-  const { usuario } = useAuth()
-  const desenvolvedor = usuario?.nivel === 'Desenvolvedor'
-
   const [validando, setValidando] = useParametroUrl('validar')
   const [pingando, setPingando] = useParametroUrl('ping')
   const [editarIp, setEditarIp] = useParametroUrl('editar')
@@ -182,10 +177,8 @@ export default function AbaDispositivosIot() {
         </div>
       )}
 
-      {/* Broker */}
-      {status && (desenvolvedor
-        ? <StatusBroker status={status} />
-        : <AvisoComunicacao status={status} />)}
+      {/* Broker fora do ar: aviso. A situação completa está em Desenvolvedor → Coleta. */}
+      {status && <AvisoComunicacao status={status} />}
 
       {/* WISE cadastrados */}
       <div className={`${cardPadded} flex flex-col gap-3`}>
@@ -373,38 +366,13 @@ export default function AbaDispositivosIot() {
   )
 }
 
-// Situação do broker MQTT embutido: se não estiver no ar, nenhum WISE consegue publicar.
-// Para quem não é Desenvolvedor: nada quando está tudo certo; um aviso simples quando o
-// sistema não consegue receber os WISE neste computador.
+// Broker MQTT embutido fora do ar: nenhum WISE consegue publicar. Nada quando está tudo certo;
+// um aviso simples quando o sistema não consegue receber os WISE neste computador.
 function AvisoComunicacao({ status }: { status: StatusColetaIotDto }) {
   if (status.brokerHabilitado && status.brokerEmExecucao) return null
   return (
     <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
       Este computador não está recebendo os WISE. Fale com o suporte.
-    </div>
-  )
-}
-
-function StatusBroker({ status }: { status: StatusColetaIotDto }) {
-  const situacao = !status.brokerHabilitado
-    ? { texto: 'desabilitado nesta instalação (MQTT_HABILITADO=false)', cor: 'text-red-600 dark:text-red-400' }
-    : status.brokerEmExecucao
-      ? { texto: `em funcionamento na porta ${status.porta}`, cor: 'text-green-600 dark:text-green-400' }
-      : { texto: `não conseguiu abrir a porta ${status.porta} (outro programa usando ou firewall)`, cor: 'text-red-600 dark:text-red-400' }
-
-  const numero = (n: number) => n.toLocaleString('pt-BR')
-
-  return (
-    <div className={`${cardPadded} flex flex-wrap items-center gap-x-6 gap-y-2 text-xs`}>
-      <p className="text-zinc-500">Broker MQTT: <span className={`font-medium ${situacao.cor}`}>{situacao.texto}</span></p>
-      <p className="text-zinc-500">WISE conectados: <span className="font-medium text-zinc-900 dark:text-zinc-100">{status.wiseConectados}</span></p>
-      <p className="text-zinc-500">Mensagens processadas: <span className="text-zinc-900 dark:text-zinc-100">{numero(status.mensagensProcessadas)}</span></p>
-      <p className="text-zinc-500" title="WISE livre (sem medição) ou mensagem fora do formato">
-        Descartadas: <span className="text-zinc-900 dark:text-zinc-100">{numero(status.mensagensDescartadas)}</span>
-      </p>
-      {status.mensagensPerdidasFilaCheia > 0 && (
-        <p className="text-red-600 dark:text-red-400">Perdidas por fila cheia: {numero(status.mensagensPerdidasFilaCheia)}</p>
-      )}
     </div>
   )
 }
