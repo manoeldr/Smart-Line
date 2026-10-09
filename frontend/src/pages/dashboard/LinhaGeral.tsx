@@ -199,11 +199,12 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
       className={`border-b border-borda-suave cursor-pointer hover:bg-superficie-2 ${m.referencia ? 'font-medium' : ''}`}
     >
       <td className="py-2">
+        {/* Nome e etiqueta ocupam o que precisam; "ao vivo" vai para a borda da coluna, alinhado em todas as linhas */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: cor }} />
           <span className="text-texto">{m.nome}</span>
           {m.critica && <span className={badgeCritica}>Crítica</span>}
-          {m.aoVivo && <span className="text-[10px] text-green-600 dark:text-green-400">ao vivo</span>}
+          {m.aoVivo && <span className="ml-auto pl-3 text-[10px] text-green-600 dark:text-green-400">ao vivo</span>}
         </div>
       </td>
       {m.temSessao ? (
