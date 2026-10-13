@@ -17,6 +17,7 @@ import { maquinaDeReferencia } from './referencia'
 import { lerLista, lembrarNaLista, removerDaLista } from './listasRelatorio'
 import SecaoDadosMedicao, { type DadosMedicao } from './SecaoDadosMedicao'
 import Logo from '../../components/Logo'
+import { useModeloRelatorio } from '../../hooks/useModeloRelatorio'
 
 function hojeTexto() {
   return new Date().toISOString().slice(0, 10)
@@ -24,6 +25,9 @@ function hojeTexto() {
 
 export default function Relatorios() {
   const { usuario, clienteId } = useAuth()
+  // Folha timbrada (Configurações → Relatório): fundo de cada página e margens do conteúdo
+  const { modelo, imagemUrl: timbreUrl } = useModeloRelatorio()
+  const comTimbre = !!modelo?.existe && !!timbreUrl
   const [clienteNome, setClienteNome] = useState('')
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [linhaId, setLinhaId] = useState('')
@@ -183,20 +187,37 @@ export default function Relatorios() {
       ) : erro ? (
         <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro: {erro}</div>
       ) : (
-        <div className="relatorio-folha mx-auto bg-white text-zinc-900 shadow-md">
-          <header className="flex items-start justify-between border-b-2 border-zinc-900 pb-3 mb-5">
-            <div className="flex items-center gap-3">
-              <Logo tamanho={36} />
-              <div>
-                <p className="text-base font-semibold leading-tight">Relatório de medição</p>
-                <p className="text-xs text-zinc-500">Smart Line Scan · Sanmartin</p>
+        <div
+          className="relatorio-folha mx-auto bg-white text-zinc-900 shadow-md"
+          style={comTimbre && modelo ? {
+            padding: `${modelo.margens.superior}mm ${modelo.margens.direita}mm ${modelo.margens.inferior}mm ${modelo.margens.esquerda}mm`,
+          } : undefined}
+        >
+          {comTimbre && <img src={timbreUrl!} alt="" className="relatorio-timbre" />}
+
+          {comTimbre ? (
+            // Com timbre a marca já vem da folha: só a linha do que é este relatório
+            <header className="relative flex items-baseline justify-between border-b border-zinc-300 pb-2 mb-5">
+              <p className="text-base font-semibold">Relatório de medição</p>
+              <p className="text-xs text-zinc-500">
+                {dados.linhaNome} · {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')} · emitido em {emitidoEm.toLocaleDateString('pt-BR')} às {emitidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </header>
+          ) : (
+            <header className="flex items-start justify-between border-b-2 border-zinc-900 pb-3 mb-5">
+              <div className="flex items-center gap-3">
+                <Logo tamanho={36} />
+                <div>
+                  <p className="text-base font-semibold leading-tight">Relatório de medição</p>
+                  <p className="text-xs text-zinc-500">Smart Line Scan · Sanmartin</p>
+                </div>
               </div>
-            </div>
-            <div className="text-right text-xs text-zinc-500">
-              <p>{dados.linhaNome} · {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-              <p>Emitido em {emitidoEm.toLocaleDateString('pt-BR')} às {emitidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
-          </header>
+              <div className="text-right text-xs text-zinc-500">
+                <p>{dados.linhaNome} · {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                <p>Emitido em {emitidoEm.toLocaleDateString('pt-BR')} às {emitidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </header>
+          )}
 
           {temMedicao ? (
             <SecaoDadosMedicao dados={dados} agora={emitidoEm} />

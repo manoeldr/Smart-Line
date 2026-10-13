@@ -1,4 +1,4 @@
-using DotNetEnv;
+﻿using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -45,6 +45,7 @@ builder.Services.AddScoped<ILinhaMaquinaService, LinhaMaquinaService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISessaoDetalheService, SessaoDetalheService>();
 builder.Services.AddScoped<IExportImportService, ExportImportService>();
+builder.Services.AddSingleton<IModeloRelatorioService, ModeloRelatorioService>();
 builder.Services.AddScoped<ILicencaService, LicencaService>();
 builder.Services.AddScoped<IOeeService, OeeService>();
 builder.Services.AddScoped<IParadaService, ParadaService>();

@@ -9,6 +9,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
+    <!-- Folha timbrada do relatório: converte o PDF importado em imagem (PDFium embutido) -->
+    <PackageReference Include="PDFtoImage" Version="5.4.0" />
     <!-- O EF Sqlite 10.0.8 traz o SQLite nativo 2.1.11, com a vulnerabilidade GHSA-2m69-gcr7-jv3q
          (aviso NU1903 em todo build). A referência direta sobe para a versão corrigida. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />

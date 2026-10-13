@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Entities.Global;
@@ -63,6 +63,14 @@ public class ExportImportService : IExportImportService
                         zip.CreateEntryFromFile(caminhoCompleto, $"fotos/{fotoPath}");
                     }
                 }
+            }
+
+            // modelo-relatorio/ — a folha timbrada do relatório (imagem + margens), se houver.
+            // Vai junto com clientes/linhas: é configuração da instalação, não dado de medição.
+            if (opcoes.ClientesLinhas && Directory.Exists(ModeloRelatorioService.Pasta))
+            {
+                foreach (var caminho in Directory.GetFiles(ModeloRelatorioService.Pasta))
+                    zip.CreateEntryFromFile(caminho, $"modelo-relatorio/{Path.GetFileName(caminho)}");
             }
         }
 
@@ -469,6 +477,9 @@ public class ExportImportService : IExportImportService
         // 7) Extrai as fotos do zip para a pasta local (se houver)
         await ExtrairFotosAsync(arquivoZip);
 
+        // 8) Folha timbrada do relatório (se vier no pacote, substitui a daqui)
+        await ExtrairModeloRelatorioAsync(arquivoZip);
+
         return ContarPacote(pacote);
     }
 
@@ -567,6 +578,25 @@ public class ExportImportService : IExportImportService
             var caminhoRelativo = entry.FullName.Substring("fotos/".Length);
             var destino = Path.Combine(raizFotos, caminhoRelativo);
             Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
+            await using var origemStream = entry.Open();
+            await using var destinoStream = File.Create(destino);
+            await origemStream.CopyToAsync(destinoStream);
+        }
+    }
+
+    private static async Task ExtrairModeloRelatorioAsync(byte[] arquivoZip)
+    {
+        using var memoryStream = new MemoryStream(arquivoZip);
+        using var zip = new ZipArchive(memoryStream, ZipArchiveMode.Read);
+        var entradas = zip.Entries.Where(e => e.FullName.StartsWith("modelo-relatorio/") && !string.IsNullOrEmpty(e.Name)).ToList();
+        if (entradas.Count == 0) return;
+
+        if (Directory.Exists(ModeloRelatorioService.Pasta)) Directory.Delete(ModeloRelatorioService.Pasta, recursive: true);
+        Directory.CreateDirectory(ModeloRelatorioService.Pasta);
+        foreach (var entry in entradas)
+        {
+            // Só o nome do arquivo (sem subpastas): a pasta é plana e evita caminho fora dela
+            var destino = Path.Combine(ModeloRelatorioService.Pasta, Path.GetFileName(entry.Name));
             await using var origemStream = entry.Open();
             await using var destinoStream = File.Create(destino);
             await origemStream.CopyToAsync(destinoStream);
