@@ -214,11 +214,17 @@
    A folha é sempre "papel" (clara), mesmo no tema escuro: os neutros são fixados aqui.
    Na impressão só a folha sai, em A4 retrato; menu, topo e controles somem. */
 .relatorio-folha {
-  --superficie: #ffffff; --superficie-2: #fafafa; --campo: #ffffff;
-  --borda: #e4e4e7; --borda-forte: #d4d4d8; --borda-suave: #f4f4f5;
-  --texto: #18181b; --texto-2: #52525b; --texto-3: #71717a; --texto-4: #d4d4d8;
+  /* As classes (bg-superficie-2, text-texto…) leem as --color-*, que o Tailwind define no :root;
+     por isso é nelas que se fixa o claro aqui, e não nas variáveis do tema. */
+  --color-fundo: #ffffff; --color-superficie: #ffffff; --color-superficie-2: #fafafa;
+  --color-superficie-3: #e4e4e7; --color-campo: #ffffff;
+  --color-borda: #e4e4e7; --color-borda-forte: #d4d4d8; --color-borda-suave: #f4f4f5;
+  --color-texto: #18181b; --color-texto-2: #52525b; --color-texto-3: #71717a; --color-texto-4: #d4d4d8;
+  color-scheme: light;
+  /* Folha A4 de tamanho fixo: o conteúdo não estica a página (o que não couber fica cortado) */
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
+  overflow: hidden;
   padding: 18mm 16mm;
   box-sizing: border-box;
   position: relative;
@@ -240,16 +246,19 @@
 @media print {
   html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
   body * { visibility: hidden; }
-  .relatorio-folha, .relatorio-folha * { visibility: visible; }
+  .relatorio-documento, .relatorio-documento * { visibility: visible; }
+  .relatorio-documento { position: absolute; left: 0; top: 0; margin: 0; gap: 0 !important; }
+  /* Cada folha é uma página impressa; a última não deixa página em branco */
   .relatorio-folha {
-    position: absolute; left: 0; top: 0;
-    min-height: 0; margin: 0;
+    width: 210mm; height: 297mm; margin: 0;
     box-shadow: none !important;
+    break-after: page;
   }
+  .relatorio-folha:last-child { break-after: auto; }
   /* Sem timbre: margem fixa; com timbre: as margens configuradas (padding inline). */
-  .relatorio-folha { width: 210mm; }
   .relatorio-folha:not(:has(.relatorio-timbre)) { padding: 14mm 12mm; }
-  /* Repete o timbre em cada página impressa */
-  .relatorio-timbre { position: fixed; left: 0; top: 0; width: 210mm; height: 297mm; }
+  /* O timbre de cada folha fica preso à folha (absolute): sai em cada página */
   .relatorio-controles { display: none !important; }
+  /* Balões de dica dos gráficos: nunca no papel */
+  .relatorio-documento .recharts-tooltip-wrapper { display: none !important; }
 }

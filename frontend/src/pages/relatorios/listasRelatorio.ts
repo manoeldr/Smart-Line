@@ -2,7 +2,7 @@
 // do Cliente): o que foi usado ao exportar fica sugerido na próxima vez, e cada item pode ser
 // removido. Por enquanto ficam neste navegador (localStorage); vão para o banco quando o
 // backend do relatório existir, sem mudar quem usa estas funções.
-export type ListaRelatorio = 'produtos' | 'responsaveisCliente'
+export type ListaRelatorio = 'produtos' | 'responsaveisCliente' | 'emailsCliente'
 
 function chave(clienteId: string, lista: ListaRelatorio) {
   return `smartline.relatorio.${lista}.${clienteId}`
