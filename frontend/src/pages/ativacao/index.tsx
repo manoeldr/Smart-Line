@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { licencaService } from '../../services/licencaService'
 import { btnPrimary } from '../../styles/buttons'
 import { inputMdFull, label } from '../../styles/inputs'
+import Logo from '../../components/Logo'
 
 interface Props {
   macAddress: string
@@ -34,11 +35,7 @@ export default function Ativacao({ macAddress, onAtivado }: Props) {
     <div className="min-h-screen bg-fundo flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 bg-black dark:ring-1 dark:ring-zinc-700 rounded-xl flex items-center justify-center flex-shrink-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-          </div>
+          <Logo tamanho={40} />
           <div>
             <p className="text-lg font-medium text-texto">Smart Line Scan</p>
             <p className="text-xs text-texto-2">Ativação necessária</p>

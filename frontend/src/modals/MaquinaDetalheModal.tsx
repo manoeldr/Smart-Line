@@ -281,7 +281,8 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
 
               {/* O que ocupa o resto do modal: gráficos ou linha do tempo */}
               <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="flex">
+                {/* Botões de cada grupo com a mesma largura (a do rótulo mais comprido) */}
+                <div className="grid grid-flow-col auto-cols-fr">
                   {([['graficos', 'Gráficos'], ['linha', 'Linha do tempo']] as const).map(([valor, rotulo]) => (
                     <button
                       key={valor}
@@ -297,7 +298,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                   ))}
                 </div>
                 {painel === 'graficos' && (
-                  <div className="flex">
+                  <div className="grid grid-flow-col auto-cols-fr">
                     {OPCOES_GRAFICO.map(o => (
                       <button
                         key={o.valor}

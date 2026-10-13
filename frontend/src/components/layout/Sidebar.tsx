@@ -2,6 +2,7 @@
 // "Desenvolvedor" (logs e simulador) só para o nível Desenvolvedor.
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import Logo from '../Logo'
 
 // Item de navegação padrão — reutiliza a mesma lógica de estilo ativo/inativo em todos os links
 function navLinkClass({ isActive }: { isActive: boolean }) {
@@ -28,11 +29,7 @@ export default function Sidebar() {
     <aside className="w-52 bg-superficie border-r border-borda flex flex-col h-full flex-shrink-0">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-borda flex items-center gap-3">
-        <div className="w-8 h-8 bg-black dark:ring-1 dark:ring-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-        </div>
+        <Logo tamanho={32} />
         <div>
           <p className="text-sm font-medium text-texto">Smart Line Scan</p>
           <p className="text-xs text-texto-2">Sanmartin</p>
