@@ -9,6 +9,7 @@ import Configuracao from './pages/configuracao'
 import Dashboard from './pages/dashboard'
 import Ativacao from './pages/ativacao'
 import Desenvolvedor from './pages/desenvolvedor'
+import Relatorios from './pages/relatorios'
 import { licencaService } from './services/licencaService'
 
 // Área da tela, para a cor de destaque (ver index.css): Configurações em cinza, Área do
@@ -68,6 +69,7 @@ export default function Router() {
           <Route path="overview" element={<Overview />} />
           <Route path="medicao" element={<Medicao />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="relatorios" element={<Relatorios />} />
           <Route path="configuracao" element={<Configuracao />} />
           <Route path="desenvolvedor" element={<Desenvolvedor />} />
         </Route>

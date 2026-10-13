@@ -209,3 +209,28 @@
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ── Relatórios ───────────────────────────────────────────────────────────────
+   A folha é sempre "papel" (clara), mesmo no tema escuro: os neutros são fixados aqui.
+   Na impressão só a folha sai, em A4 retrato; menu, topo e controles somem. */
+.relatorio-folha {
+  --superficie: #ffffff; --superficie-2: #fafafa; --campo: #ffffff;
+  --borda: #e4e4e7; --borda-forte: #d4d4d8; --borda-suave: #f4f4f5;
+  --texto: #18181b; --texto-2: #52525b; --texto-3: #71717a; --texto-4: #d4d4d8;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  box-sizing: border-box;
+}
+@page { size: A4 portrait; margin: 14mm 12mm; }
+@media print {
+  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  body * { visibility: hidden; }
+  .relatorio-folha, .relatorio-folha * { visibility: visible; }
+  .relatorio-folha {
+    position: absolute; left: 0; top: 0;
+    width: auto; min-height: 0; padding: 0; margin: 0;
+    box-shadow: none !important;
+  }
+  .relatorio-controles { display: none !important; }
+}

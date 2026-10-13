@@ -4,6 +4,9 @@ import type { Cliente } from '../types'
 export const clienteService = {
   getAll: () => api.get<Cliente[]>('/clientes'),
 
+  // Um cliente (qualquer nível vê o próprio: nome na capa do relatório)
+  getById: (id: string) => api.get<Cliente>(`/clientes/${id}`),
+
   // Dias ("yyyy-MM-dd") em que alguma máquina do cliente teve sessão — bolinha azul no calendário
   // Com linhaId, só as máquinas daquela linha
   getDatasComSessao: (clienteId: string, linhaId?: string) =>
