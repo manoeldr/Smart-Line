@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 public interface ISessaoDetalheService
 {
@@ -35,7 +35,20 @@ public record SessaoDetalheDto(
     string? TipoColeta = null,
     // Gráficos de paradas (a parada em curso conta até agora)
     IList<ParadaPorHoraDto>? ParadasPorHora = null,
-    IList<ParadaPorMotivoDto>? ParadasPorMotivo = null
+    IList<ParadaPorMotivoDto>? ParadasPorMotivo = null,
+    // Tempos e contagens do OEE, para o Resumo Geral do relatório (mesmos números do cálculo):
+    // Total = fim − início sem o tempo sem comunicação; Planejado = paradas programadas (pausa);
+    // Disponível = total − planejado; Interno/Externo = paradas não programadas por tipo.
+    double TempoTotalMs = 0,
+    double TempoPlanejadoMs = 0,
+    double TempoDisponivelMs = 0,
+    double TempoInternoMs = 0,
+    double TempoExternoMs = 0,
+    double TempoSemComunicacaoMs = 0,
+    int NumParadas = 0,
+    int NumParadasInternas = 0,
+    int NumParadasExternas = 0,
+    int NumParadasPlanejadas = 0
 );
 
 /// <summary>Tempo parado dentro de uma hora (Hora = início da hora), por tipo.</summary>

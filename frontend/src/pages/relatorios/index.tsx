@@ -16,6 +16,7 @@ import { cardPadded } from '../../styles/cards'
 import { maquinaDeReferencia } from './referencia'
 import { lerLista, lembrarNaLista, removerDaLista } from './listasRelatorio'
 import SecaoDadosMedicao, { type DadosMedicao } from './SecaoDadosMedicao'
+import SecaoResumoGeral from './SecaoResumoGeral'
 import Logo from '../../components/Logo'
 import { useModeloRelatorio } from '../../hooks/useModeloRelatorio'
 
@@ -219,8 +220,11 @@ export default function Relatorios() {
             </header>
           )}
 
-          {temMedicao ? (
-            <SecaoDadosMedicao dados={dados} agora={emitidoEm} />
+          {temMedicao && sessao ? (
+            <>
+              <SecaoDadosMedicao dados={dados} agora={emitidoEm} />
+              <SecaoResumoGeral sessao={sessao} agora={emitidoEm} />
+            </>
           ) : (
             <p className="text-sm text-zinc-500 italic">Nenhuma máquina desta linha foi medida no dia escolhido.</p>
           )}

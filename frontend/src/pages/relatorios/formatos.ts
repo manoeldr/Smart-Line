@@ -7,11 +7,11 @@ export function dataHoraLonga(iso: string | null | undefined): string {
 }
 
 // "7 h 05 min" a partir de milissegundos
-export function duracaoHoras(ms: number): string {
-  const min = Math.max(0, Math.round(ms / 60000))
+export function duracaoHoras(ms: number | null | undefined): string {
+  const min = Number.isFinite(ms) ? Math.max(0, Math.round((ms as number) / 60000)) : 0
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`
 }
 
-export function inteiro(n: number): string {
-  return n.toLocaleString('pt-BR')
+export function inteiro(n: number | null | undefined): string {
+  return (Number.isFinite(n) ? (n as number) : 0).toLocaleString('pt-BR')
 }

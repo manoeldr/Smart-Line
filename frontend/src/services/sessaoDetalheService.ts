@@ -82,6 +82,19 @@ export interface SessaoDetalheDto {
   // Gráficos de paradas (a parada em curso conta até agora)
   paradasPorHora?: ParadaPorHoraDto[] | null
   paradasPorMotivo?: ParadaPorMotivoDto[] | null
+  // Tempos e contagens do OEE (Resumo Geral do relatório): total = fim − início sem o tempo sem
+  // comunicação; planejado = paradas programadas (pausa); disponível = total − planejado.
+  // Opcionais só porque um backend antigo não os manda (a tela trata como 0).
+  tempoTotalMs?: number
+  tempoPlanejadoMs?: number
+  tempoDisponivelMs?: number
+  tempoInternoMs?: number
+  tempoExternoMs?: number
+  tempoSemComunicacaoMs?: number
+  numParadas?: number
+  numParadasInternas?: number
+  numParadasExternas?: number
+  numParadasPlanejadas?: number
 }
 
 export const sessaoDetalheService = {

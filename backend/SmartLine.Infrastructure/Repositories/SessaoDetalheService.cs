@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
@@ -366,7 +366,17 @@ public class SessaoDetalheService : ISessaoDetalheService
             MaquinaId: maquinaLinha.MaquinaId.ToString(),
             TipoColeta: sessao.TipoColeta.ToString(),
             ParadasPorHora: ParadasPorHora(sessao.Paradas, sessao.Inicio, sessao.Fim ?? agoraGraficos),
-            ParadasPorMotivo: ParadasPorMotivo(sessao.Paradas, agoraGraficos)
+            ParadasPorMotivo: ParadasPorMotivo(sessao.Paradas, agoraGraficos),
+            TempoTotalMs: oeeResultado.TempoTotalMs,
+            TempoPlanejadoMs: oeeResultado.TempoPlanejadoMs,
+            TempoDisponivelMs: oeeResultado.TempoDisponivelMs,
+            TempoInternoMs: oeeResultado.TempoInternoMs,
+            TempoExternoMs: oeeResultado.TempoExternoMs,
+            TempoSemComunicacaoMs: oeeResultado.TempoSemComunicacaoMs,
+            NumParadas: oeeResultado.NumParadas,
+            NumParadasInternas: oeeResultado.NumParadasInternas,
+            NumParadasExternas: oeeResultado.NumParadasExternas,
+            NumParadasPlanejadas: oeeResultado.NumParadasPlanejadas
         );
     }
 }

@@ -222,6 +222,8 @@
   padding: 18mm 16mm;
   box-sizing: border-box;
   position: relative;
+  /* Texto corrido do relatório sai justificado */
+  text-align: justify;
 }
 /* A folha timbrada no fundo da página (uma <img>, não background: imagens sempre saem na
    impressão, fundos dependem de uma opção do navegador). O conteúdo fica por cima. */
