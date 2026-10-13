@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 public interface IExportImportService
 {
@@ -169,7 +169,8 @@ public record UsuarioExportDto(
     string Login,
     string SenhaHash,
     string Nivel,
-    bool Ativo
+    bool Ativo,
+    string? Email = null
 );
 
 // ── Resultado de importação (contagem por categoria) ──────────────

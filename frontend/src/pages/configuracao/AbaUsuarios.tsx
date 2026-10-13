@@ -28,7 +28,7 @@ export default function AbaUsuarios() {
   const [editando, setEditando] = useState<UsuarioConfDto | null>(null)
   // Usuário em edição na URL (?editar=) para o F5 reabrir o modal.
   const [, setEditarId] = useParametroUrl('editar')
-  const [form, setForm] = useState({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '' })
+  const [form, setForm] = useState({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '', email: '' })
   const [salvando, setSalvando] = useState(false)
 
   // Confirmação de desativação (substitui o confirm() nativo do navegador)
@@ -65,13 +65,13 @@ export default function AbaUsuarios() {
 
   function abrirNovo() {
     setEditando(null)
-    setForm({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '' })
+    setForm({ nome: '', login: '', senha: '', nivel: 'Auditor', clienteId: '', email: '' })
     setModalOpen(true)
   }
 
   function abrirEditar(u: UsuarioConfDto) {
     setEditando(u)
-    setForm({ nome: u.nome, login: u.login, senha: '', nivel: u.nivel, clienteId: u.clienteId ?? '' })
+    setForm({ nome: u.nome, login: u.login, senha: '', nivel: u.nivel, clienteId: u.clienteId ?? '', email: u.email ?? '' })
     setModalOpen(true)
     setEditarId(u.id)
   }
@@ -85,6 +85,7 @@ export default function AbaUsuarios() {
         login: form.login,
         nivel: form.nivel,
         clienteId: form.clienteId || null,
+        email: form.email.trim() || null,
         // Ao editar, senha é opcional (só troca se preenchida); ao criar, é obrigatória
         ...(editando ? { senha: form.senha || undefined, ativo: editando.ativo } : { senha: form.senha }),
       }
@@ -195,6 +196,10 @@ export default function AbaUsuarios() {
                   <input type="password" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} className={inputBase} />
                 </div>
               )}
+              <div>
+                <label className={label}>E-mail (opcional)</label>
+                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Recebe cópia dos relatórios que enviar" className={inputBase} />
+              </div>
               <div>
                 <label className={label}>Nível</label>
                 <select value={form.nivel} onChange={e => setForm(f => ({ ...f, nivel: e.target.value }))} className={inputBase}>

@@ -8,6 +8,8 @@ export interface UsuarioConfDto {
   ativo: boolean
   clienteId: string | null
   clienteNome: string | null
+  // Opcional: "responder para" e cópia no envio do relatório por e-mail
+  email?: string | null
 }
 
 export interface ClienteConfDto {

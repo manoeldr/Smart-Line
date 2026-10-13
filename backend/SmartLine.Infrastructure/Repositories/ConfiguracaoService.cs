@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Entities.Global;
 using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Enums;
@@ -29,7 +29,8 @@ public class ConfiguracaoService : IConfiguracaoService
                 u.Id.ToString(), u.Nome, u.Login,
                 u.Nivel.ToString(), u.Ativo,
                 u.ClienteId != null ? u.ClienteId.ToString() : null,
-                u.Cliente != null ? u.Cliente.Nome : null
+                u.Cliente != null ? u.Cliente.Nome : null,
+                u.Email
             ))
             .ToListAsync();
 
@@ -47,6 +48,7 @@ public class ConfiguracaoService : IConfiguracaoService
             SenhaHash = nivel == NivelUsuario.Desenvolvedor ? "(senha derivada do segredo; não fica no banco)" : BCrypt.Net.BCrypt.HashPassword(req.Senha),
             Nivel = nivel,
             ClienteId = req.ClienteId is not null ? Guid.Parse(req.ClienteId) : null,
+            Email = LimparEmail(req.Email),
             Ativo = true,
         };
         _context.Usuarios.Add(usuario);
@@ -54,7 +56,7 @@ public class ConfiguracaoService : IConfiguracaoService
         return new UsuarioConfDto(
             usuario.Id.ToString(), usuario.Nome, usuario.Login,
             usuario.Nivel.ToString(), usuario.Ativo,
-            usuario.ClienteId?.ToString(), null
+            usuario.ClienteId?.ToString(), null, usuario.Email
         );
     }
 
@@ -71,14 +73,21 @@ public class ConfiguracaoService : IConfiguracaoService
         usuario.Nivel = novoNivel;
         usuario.Ativo = req.Ativo;
         usuario.ClienteId = req.ClienteId is not null ? Guid.Parse(req.ClienteId) : null;
+        usuario.Email = LimparEmail(req.Email);
         if (!string.IsNullOrWhiteSpace(req.Senha) && novoNivel != NivelUsuario.Desenvolvedor)
             usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(req.Senha);
         await _context.SaveChangesAsync();
         return new UsuarioConfDto(
             usuario.Id.ToString(), usuario.Nome, usuario.Login,
             usuario.Nivel.ToString(), usuario.Ativo,
-            usuario.ClienteId?.ToString(), null
+            usuario.ClienteId?.ToString(), null, usuario.Email
         );
+    }
+
+    private static string? LimparEmail(string? email)
+    {
+        var limpo = email?.Trim();
+        return string.IsNullOrEmpty(limpo) ? null : limpo;
     }
 
     public async Task DeletarUsuarioAsync(Guid id, bool chamadorDesenvolvedor)

@@ -175,7 +175,7 @@ public class ExportImportService : IExportImportService
             .Where(u => chamadorDesenvolvedor || u.Nivel != Core.Enums.NivelUsuario.Desenvolvedor)
             .ToListAsync();
         return usuarios.Select(u => new UsuarioExportDto(
-            u.Id, u.ClienteId, u.Nome, u.Login, u.SenhaHash, u.Nivel.ToString(), u.Ativo
+            u.Id, u.ClienteId, u.Nome, u.Login, u.SenhaHash, u.Nivel.ToString(), u.Ativo, u.Email
         )).ToList();
     }
 
@@ -340,6 +340,7 @@ public class ExportImportService : IExportImportService
             usuario.SenhaHash = usuarioDto.SenhaHash;
             usuario.Nivel = nivel;
             usuario.Ativo = usuarioDto.Ativo;
+            usuario.Email = usuarioDto.Email;
         }
 
         // Salva config antes das sessões, para garantir que MaquinaLinha/CampoMaquina/Usuario já existam

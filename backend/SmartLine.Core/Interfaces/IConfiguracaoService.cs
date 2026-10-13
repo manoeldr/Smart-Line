@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 public interface IConfiguracaoService
 {
@@ -45,15 +45,15 @@ public class PerfilReservadoException : Exception
     public PerfilReservadoException() : base("O perfil Desenvolvedor só pode ser alterado por um Desenvolvedor.") { }
 }
 
-public record UsuarioConfDto(string Id, string Nome, string Login, string Nivel, bool Ativo, string? ClienteId, string? ClienteNome);
+public record UsuarioConfDto(string Id, string Nome, string Login, string Nivel, bool Ativo, string? ClienteId, string? ClienteNome, string? Email = null);
 public record ClienteConfDto(string Id, string Nome, string? Estado, bool Ativo);
 public record LinhaConfDto(string Id, string Nome, string ClienteId, string ClienteNome, bool Ativo);
 public record MaquinaConfDto(string Id, string Nome, string? Fabricante, string? Descricao, bool Ativo);
 public record CampoMaquinaDto(string Id, string MaquinaId, string Nome, string? Unidade, int Ordem, bool Ativo);
 
 // ── Requests ──────────────────────────────────────────────────
-public record CriarUsuarioRequest(string Nome, string Login, string Senha, string Nivel, string? ClienteId);
-public record EditarUsuarioRequest(string Nome, string Login, string? Senha, string Nivel, bool Ativo, string? ClienteId);
+public record CriarUsuarioRequest(string Nome, string Login, string Senha, string Nivel, string? ClienteId, string? Email = null);
+public record EditarUsuarioRequest(string Nome, string Login, string? Senha, string Nivel, bool Ativo, string? ClienteId, string? Email = null);
 public record CriarClienteRequest(string Nome, string? Estado);
 public record EditarClienteRequest(string Nome, string? Estado, bool Ativo);
 public record CriarLinhaRequest(string Nome, string ClienteId);
