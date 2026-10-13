@@ -12,7 +12,7 @@ namespace SmartLine.Iot.Wise;
 /// <remarks>
 /// <para>Formato documentado pela Advantech (confirmado em exemplos publicados):</para>
 /// <code>
-/// Tópico:   Advantech/00D0C9F941C3/data
+/// Tópico:   Advantech/00D0C9F9374D/data
 /// Conteúdo: {"s":1,"t":"2024-08-08T17:48:21Z","q":192,"c":0,"di1":true,"di2":false}
 /// </code>
 /// <list type="bullet">
@@ -24,11 +24,14 @@ namespace SmartLine.Iot.Wise;
 /// (o relógio do WISE pode estar em 1970 sem SNTP).</item>
 /// </list>
 /// <para>
-/// <b>A confirmar na bancada:</b> como vem uma entrada em modo contador. A
-/// suposição é o próprio <c>diN</c> com número (<c>"di2": 12345</c>) em vez de
-/// true/false. Enquanto não confirmar, o parser aceita os dois tipos em
+/// <b>Confirmado na bancada (13/10/2026, WISE-4051 real):</b> entrada em modo
+/// contador vem no próprio <c>diN</c> como número; sensor vem como true/false:
+/// <c>{"s":2,"t":1448301164,"q":192,"c":1,"di1":true,"di2":0,"di3":0,"di4":false,
+/// "di5":0,"di6":0,"di7":false,"di8":false}</c>. O <c>t</c> é o relógio do WISE
+/// (sem SNTP, 2015) — ignorado. O parser continua aceitando os dois tipos em
 /// qualquer canal e decide pelo mapa: contador só aceita número; sensor de
-/// estado aceita true/false ou 0/1.
+/// estado aceita true/false ou 0/1. O WISE também publica
+/// <c>Advantech/&lt;MAC&gt;/Device_Status</c> (connect/disconnect), ignorado.
 /// </para>
 /// </remarks>
 public static partial class FormatoWise

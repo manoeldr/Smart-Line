@@ -103,7 +103,9 @@ public class ColetaIotController : ControllerBase
         var zerar = await _zerador.ZerarAsync(enderecoIp!, contadores, cancellationToken);
 
         // O motivo técnico vai para o log (Área do Desenvolvedor); a tela recebe uma frase simples.
-        if (!zerar.Sucesso)
+        if (zerar.Sucesso)
+            _log.LogInformation("Contadores do WISE {EnderecoIp} zerados ao iniciar a medição: {Canais}", enderecoIp, string.Join(", ", contadores));
+        else
             _log.LogWarning("Não zerou os contadores do WISE {EnderecoIp} ao iniciar a medição: {Erro}", enderecoIp, zerar.Erro);
 
         return Ok(resultado.Iniciado! with

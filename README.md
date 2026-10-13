@@ -25,8 +25,8 @@ O auditor acompanha a linha presencialmente e registra as informações diretame
 - Estado da medição persistido — ao sair e retornar, a sessão continua de onde parou, incluindo o tempo da parada atual (recalculado pelo horário real de início, não um contador que zera)
 - Modal de motivo de parada só é exibido na transição real de Parada → Rodando, nunca ao clicar Marcha com a máquina já rodando
 
-### Semi Automático (IoT) ✅ Pronto — falta a bancada com o WISE real
-Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e lê os sensores da linha. O WISE publica por **MQTT** num broker embutido no próprio SmartLine (porta 1883), e o sistema transforma essas mensagens em produção, paradas e motivos, sem operador. Testado de ponta a ponta com o simulador de WISE.
+### Semi Automático (IoT) ✅ Pronto — validado na bancada com o WISE real (13/10)
+Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e lê os sensores da linha. O WISE publica por **MQTT** num broker embutido no próprio SmartLine (porta 1883), e o sistema transforma essas mensagens em produção, paradas e motivos, sem operador. Testado de ponta a ponta com o simulador de WISE e, em 13/10, com um WISE-4051 real na bancada (conexão, formato das mensagens, entradas, zerar dos contadores e perda de comunicação).
 
 **WISE e medição**
 - Cadastro de WISE em Configurações → Dispositivos IoT: IP fixo e nome opcional, com **ping antes de adicionar** (se não responder, avisa e deixa adicionar mesmo assim)
@@ -213,7 +213,7 @@ MQTT_HABILITADO=true    # false desliga o broker (ex.: estações que não receb
 MQTT_PORTA=1883
 MQTT_LOG_BRUTO=false    # true escreve no log cada mensagem recebida do WISE
 WISE_HTTP_PORTA=80      # interface HTTP dos WISE: o SmartLine zera os contadores por ela ao iniciar a medição
-WISE_HTTP_USUARIO=root  # usuário e senha de fábrica do WISE, iguais para todos os WISE da instalação
+WISE_HTTP_USUARIO=root  # usuário e senha de acesso ao WISE (os mesmos da tela web dele), iguais para todos os WISE da instalação
 WISE_HTTP_SENHA=00000000
 ```
 
@@ -313,7 +313,27 @@ Copia `SmartLine.API.exe` (de `publish/`) e o `.env` pra dentro da pasta de buil
 
 Pra distribuir, crie um atalho apontando direto pro `SmartLine.Desktop.exe`.
 
-> **Semi Automático em produção:** o PC que recebe os WISE precisa liberar no firewall a porta 1883 (MQTT), a 5278 (estações) e o ping (ICMP).
+> **Semi Automático em produção:** o PC que recebe os WISE precisa liberar no firewall a porta 1883 (MQTT), a 5278 (estações) e o ping (ICMP). Em PowerShell como administrador:
+>
+> ```powershell
+> New-NetFirewallRule -DisplayName "Smart Line Scan - MQTT" -Direction Inbound -Protocol TCP -LocalPort 1883 -Action Allow
+> New-NetFirewallRule -DisplayName "Smart Line Scan - API" -Direction Inbound -Protocol TCP -LocalPort 5278 -Action Allow
+> New-NetFirewallRule -DisplayName "Smart Line Scan - Ping" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Action Allow
+> ```
+
+### Configuração do WISE-4051 (validada na bancada em 13/10)
+
+Pela tela web do WISE (`http://<ip-do-wise>`, usuário `root`). Os nomes dos canais são só etiqueta (máximo 21 caracteres); o sistema identifica pelo número: **DI0 = S1 … DI7 = S8**.
+
+| Onde | O quê |
+|---|---|
+| Configuration → Network | IP fixo na mesma rede do PC; a senha de acesso é a que vai em `WISE_HTTP_SENHA` |
+| I/O Status / Configuration → DI | DI1, DI2, DI4, DI5 (S2, S3, S5, S6) em modo **Counter**; DI0, DI3, DI6, DI7 (S1, S4, S7, S8) em modo **DI**. **Sem Invert Signal** (a inversão de S4 e S7 é do sistema). Filtro curto nos contadores, ~10 s nos sensores |
+| Configuration → Cloud | Select Service: **iSensing MQTT**. Host: IP do PC. Porta `1883`. SSL e WebSocket: Disable. Usuário e senha: em branco (o broker não autentica). QoS 0, Retain: Disable |
+| Advanced → Data Logger → Logger Configuration | **Push Notification → I/O Log** ligado (Memory Storage pode ficar desligado) |
+| Advanced → Data Logger → Data Configuration → I/O | **By Period** = `100` (a unidade é 0,1 s → 10 s; o sistema considera sem comunicação aos 90 s). Em **Log Data → DI**: **Log Enabled** nos 8 canais; **Change of State** só nos sensores (S1, S4, S7, S8); **Reset Counter desligado** em todos |
+
+Conferência: em Configurações → Dispositivos IoT o WISE aparece **conectado**; na Área do Desenvolvedor → Logs, com `MQTT_LOG_BRUTO=true`, chega uma linha `Advantech/<MAC>/data` a cada 10 s com `{"s":…,"di1":false,"di2":0,…}` (contadores como número, sensores como true/false); **Validar entradas** mostra os 8 canais; ao iniciar uma medição o log diz "Contadores do WISE … zerados".
 
 > **Nota (Windows):** se o `global.json` exigir uma versão específica do SDK que você não tem instalada, ajuste o campo `version` para a versão disponível e adicione `"rollForward": "latestMinor"`.
 
@@ -392,9 +412,9 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - **Área do Desenvolvedor**: logs do backend, situação da coleta e simulador de WISE dentro do sistema, sem terminal
 - Exportação/Importação leva regras, textos das entradas, cadastro de WISE, Z, histórico de paradas e trechos sem comunicação
 - Filtros de data com um dia só, começando por hoje; tempo de parada (Z) no Adicionar máquina; SQLite nativo atualizado
+- **Bancada com o WISE-4051 real (13/10)**: tópico e JSON no formato esperado, contadores e sensores lidos, zerar por HTTP funcionando, perda e retorno de comunicação; guia de configuração do WISE neste README
 
 ### Próximo
-- [ ] Bancada com o WISE real: formato do contador e do registro HTTP, intervalo de publicação, IP fixo, filtros das entradas e firewall
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
 
 ### Em aberto
