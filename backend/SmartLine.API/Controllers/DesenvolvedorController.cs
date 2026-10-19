@@ -21,16 +21,51 @@ public class DesenvolvedorController : ControllerBase
     private readonly LogEmMemoria _log;
     private readonly SimuladorWise _simulador;
     private readonly OpcoesBrokerMqtt _broker;
+    private readonly BrokerMqttService _brokerServico;
     private readonly IWiseService _wises;
     private readonly ColetaIotService _coleta;
 
-    public DesenvolvedorController(LogEmMemoria log, SimuladorWise simulador, OpcoesBrokerMqtt broker, IWiseService wises, ColetaIotService coleta)
+    public DesenvolvedorController(LogEmMemoria log, SimuladorWise simulador, OpcoesBrokerMqtt broker, BrokerMqttService brokerServico, IWiseService wises, ColetaIotService coleta)
     {
         _log = log;
         _simulador = simulador;
         _broker = broker;
+        _brokerServico = brokerServico;
         _wises = wises;
         _coleta = coleta;
+    }
+
+    // ── WISE vistos pelo broker ───────────────────────────────────────────
+
+    /// <param name="Mensagens">Quantas mensagens chegaram desse IP desde que o backend subiu.</param>
+    /// <param name="Topico">Tópico da última mensagem (no WISE real, traz o MAC).</param>
+    public sealed record WiseVistoDto(
+        string EnderecoIp,
+        string ClientId,
+        string Topico,
+        DateTime UltimaMensagemUtc,
+        long Mensagens,
+        bool ConectadoAgora,
+        bool Cadastrado,
+        string? Nome);
+
+    /// <summary>
+    /// Todo IP que publicou no broker desde que o backend subiu, em medição ou não, cadastrado
+    /// ou não — para diagnosticar um WISE que "não aparece": se está aqui, a rede e o MQTT
+    /// estão certos e o problema é cadastro ou configuração.
+    /// </summary>
+    [HttpGet("wises")]
+    public async Task<ActionResult<IReadOnlyList<WiseVistoDto>>> WisesVistos(CancellationToken cancellationToken)
+    {
+        var cadastrados = (await _wises.ListarAsync(cancellationToken)).ToDictionary(w => w.EnderecoIp);
+        var conectados = _brokerServico.Conexoes().Select(c => c.EnderecoIp).ToHashSet();
+        return _coleta.WiseVistos()
+            .Select(v => new WiseVistoDto(
+                v.EnderecoIp, v.ClientId, v.Topico, v.UltimaMensagemUtc, v.Mensagens,
+                conectados.Contains(v.EnderecoIp),
+                cadastrados.ContainsKey(v.EnderecoIp),
+                cadastrados.GetValueOrDefault(v.EnderecoIp)?.Nome))
+            .ToList();
     }
 
     // ── Logs ──────────────────────────────────────────────────────────────

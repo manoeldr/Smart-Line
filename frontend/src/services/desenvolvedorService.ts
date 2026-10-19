@@ -87,7 +87,20 @@ export interface ChaveGeradaDto {
   senhaDesenvolvedor: string
 }
 
+// Um IP que publicou no broker desde que o backend subiu (Desenvolvedor → Coleta)
+export interface WiseVistoDto {
+  enderecoIp: string
+  clientId: string
+  topico: string
+  ultimaMensagemUtc: string
+  mensagens: number
+  conectadoAgora: boolean
+  cadastrado: boolean
+  nome: string | null
+}
+
 export const desenvolvedorService = {
+  wisesVistos: () => api.get<WiseVistoDto[]>('/dev/wises'),
   logs: (depoisDe = 0, nivel?: NivelLog | '', texto?: string, maximo = 500) => {
     const p = new URLSearchParams({ depoisDe: String(depoisDe), maximo: String(maximo) })
     if (nivel) p.set('nivel', nivel)

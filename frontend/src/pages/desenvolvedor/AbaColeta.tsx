@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { coletaIotService, type ColetaIotPainelDto } from '../../services/coletaIotService'
 import { dispositivoIotService, type StatusColetaIotDto } from '../../services/dispositivoIotService'
+import { desenvolvedorService, type WiseVistoDto } from '../../services/desenvolvedorService'
 import { mensagemErro } from '../../services/api'
 import StatusBroker from '../../components/iot/StatusBroker'
 import SituacaoColetaTexto from '../../components/iot/SituacaoColetaTexto'
@@ -23,6 +24,7 @@ function duracaoDesde(iso: string, agora: Date): string {
 export default function AbaColeta() {
   const [status, setStatus] = useState<StatusColetaIotDto | null>(null)
   const [coletas, setColetas] = useState<ColetaIotPainelDto[]>([])
+  const [vistos, setVistos] = useState<WiseVistoDto[]>([])
   const [carregado, setCarregado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [agora, setAgora] = useState(new Date())
@@ -31,10 +33,11 @@ export default function AbaColeta() {
     let ativo = true
     async function carregar() {
       try {
-        const [s, c] = await Promise.all([dispositivoIotService.status(), coletaIotService.painel()])
+        const [s, c, v] = await Promise.all([dispositivoIotService.status(), coletaIotService.painel(), desenvolvedorService.wisesVistos()])
         if (!ativo) return
         setStatus(s)
         setColetas(c)
+        setVistos(v)
         setErro(null)
       } catch (e) {
         if (ativo) setErro(mensagemErro(e, 'Não foi possível consultar a coleta.'))
@@ -129,6 +132,49 @@ export default function AbaColeta() {
                         ? '—'
                         : Object.entries(contadores).map(([canal, valor]) => `${canal}=${valor}`).join(' ')}
                     </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Todo IP que publicou no broker desde que o backend subiu: se está aqui, rede e MQTT estão certos */}
+      <div className={cardPadded}>
+        <p className="text-xs font-medium text-texto mb-3">
+          WISE vistos pelo broker desde que o backend subiu {carregado && <span className="text-texto-3 font-normal">({vistos.length})</span>}
+        </p>
+        {carregado && vistos.length === 0 && <p className="text-xs text-texto-3">Nenhuma mensagem recebida ainda.</p>}
+        {vistos.length > 0 && (
+          <table className={table}>
+            <thead>
+              <tr className={tableHeadRow}>
+                <th className={tableHeadCell}>IP</th>
+                <th className={tableHeadCell}>Cadastro</th>
+                <th className={tableHeadCell}>Conexão</th>
+                <th className={tableHeadCell}>Identificação</th>
+                <th className={tableHeadCell}>Último tópico</th>
+                <th className={tableHeadCell}>Mensagens</th>
+                <th className={tableHeadCell}>Última mensagem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vistos.map(w => (
+                <tr key={w.enderecoIp} className={tableBodyRow}>
+                  <td className={`${tableBodyCell} font-mono`}>{w.enderecoIp}</td>
+                  <td className={tableBodyCellMuted}>
+                    {w.cadastrado ? (w.nome ?? 'cadastrado') : <span className="text-amber-600 dark:text-amber-400">sem cadastro</span>}
+                  </td>
+                  <td className={`${tableBodyCellMuted} ${w.conectadoAgora ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                    {w.conectadoAgora ? 'conectado' : 'desconectado'}
+                  </td>
+                  <td className={`${tableBodyCellMuted} font-mono`}>{w.clientId || '—'}</td>
+                  <td className={`${tableBodyCellMuted} font-mono`}>{w.topico}</td>
+                  <td className={tableBodyCellMuted}>{w.mensagens.toLocaleString('pt-BR')}</td>
+                  <td className={tableBodyCellMuted}>
+                    {tempoDesde(w.ultimaMensagemUtc, agora)}
+                    <span className="block text-[10px]">{hora(w.ultimaMensagemUtc)}</span>
                   </td>
                 </tr>
               ))}
