@@ -2,7 +2,7 @@
 // Mostra status ao vivo (bolinha colorida) quando há sessão ativa,
 // ou "última sessão: [data]" com bolinha cinza quando a última sessão já foi finalizada.
 // Administrador/Desenvolvedor veem um botão de Finalizar quando há sessão ativa.
-// Máquina em coleta Semi Automática (WISE): etiqueta IoT, situação da coleta (inclusive sem
+// Máquina em coleta IoT (WISE): etiqueta IoT, situação da coleta (inclusive sem
 // comunicação e aguardando o WISE), motivo da parada atual e quantas paradas estão sem motivo.
 // Todos os cards têm sempre o mesmo tamanho: as linhas opcionais ("sem motivo", Finalizar)
 // guardam o espaço mesmo quando não aparecem, e a faixa da crítica é desenhada por dentro.
@@ -94,7 +94,7 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         <div className="flex items-center gap-1">
           {maquina.critica && <span className={badgeCritica}>Crítica</span>}
-          {iot && <span className={badgeIot} title="Coleta Semi Automática (WISE)">IoT</span>}
+          {iot && <span className={badgeIot} title="Coleta IoT (WISE)">IoT</span>}
         </div>
       </div>
       {/* Nome */}

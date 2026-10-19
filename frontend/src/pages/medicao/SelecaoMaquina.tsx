@@ -129,7 +129,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setModalOpen(true)
   }
 
-  // Coleta Semi Automática iniciada: volta para a seleção (dá para iniciar outra máquina).
+  // Coleta IoT iniciada: volta para a seleção (dá para iniciar outra máquina).
   function handleColetaIniciada(mensagem: string, avisoIniciar?: string | null) {
     setModalOpen(false)
     setSucesso(mensagem)
@@ -214,7 +214,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
             disabled={t === 'Automatico'}
             className={btnToggle(tipoColeta === t, 'blue')}
           >
-            {t === 'Manual' ? 'Manual' : t === 'SemiAutomatico' ? 'Semi Auto' : 'Automático'}
+            {t === 'Manual' ? 'Manual' : t === 'SemiAutomatico' ? 'IoT' : 'Automático'}
           </button>
         ))}
       </div>

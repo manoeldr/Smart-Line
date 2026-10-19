@@ -1,4 +1,4 @@
-// Situação de uma máquina em coleta Semi Automática, em texto colorido (sem ícone).
+// Situação de uma máquina em coleta IoT, em texto colorido (sem ícone).
 import type { SituacaoColeta } from '../../services/coletaIotService'
 
 const textos: Record<SituacaoColeta, string> = {

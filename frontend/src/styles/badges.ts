@@ -16,7 +16,7 @@ export const badgeExterna = 'text-[10px] text-amber-600 dark:text-amber-400'
 // Badge "crítica" em máquinas marcadas como críticas para a linha
 export const badgeCritica = 'text-[9px] font-medium text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-950 px-1.5 py-0.5'
 
-// Badge "IoT" em máquinas com coleta Semi Automática (WISE) em andamento
+// Badge "IoT" em máquinas com coleta IoT (WISE) em andamento
 export const badgeIot = 'text-[9px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950 px-1.5 py-0.5'
 
 // Badge "fixo" — usado no campo Produção, que é sempre coletado e não pode ser removido

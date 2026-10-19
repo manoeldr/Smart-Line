@@ -62,7 +62,7 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
         setRegras(paraEdicao(r.regras))
         setMotivos(motivosDe(m, r))
       })
-      .catch(e => { if (ativo) setErro(mensagemErro(e, 'Erro ao carregar a configuração do Semi Automático.')) })
+      .catch(e => { if (ativo) setErro(mensagemErro(e, 'Erro ao carregar a configuração IoT.')) })
     return () => { ativo = false }
   }, [maquinaId])
 
@@ -71,11 +71,11 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
     salvarRef.current = async () => {
       if (regrasAlteradas) {
         const problema = validarRegras(regras)
-        if (problema) throw new Error(`Semi Automático: ${problema}`)
+        if (problema) throw new Error(`IoT: ${problema}`)
       }
       if (textosAlterados) {
         const problema = validarTextos(textos)
-        if (problema) throw new Error(`Semi Automático: ${problema}`)
+        if (problema) throw new Error(`IoT: ${problema}`)
         await entradasWiseService.salvar(maquinaId, Object.entries(textos).map(([canal, t]) => ({
           canal, nome: t.nome.trim(), textoAtivo: t.ativo?.trim() ?? null, textoNormal: t.normal?.trim() ?? null,
         })))

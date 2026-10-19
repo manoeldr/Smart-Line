@@ -1,4 +1,4 @@
-// Coleta Semi Automática (WISE): iniciar, finalizar, painel ao vivo da máquina.
+// Coleta IoT (WISE): iniciar, finalizar, painel ao vivo da máquina.
 import { api } from './api'
 
 // Canal lido na medição. Multiplicador = garrafas por pulso (1 quando não há multiplicador).

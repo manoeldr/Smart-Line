@@ -257,7 +257,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
               <div className="flex justify-center border-b border-borda">
                 {(['manual', 'semi', 'auto'] as AbaModal[]).map(a => (
                   <button key={a} onClick={() => setAbaModal(a)} className={tabButton(abaModal === a)}>
-                    {a === 'manual' ? 'Manual' : a === 'semi' ? 'Semi Automático' : 'Automático'}
+                    {a === 'manual' ? 'Manual' : a === 'semi' ? 'IoT' : 'Automático'}
                   </button>
                 ))}
               </div>

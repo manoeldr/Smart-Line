@@ -1,4 +1,4 @@
-// Configuração da medição Semi Automática (WISE), dentro do modal "Configurar medição".
+// Configuração da medição IoTmática (WISE), dentro do modal "Configurar medição".
 // O usuário escolhe o WISE instalado na máquina na lista de cadastrados, com a situação de
 // cada um (só em texto: conectado em verde, desconectado em amarelo, em uso em outra medição
 // em vermelho); só dá para iniciar com ele conectado e livre. O WISE fica associado à máquina
@@ -144,7 +144,7 @@ export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, 
           .filter(([, c]) => c.ligado)
           .map(([canal, c]) => ({ canal, multiplicador: c.comMultiplicador ? Number(c.multiplicador) : 1 })),
       })
-      onIniciada(`Coleta Semi Automática iniciada na ${maquina.maquinaNome} com o WISE ${ipWise.trim()}.`, iniciada.avisoContadores)
+      onIniciada(`Coleta IoT iniciada na ${maquina.maquinaNome} com o WISE ${ipWise.trim()}.`, iniciada.avisoContadores)
     } catch (e) {
       setErro(mensagemErro(e, 'Não foi possível iniciar a coleta.'))
     } finally {

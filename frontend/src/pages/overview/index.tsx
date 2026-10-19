@@ -1,7 +1,7 @@
 // Tela Overview — lista todas as linhas do cliente com status ao vivo das máquinas.
 // Administrador/Desenvolvedor podem finalizar sessões ativas de outros usuários direto daqui.
-// Clicar numa máquina abre o detalhe (o mesmo do Dashboard); na coleta Semi Automática ele
-// mostra a coleta ao vivo. Finalizar uma coleta Semi Automática não pede leitura final: o
+// Clicar numa máquina abre o detalhe (o mesmo do Dashboard); na coleta IoT ele
+// mostra a coleta ao vivo. Finalizar uma coleta IoT não pede leitura final: o
 // contador é do WISE, e a produção pendente é gravada pelo próprio backend.
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
@@ -49,7 +49,7 @@ export default function Overview() {
   const [finalizando, setFinalizando] = useState<FinalizandoState | null>(null)
   const [salvandoFinalizacao, setSalvandoFinalizacao] = useState(false)
 
-  // Coleta Semi Automática: finalização com confirmação simples
+  // Coleta IoT: finalização com confirmação simples
   const [finalizandoColeta, setFinalizandoColeta] = useState<{ acompanhamentoId: string; maquinaNome: string } | null>(null)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
 
@@ -111,7 +111,7 @@ export default function Overview() {
     for (const linha of linhas) {
       const m = linha.maquinas.find(x => x.id === maquinaLinhaId)
       if (m) {
-        // Coleta Semi Automática: confirmação simples, sem leitura final
+        // Coleta IoT: confirmação simples, sem leitura final
         if (m.acompanhamentoId) {
           setFinalizandoColeta({ acompanhamentoId: m.acompanhamentoId, maquinaNome })
           return
@@ -246,7 +246,7 @@ export default function Overview() {
         open={finalizandoColeta !== null}
         titulo="Finalizar coleta"
         mensagem={finalizandoColeta
-          ? `Finalizar a coleta Semi Automática da ${finalizandoColeta.maquinaNome}? A produção ainda não gravada é gravada antes, e a máquina fica sem coleta até alguém iniciar de novo.`
+          ? `Finalizar a coleta IoT da ${finalizandoColeta.maquinaNome}? A produção ainda não gravada é gravada antes, e a máquina fica sem coleta até alguém iniciar de novo.`
           : ''}
         onConfirmar={handleConfirmarFinalizarColeta}
         onCancelar={() => setFinalizandoColeta(null)}

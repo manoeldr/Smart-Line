@@ -1,4 +1,4 @@
-// Bloco da coleta Semi Automática no modal de detalhe da máquina: situação ao vivo, WISE,
+// Bloco da coleta IoT no modal de detalhe da máquina: situação ao vivo, WISE,
 // produção da sessão, parada em curso e sensores em texto, em duas colunas (rótulo | valor).
 // Atualiza a cada 5 s. Canais, Z e contadores brutos não aparecem aqui (Desenvolvedor → Coleta).
 // Retrátil: fechado mostra só o cabeçalho (situação, quem iniciou, Finalizar); a escolha fica
@@ -113,7 +113,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
             <polyline points="9 18 15 12 9 6" />
           </svg>
           <span>
-            <span className="font-medium text-texto">Coleta Semi Automática</span>
+            <span className="font-medium text-texto">Coleta IoT</span>
             {' · '}<SituacaoColetaTexto situacao={painel.situacao} />
             {' · '}iniciada por {c.usuario} em {dataHora(c.iniciadoEm)}
           </span>
@@ -196,7 +196,7 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
       <ConfirmModal
         open={confirmando}
         titulo="Finalizar coleta"
-        mensagem={`Finalizar a coleta Semi Automática da ${c.maquina}? A produção ainda não gravada é gravada antes, e a máquina fica sem coleta até alguém iniciar de novo.`}
+        mensagem={`Finalizar a coleta IoT da ${c.maquina}? A produção ainda não gravada é gravada antes, e a máquina fica sem coleta até alguém iniciar de novo.`}
         onConfirmar={finalizar}
         onCancelar={() => setConfirmando(false)}
       />

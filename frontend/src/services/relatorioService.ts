@@ -7,6 +7,8 @@ export interface ParametrosRelatorio {
   data: string
   produto: string
   responsavelCliente: string
+  // Blocos ligados nas páginas das máquinas, separados por vírgula (ver pages/relatorios/blocos.ts)
+  blocos: string
 }
 
 export const relatorioService = {

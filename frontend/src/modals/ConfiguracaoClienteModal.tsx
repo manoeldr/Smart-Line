@@ -77,15 +77,15 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
         </p>
         {!item.isNew && (
           <p className="text-[10px] text-texto-3">
-            Semi Auto: parada após {item.tempoDeteccaoParadaSegundos ?? 60} s
+            IoT: parada após {item.tempoDeteccaoParadaSegundos ?? 60} s
             {' · '}{item.regrasPersonalizadas ? <span className="text-accent-600 dark:text-accent-400">regras personalizadas</span> : 'regras do catálogo'}
           </p>
         )}
       </div>
       {item.critica && <span className={badgeCritica}>Crítica</span>}
       {onConfigurarSemi && (
-        <button onClick={onConfigurarSemi} title="Semi Automático: tempo de parada e regras desta máquina" className="text-[10px] text-accent-600 dark:text-accent-400 hover:underline">
-          Semi Auto
+        <button onClick={onConfigurarSemi} title="IoT: tempo de parada e regras desta máquina" className="text-[10px] text-accent-600 dark:text-accent-400 hover:underline">
+          IoT
         </button>
       )}
       <button onClick={onRemover} className={btnIconDanger}>
@@ -570,7 +570,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                 />
               </div>
               <div>
-                <label className={label}>Parada após (s) — Semi Automático</label>
+                <label className={label}>Parada após (s) — IoT</label>
                 <input
                   type="number" min="10" max="3600"
                   value={formMaquina.tempoDeteccao}

@@ -60,7 +60,7 @@ export default function AbaColeta() {
           Coletas em andamento {carregado && <span className="text-texto-3 font-normal">({coletas.length})</span>}
         </p>
         {!carregado && <p className="text-xs text-texto-3">Carregando...</p>}
-        {carregado && coletas.length === 0 && <p className="text-xs text-texto-3">Nenhuma máquina em medição Semi Automática.</p>}
+        {carregado && coletas.length === 0 && <p className="text-xs text-texto-3">Nenhuma máquina em medição IoTmática.</p>}
         {coletas.length > 0 && (
           <table className={table}>
             <thead>

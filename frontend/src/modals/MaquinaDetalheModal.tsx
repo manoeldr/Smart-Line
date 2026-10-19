@@ -24,7 +24,7 @@ interface Props {
   // Uma sessão específica (a do dia escolhido no filtro do Overview); nula = a última da máquina
   sessaoId?: string | null
   onFechar: () => void
-  // Chamado quando a coleta Semi Automática é finalizada por aqui (quem abriu recarrega a tela)
+  // Chamado quando a coleta IoT é finalizada por aqui (quem abriu recarrega a tela)
   onColetaFinalizada?: () => void
 }
 
@@ -85,7 +85,7 @@ function minutos(ms: number) {
   return Math.round(ms / 6000) / 10 // 1 casa decimal
 }
 
-// As métricas vêm do que está gravado, e a coleta Semi Automática grava a produção a cada
+// As métricas vêm do que está gravado, e a coleta IoT grava a produção a cada
 // 5 min, nos múltiplos do relógio (10:00, 10:05...). O modal aberto recarrega logo depois de
 // cada gravação (10 s de folga), sem piscar.
 const INTERVALO_GRAVACAO_MS = 5 * 60 * 1000
@@ -246,7 +246,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
           </button>
         </div>
 
-        {/* Coleta Semi Automática em andamento (some quando a máquina não está em coleta).
+        {/* Coleta IoT em andamento (some quando a máquina não está em coleta).
             Numa sessão antiga escolhida pelo filtro por data, não faz sentido mostrar a coleta de agora. */}
         {maquinaLinhaId && (!sessaoId || dados?.status === 'EmAndamento') && (
           <PainelColetaIot

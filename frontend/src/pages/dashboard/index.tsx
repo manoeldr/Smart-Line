@@ -17,7 +17,7 @@ import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
 import Switch from '../../components/Switch'
 
-// A coleta Semi Automática grava a produção nos múltiplos de 5 min do relógio (10:00, 10:05...):
+// A coleta IoT grava a produção nos múltiplos de 5 min do relógio (10:00, 10:05...):
 // a tela recarrega logo depois (10 s de folga).
 const INTERVALO_GRAVACAO_MS = 5 * 60 * 1000
 const FOLGA_MS = 10 * 1000

@@ -49,7 +49,7 @@ export interface MaquinaLinha {
   acompanhamentoId?: string | null
   motivoParadaAtual?: string | null
   paradasSemMotivo?: number
-  // IP do WISE da coleta Semi Automática em andamento (nulo sem coleta)
+  // IP do WISE da coleta IoT em andamento (nulo sem coleta)
   enderecoIpWise?: string | null
   situacaoColeta?: 'Rodando' | 'Parada' | 'SemComunicacao' | 'AguardandoPrimeiraAmostra' | null
   // Coleta automática sem comunicação: há quantos minutos (a API calcula a cada atualização)

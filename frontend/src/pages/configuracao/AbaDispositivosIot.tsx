@@ -1,5 +1,5 @@
 // Aba "Dispositivos IoT" da tela de Configurações — só Administrador e Desenvolvedor.
-// Cadastro dos WISE (a lista de aparelhos que podem ser usados numa medição Semi Auto) e
+// Cadastro dos WISE (a lista de aparelhos que podem ser usados numa medição IoT) e
 // diagnóstico da comunicação. O WISE não é de nenhuma máquina: é escolhido da lista ao
 // iniciar a medição e fica livre ao finalizar.
 // Adicionar: antes de gravar faz o ping no IP; se não responder, avisa e deixa adicionar
@@ -160,7 +160,7 @@ export default function AbaDispositivosIot() {
       <div>
         <p className="text-sm font-medium text-texto">Dispositivos IoT (WISE)</p>
         <p className="text-[10px] text-texto-3 mt-0.5">
-          Os WISE cadastrados aqui podem ser escolhidos ao iniciar uma medição Semi Auto. O WISE fica associado à máquina só
+          Os WISE cadastrados aqui podem ser escolhidos ao iniciar uma medição IoT. O WISE fica associado à máquina só
           enquanto a medição dura e depois fica livre para outra.
         </p>
       </div>

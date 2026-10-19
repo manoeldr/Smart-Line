@@ -103,7 +103,7 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
     <div className={modalOverlayNested}>
       <div className={`${modalPanel} w-[820px] max-h-[90vh]`}>
         <div className={modalHeader}>
-          <p className={modalTitle}>Semi Automático · {item.maquinaNome}</p>
+          <p className={modalTitle}>IoT · {item.maquinaNome}</p>
           <p className={modalSubtitle}>Vale para as coletas iniciadas depois de salvar.</p>
         </div>
 
@@ -142,7 +142,7 @@ export default function MaquinaLinhaSemiModal({ item, onFechar, onSalvo }: Props
             ) : (
               <div className="flex flex-col gap-1">
                 <p className="text-[10px] text-texto-3 mb-1">
-                  Esta máquina usa as regras padrão da {item.maquinaNome}, editadas em Configurações &gt; Máquinas &gt; aba Semi Automático.
+                  Esta máquina usa as regras padrão da {item.maquinaNome}, editadas em Configurações &gt; Máquinas &gt; aba IoT.
                 </p>
                 {paraEdicao(regrasCatalogo).map((r, i) => {
                   const motivo = motivos.find(m => m.id === r.motivoParadaId)
