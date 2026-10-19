@@ -3,12 +3,12 @@
 // folha (Ctrl+P / "Salvar como PDF"); o resto da tela some na impressão (ver index.css).
 // Produto e Responsável do Cliente são obrigatórios para exportar.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
 import { clienteService } from '../../services/clienteService'
 import { sessaoDetalheService, type SessaoDetalheDto } from '../../services/sessaoDetalheService'
 import type { Linha } from '../../types'
-import CampoData from '../../components/CampoData'
 import CampoComLista from '../../components/CampoComLista'
 import { inputMd, label } from '../../styles/inputs'
 import { btnPrimary } from '../../styles/buttons'
@@ -71,7 +71,8 @@ function noDesktop(): boolean {
 }
 
 function hojeTexto() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // Parâmetros pela URL: o servidor abre esta tela assim para gerar o PDF (?impressao=1), e
@@ -99,8 +100,16 @@ export default function Relatorios() {
   const [clienteNome, setClienteNome] = useState('')
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [linhaId, setLinhaId] = useState(urlInicial.linha)
-  const [data, setData] = useState(() => /^\d{4}-\d{2}-\d{2}$/.test(urlInicial.data) ? urlInicial.data : hojeTexto())
-  const [datasComSessao, setDatasComSessao] = useState<string[]>([])
+  // O dia vem do filtro de data do topo (nulo = hoje). Pela URL (?data=) só na impressão pelo
+  // servidor, que abre a tela sem ninguém mexer no filtro; fora dela, ?data= vai para o filtro.
+  const { dataFiltro, setDataFiltro } = useOutletContext<{ dataFiltro: string | null; setDataFiltro: (d: string | null) => void }>()
+  const dataUrl = /^\d{4}-\d{2}-\d{2}$/.test(urlInicial.data) ? urlInicial.data : null
+  const data = modoImpressao && dataUrl ? dataUrl : (dataFiltro ?? hojeTexto())
+  useEffect(() => {
+    if (!modoImpressao && dataUrl) setDataFiltro(dataUrl === hojeTexto() ? null : dataUrl)
+    // só na abertura da tela
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // A linha com as sessões do dia escolhido, e o detalhe da sessão da máquina de referência
   const [linhaDoDia, setLinhaDoDia] = useState<Linha | null>(null)
@@ -165,16 +174,6 @@ export default function Relatorios() {
     }
     carregar()
   }, [clienteId])
-
-  // Dias com sessão da linha (bolinha no calendário)
-  useEffect(() => {
-    if (!clienteId || !linhaId) return
-    let ativo = true
-    clienteService.getDatasComSessao(clienteId, linhaId)
-      .then(ds => { if (ativo) setDatasComSessao(ds) })
-      .catch(() => { if (ativo) setDatasComSessao([]) })
-    return () => { ativo = false }
-  }, [clienteId, linhaId])
 
   // Sessões do dia na linha → máquina de referência → detalhe da sessão dela
   useEffect(() => {
@@ -305,10 +304,6 @@ export default function Relatorios() {
             <select value={linhaId} onChange={e => setLinhaId(e.target.value)} className={inputMd}>
               {linhas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
             </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className={label}>Data</label>
-            <CampoData valor={data} onChange={setData} datasComSessao={datasComSessao} max={hojeTexto()} />
           </div>
           <div className="flex flex-col gap-1.5 w-64">
             <label className={label}>Produto *</label>

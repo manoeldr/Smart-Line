@@ -1,9 +1,10 @@
-// Tela de Dashboard — seleciona uma linha e um período de datas,
-// mostra cards com OEE agregado de cada máquina (sessões finalizadas e em andamento; as em
+// Tela de Dashboard — seleciona uma linha; o dia vem do filtro de data do topo (sem filtro = hoje).
+// Mostra cards com OEE agregado de cada máquina (sessões finalizadas e em andamento; as em
 // andamento aparecem "ao vivo" com a situação agora). Atualiza sozinha a cada 5 min.
 // Clicar num card abre o modal de detalhes. A visão "Linha" junta a linha inteira: OEE pela
 // máquina crítica e as paradas somadas de todas as máquinas.
 import { useEffect, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
 import { dashboardService, type LinhaDashboardDto, type MaquinaDashboardDto } from '../../services/dashboardService'
@@ -14,8 +15,7 @@ import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 import { useParametroUrl } from '../../hooks/useParametroUrl'
 import { inputMd } from '../../styles/inputs'
 import { cardPadded } from '../../styles/cards'
-import CampoData from '../../components/CampoData'
-import { clienteService } from '../../services/clienteService'
+import Switch from '../../components/Switch'
 
 // A coleta Semi Automática grava a produção nos múltiplos de 5 min do relógio (10:00, 10:05...):
 // a tela recarrega logo depois (10 s de folga).
@@ -45,22 +45,36 @@ function visaoGuardada(): Visao {
   }
 }
 
-function formatarDataInput(data: Date) {
-  return data.toISOString().slice(0, 10)
+// "Só em medição" (máquinas com sessão em andamento) também fica guardado neste navegador.
+const CHAVE_SO_EM_MEDICAO = 'smartline.dashboard.soEmMedicao'
+
+function soEmMedicaoGuardado(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_SO_EM_MEDICAO) === '1'
+  } catch {
+    return false
+  }
+}
+
+// Hoje no fuso local (o mesmo critério do filtro do topo).
+function hojeTexto() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export default function Dashboard() {
   const { clienteId } = useAuth()
+  // Filtro de data do topo: nulo = hoje (ao vivo)
+  const { dataFiltro } = useOutletContext<{ dataFiltro: string | null }>()
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [linhaSelecionada, setLinhaSelecionada] = useState<string>('')
   const [loadingLinhas, setLoadingLinhas] = useState(false)
 
-  // Um dia só, começando pelo de hoje.
-  const [data, setData] = useState(() => formatarDataInput(new Date()))
+  // Um dia só: o do filtro do topo ou hoje.
+  const data = dataFiltro ?? hojeTexto()
 
   const [visao, setVisao] = useState<Visao>(visaoGuardada)
-  // Dias com sessão na linha escolhida: bolinha azul no calendário
-  const [datasComSessao, setDatasComSessao] = useState<string[]>([])
+  const [soEmMedicao, setSoEmMedicao] = useState<boolean>(soEmMedicaoGuardado)
   const [dados, setDados] = useState<MaquinaDashboardDto[]>([])
   const [linhaGeral, setLinhaGeral] = useState<LinhaDashboardDto | null>(null)
   const [loadingDados, setLoadingDados] = useState(false)
@@ -84,16 +98,6 @@ export default function Dashboard() {
     }
     carregar()
   }, [clienteId])
-
-  // Dias com sessão da linha escolhida, para os calendários (uma consulta ao trocar de linha).
-  useEffect(() => {
-    if (!clienteId || !linhaSelecionada) return
-    let ativo = true
-    clienteService.getDatasComSessao(clienteId, linhaSelecionada)
-      .then(datas => { if (ativo) setDatasComSessao(datas) })
-      .catch(() => { if (ativo) setDatasComSessao([]) })
-    return () => { ativo = false }
-  }, [clienteId, linhaSelecionada])
 
   // "Carregando..." só ao trocar linha, período ou visão; depois disso a tela se atualiza sozinha,
   // no lugar, logo depois de cada gravação da produção do Semi Automático (a cada 5 min).
@@ -142,9 +146,23 @@ export default function Dashboard() {
     try { localStorage.setItem(CHAVE_VISAO, v) } catch { /* sem armazenamento: só não lembra */ }
   }
 
+  function escolherSoEmMedicao(v: boolean) {
+    setSoEmMedicao(v)
+    try { localStorage.setItem(CHAVE_SO_EM_MEDICAO, v ? '1' : '0') } catch { /* sem armazenamento: só não lembra */ }
+  }
+
   function abrirDetalhe(maquinaLinhaId: string) {
     setMaquinaLinhaSelecionada(maquinaLinhaId)
   }
+
+  // "Só em medição" só faz sentido hoje (num dia passado nenhuma máquina está ao vivo).
+  const filtrarEmMedicao = soEmMedicao && dataFiltro === null
+  const dadosVisiveis = filtrarEmMedicao ? dados.filter(m => m.aoVivo) : dados
+  // Na visão Linha, os indicadores da linha continuam os da linha inteira; o filtro vale para a
+  // tabela e os gráficos por máquina.
+  const linhaGeralVisivel = linhaGeral && filtrarEmMedicao
+    ? { ...linhaGeral, maquinas: linhaGeral.maquinas.filter(m => m.aoVivo) }
+    : linhaGeral
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -166,11 +184,6 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-texto-2">Data</label>
-          <CampoData valor={data} onChange={setData} datasComSessao={datasComSessao} max={formatarDataInput(new Date())} />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
           <label className="text-xs text-texto-2">Visão</label>
           <div className="flex">
             {OPCOES_VISAO.map(o => (
@@ -189,6 +202,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {dataFiltro === null && (
+          <label className="flex items-center gap-2 h-9 cursor-pointer">
+            <Switch checked={soEmMedicao} onChange={escolherSoEmMedicao} />
+            <span className="text-xs text-texto-2">Só em medição</span>
+          </label>
+        )}
+
         {atualizadoEm && (
           <p className="ml-auto text-[10px] text-texto-3 self-center">
             Atualiza sozinho a cada 5 min · última às {atualizadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -202,14 +222,14 @@ export default function Dashboard() {
       ) : erro ? (
         <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro: {erro}</div>
       ) : visao === 'linha' ? (
-        linhaGeral && linhaGeral.maquinas.length > 0
-          ? <LinhaGeral dados={linhaGeral} onAbrirMaquina={abrirDetalhe} />
-          : <div className="flex items-center justify-center h-48 text-sm text-texto-3">Nenhuma máquina nesta linha</div>
-      ) : dados.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-sm text-texto-3">Nenhuma máquina nesta linha</div>
+        linhaGeralVisivel && linhaGeralVisivel.maquinas.length > 0
+          ? <LinhaGeral dados={linhaGeralVisivel} onAbrirMaquina={abrirDetalhe} />
+          : <div className="flex items-center justify-center h-48 text-sm text-texto-3">{filtrarEmMedicao ? 'Nenhuma máquina em medição nesta linha' : 'Nenhuma máquina nesta linha'}</div>
+      ) : dadosVisiveis.length === 0 ? (
+        <div className="flex items-center justify-center h-48 text-sm text-texto-3">{filtrarEmMedicao ? 'Nenhuma máquina em medição nesta linha' : 'Nenhuma máquina nesta linha'}</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {dados.map(m => (
+          {dadosVisiveis.map(m => (
             <div key={m.maquinaLinhaId} onClick={() => abrirDetalhe(m.maquinaLinhaId)}>
               <MaquinaDashboardCard dados={m} />
             </div>
