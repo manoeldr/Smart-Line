@@ -1,5 +1,6 @@
 // Bloco da coleta Semi Automática no modal de detalhe da máquina: situação ao vivo, WISE,
-// produção da sessão, parada em curso, sensores em texto e canais lidos. Atualiza a cada 5 s.
+// produção da sessão, parada em curso e sensores em texto, em duas colunas (rótulo | valor).
+// Atualiza a cada 5 s. Canais, Z e contadores brutos não aparecem aqui (Desenvolvedor → Coleta).
 // Retrátil: fechado mostra só o cabeçalho (situação, quem iniciou, Finalizar); a escolha fica
 // guardada neste navegador. Começa fechado.
 // Não mostra nada se a máquina não está em coleta automática. Finalizar: quem iniciou,
@@ -127,60 +128,68 @@ export default function PainelColetaIot({ maquinaLinhaId, onFinalizada }: Props)
       {erro && <p className="px-3 py-2 text-xs text-red-600 dark:text-red-400">{erro}</p>}
 
       {aberto && (
-      <div className="px-3 py-2.5 flex flex-col gap-2 text-xs">
-
-        {/* Números principais */}
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-texto-2">
-          <p>
-            WISE {c.enderecoIp ?? ''} <SituacaoWiseTexto situacao={painel.wiseConectado ? 'Conectado' : 'Desconectado'} />
+      <div className="px-3 py-2.5 text-xs">
+        {/* Duas colunas: rótulo | valor */}
+        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 items-baseline">
+          <span className="text-texto-3">WISE</span>
+          <span className="text-texto-2">
+            {c.enderecoIp ?? ''} <SituacaoWiseTexto situacao={painel.wiseConectado ? 'Conectado' : 'Desconectado'} />
             {painel.ultimaMensagem && <span className="text-texto-3"> · última mensagem {tempoDesde(painel.ultimaMensagem, agora)}</span>}
-          </p>
-          <p>Produção da sessão: <span className="font-medium text-texto">{painel.producaoSessao.toLocaleString('pt-BR')}</span></p>
-          <p>Refugo: <span className="text-texto">{painel.refugoSessao.toLocaleString('pt-BR')}</span></p>
+          </span>
+
+          <span className="text-texto-3">Produção</span>
+          <span className="font-medium text-texto">{painel.producaoSessao.toLocaleString('pt-BR')}</span>
+
+          <span className="text-texto-3">Refugo</span>
+          <span className="text-texto">{painel.refugoSessao.toLocaleString('pt-BR')}</span>
+
+          {parada && (
+            <>
+              <span className="text-texto-3">Parada</span>
+              <span className="text-red-600 dark:text-red-400">
+                desde {dataHora(parada.inicio)} ({tempoDesde(parada.inicio, agora).replace('há ', '')})
+                {' · '}{parada.motivo ? `${parada.motivo} (${parada.tipo.toLowerCase()})` : 'sem classificação (conta como interna)'}
+              </span>
+            </>
+          )}
+
+          {c.semComunicacaoDesde && (
+            <>
+              <span className="text-texto-3">Comunicação</span>
+              <span className="text-texto-2">sem comunicação com o WISE desde {dataHora(c.semComunicacaoDesde)}</span>
+            </>
+          )}
+
           {c.paradasNaoClassificadas > 0 && (
-            <p className="text-amber-600 dark:text-amber-400">{c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada sem classificação' : 'paradas sem classificação'}</p>
+            <>
+              <span className="text-texto-3">Sem classificação</span>
+              <span className="text-amber-600 dark:text-amber-400">
+                {c.paradasNaoClassificadas} {c.paradasNaoClassificadas === 1 ? 'parada' : 'paradas'}
+              </span>
+            </>
+          )}
+
+          {painel.sensores.length > 0 && (
+            <>
+              <span className="text-texto-3">Sensores</span>
+              <span className="flex flex-wrap gap-1.5">
+                {painel.sensores.map(s => (
+                  <span
+                    key={s.canal}
+                    title={s.nome}
+                    className={`text-[10px] px-1.5 py-0.5 border ${
+                      s.emAlarme
+                        ? 'border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
+                        : 'border-borda-forte text-texto-2'
+                    }`}
+                  >
+                    {s.canal} - {s.texto}
+                  </span>
+                ))}
+              </span>
+            </>
           )}
         </div>
-
-        {/* Parada em curso / sem comunicação */}
-        {parada && (
-          <p className="text-red-600 dark:text-red-400">
-            Parada desde {dataHora(parada.inicio)} ({tempoDesde(parada.inicio, agora).replace('há ', '')})
-            {' · '}{parada.motivo ? `${parada.motivo} (${parada.tipo.toLowerCase()})` : 'sem classificação (conta como interna)'}
-          </p>
-        )}
-        {c.semComunicacaoDesde && (
-          <p className="text-texto-2">Sem comunicação com o WISE desde {dataHora(c.semComunicacaoDesde)}.</p>
-        )}
-
-        {/* Sensores em texto */}
-        {painel.sensores.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {painel.sensores.map(s => (
-              <span
-                key={s.canal}
-                title={s.nome}
-                className={`text-[10px] px-1.5 py-0.5 border ${
-                  s.emAlarme
-                    ? 'border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
-                    : 'border-borda-forte text-texto-2'
-                }`}
-              >
-                {s.canal} - {s.texto}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Canais lidos */}
-        <p className="text-[10px] text-texto-3">
-          Canais: {c.canais.map(x => `${x.canal}${x.multiplicador > 1 ? ` ×${x.multiplicador}` : ''}`).join(', ')}
-          {' · '}parada após {c.tempoDeteccaoParadaSegundos} s sem produção
-          {/* Valor bruto dos contadores do WISE: só para o Desenvolvedor (não é a produção) */}
-          {usuario?.nivel === 'Desenvolvedor' && Object.keys(painel.contadores).length > 0 && (
-            <> · contadores: {Object.entries(painel.contadores).map(([canal, v]) => `${canal}=${v.toLocaleString('pt-BR')}`).join(', ')}</>
-          )}
-        </p>
       </div>
       )}
 

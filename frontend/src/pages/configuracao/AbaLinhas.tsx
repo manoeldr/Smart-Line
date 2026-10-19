@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { configuracaoService, type LinhaConfDto, type ClienteConfDto } from '../../services/configuracaoService'
+import { table, tableHeadRow, tableHeadCell, tableBodyRow, tableBodyCell, tableBodyCellMuted, tableActionsCell } from '../../styles/tables'
 
 export default function AbaLinhas() {
   const [linhas, setLinhas] = useState<LinhaConfDto[]>([])
@@ -68,26 +69,26 @@ export default function AbaLinhas() {
       {loading ? (
         <p className="text-xs text-texto-3">Carregando...</p>
       ) : (
-        <table className="w-full text-xs">
+        <table className={table}>
           <thead>
-            <tr className="border-b border-borda">
-              <th className="text-left py-2 pr-4 text-texto-3 font-medium">Nome</th>
-              <th className="text-left py-2 pr-4 text-texto-3 font-medium">Cliente</th>
-              <th className="text-left py-2 pr-4 text-texto-3 font-medium">Status</th>
+            <tr className={tableHeadRow}>
+              <th className={tableHeadCell}>Nome</th>
+              <th className={tableHeadCell}>Cliente</th>
+              <th className={tableHeadCell}>Status</th>
               <th className="py-2" />
             </tr>
           </thead>
           <tbody>
             {linhas.map(l => (
-              <tr key={l.id} className="border-b border-borda-suave">
-                <td className="py-2.5 pr-4 text-texto">{l.nome}</td>
-                <td className="py-2.5 pr-4 text-texto-2">{l.clienteNome}</td>
-                <td className="py-2.5 pr-4">
+              <tr key={l.id} className={tableBodyRow}>
+                <td className={tableBodyCell}>{l.nome}</td>
+                <td className={tableBodyCellMuted}>{l.clienteNome}</td>
+                <td className="py-2.5 pl-2 pr-4">
                   <span className={`px-1.5 py-0.5 text-[10px] ${l.ativo ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-superficie-2 text-texto-3'}`}>
                     {l.ativo ? 'ativa' : 'inativa'}
                   </span>
                 </td>
-                <td className="py-2.5 flex items-center justify-end gap-2">
+                <td className={tableActionsCell}>
                   <button onClick={() => abrirEditar(l)} className="text-texto-3 hover:text-texto">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>

@@ -60,7 +60,7 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 py-2 px-2 border-b border-borda-suave bg-superficie"
+      className="flex items-center gap-2 py-2 px-2 border-b border-borda-suave bg-superficie even:bg-superficie-2"
     >
       <button {...attributes} {...listeners} className="cursor-grab text-texto-3 hover:text-texto-2 touch-none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

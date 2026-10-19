@@ -2,11 +2,12 @@
 
 export const table = 'w-full text-xs'
 export const tableHeadRow = 'border-b border-borda'
-export const tableHeadCell = 'text-left py-2 pr-4 text-texto-3 font-medium'
-export const tableBodyRow = 'border-b border-borda-suave'
-export const tableBodyCell = 'py-2.5 pr-4 text-texto'
-export const tableBodyCellMuted = 'py-2.5 pr-4 text-texto-2' // texto secundário (ex: estado, descrição)
-export const tableActionsCell = 'py-2.5 flex items-center justify-end gap-2' // coluna de botões editar/excluir
+export const tableHeadCell = 'text-left py-2 pl-2 pr-4 text-texto-3 font-medium'
+// Linhas alternadas (zebra): a par um pouco mais escura, no tom do tema
+export const tableBodyRow = 'border-b border-borda-suave even:bg-superficie-2'
+export const tableBodyCell = 'py-2.5 pl-2 pr-4 text-texto'
+export const tableBodyCellMuted = 'py-2.5 pl-2 pr-4 text-texto-2' // texto secundário (ex: estado, descrição)
+export const tableActionsCell = 'py-2.5 pr-2 flex items-center justify-end gap-2' // coluna de botões editar/excluir
 
 // Botão de aba (usado na navegação por abas da tela de Configurações)
 export const tabButton = (ativo: boolean) =>

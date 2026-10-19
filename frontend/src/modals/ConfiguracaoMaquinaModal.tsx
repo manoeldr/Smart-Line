@@ -288,7 +288,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                       ) : camposVisiveis.length === 0 ? (
                         <p className="text-xs text-texto-3 mt-2">Nenhum campo extra</p>
                       ) : camposVisiveis.map(c => (
-                        <div key={c.id} className="flex items-center justify-between py-2 border-b border-borda-suave">
+                        <div key={c.id} className="flex items-center justify-between py-2 px-2 border-b border-borda-suave even:bg-superficie-2">
                           <div>
                             <p className="text-xs text-texto">
                               {c.nome} {c.unidade && <span className="text-texto-3">({c.unidade})</span>}
@@ -318,7 +318,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
                       ) : motivosVisiveis.length === 0 ? (
                         <p className="text-xs text-texto-3">Nenhum motivo cadastrado</p>
                       ) : motivosVisiveis.map(m => (
-                        <div key={m.id} className="flex items-center justify-between py-2 border-b border-borda-suave">
+                        <div key={m.id} className="flex items-center justify-between py-2 px-2 border-b border-borda-suave even:bg-superficie-2">
                           <div>
                             <p className="text-xs text-texto">
                               {m.nome} {m.isNew && <span className={badgeNovo}>(novo)</span>}

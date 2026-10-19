@@ -138,7 +138,7 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-borda text-left text-texto-3">
-              <th className="py-1.5 pr-2 font-medium w-20">Entrada</th>
+              <th className="py-1.5 pl-2 pr-2 font-medium w-20">Entrada</th>
               <th className="py-1.5 pr-2 font-medium">Nome</th>
               <th className="py-1.5 pr-2 font-medium">Quando ativo</th>
               <th className="py-1.5 font-medium">Quando normal</th>
@@ -149,8 +149,8 @@ export default function SemiAutomaticoMaquina({ maquinaId, salvarRef }: Props) {
               const t = textos[e.canal]
               const sensor = e.tipo === 'Estado'
               return (
-                <tr key={e.canal} className="border-b border-borda-suave">
-                  <td className="py-1.5 pr-2 text-texto-2 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
+                <tr key={e.canal} className="border-b border-borda-suave even:bg-superficie-2">
+                  <td className="py-1.5 pl-2 pr-2 text-texto-2 whitespace-nowrap">{e.canal} (DI{e.entrada})</td>
                   <td className="py-1.5 pr-2">
                     <input value={t.nome} maxLength={TAMANHO_MAXIMO_TEXTO} onChange={x => alterarTexto(e.canal, { nome: x.target.value })} className={inputBase} />
                   </td>
