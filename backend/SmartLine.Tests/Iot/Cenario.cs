@@ -67,11 +67,11 @@ internal static class Cenario
         var estados = new Dictionary<CanalWise, bool>();
         if (!semSensores)
         {
-            // Invertidos: 1 = sem presença, 0 = presença.
-            estados[CanalWise.S1] = abaixoAcumuloMinimo;       // alarma em 1
-            estados[CanalWise.S8] = faltaGarrafas;             // alarma em 1
-            estados[CanalWise.S4] = !saidaCaixasBloqueada;     // alarma em 0
-            estados[CanalWise.S7] = !saidaGarrafasBloqueada;   // alarma em 0
+            // Ativo (1) = situação de falha; normal (0) fora dela, em todos os sensores.
+            estados[CanalWise.S1] = abaixoAcumuloMinimo;
+            estados[CanalWise.S8] = faltaGarrafas;
+            estados[CanalWise.S4] = saidaCaixasBloqueada;
+            estados[CanalWise.S7] = saidaGarrafasBloqueada;
         }
 
         return new AmostraWise { TimestampUtc = Em(segundos), Contadores = contadores, Estados = estados };

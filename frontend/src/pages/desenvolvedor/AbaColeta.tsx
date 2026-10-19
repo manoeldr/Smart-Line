@@ -119,7 +119,7 @@ export default function AbaColeta() {
                     {sensores.length === 0 && '—'}
                     {sensores.map(s => (
                       <span key={s.canal} className={`block text-[10px] ${s.emAlarme ? 'text-red-600 dark:text-red-400' : ''}`} title={s.texto}>
-                        {s.canal}={s.valorBruto ? 1 : 0} {s.nome}{s.emAlarme ? ' (alarme)' : ''}
+                        {s.canal}={s.valorBruto ? 1 : 0} {s.nome}{s.emAlarme ? ' (falha pela regra)' : ''}
                       </span>
                     ))}
                   </td>

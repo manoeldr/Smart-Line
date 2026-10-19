@@ -7,8 +7,8 @@ namespace SmartLine.Iot.Coleta;
 /// <param name="Recebida">O WISE já mandou esta entrada alguma vez desde que o backend subiu.</param>
 /// <param name="Valor">Contadores: último valor bruto.</param>
 /// <param name="Incremento">Contadores: quanto subiu desde a mensagem anterior.</param>
-/// <param name="ValorBruto">Sensores: como veio (invertidos: true = sem presença).</param>
-/// <param name="EmAlarme">Sensores: se está ativo (ex.: faltando garrafa).</param>
+/// <param name="ValorBruto">Sensores: como veio do WISE.</param>
+/// <param name="EmAlarme">Sensores: ativo (entrada em 1). Se isso é falha ou não, depende da regra da máquina.</param>
 /// <param name="Texto">Sensores: o texto de ativo ou de normal que vale agora.</param>
 public sealed record EntradaAoVivoDto(
     CanalWise Canal,

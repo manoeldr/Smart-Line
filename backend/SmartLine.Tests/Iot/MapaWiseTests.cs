@@ -34,16 +34,17 @@ public class MapaWiseTests
         Assert.False(def.EhContadorProducao);
     }
 
-    // Sensores invertidos: 1 = sem presença, 0 = presença.
+    // Sem polaridade por canal (19/10): ativo = entrada em 1 em todos os sensores. Se isso é
+    // falha ou não, quem diz é a regra da máquina ("Sensor ativo" / "Sensor normal").
     [Theory]
-    [InlineData(CanalWise.S1, true, true)]    // sem presença no acúmulo mínimo → alarme
+    [InlineData(CanalWise.S1, true, true)]
     [InlineData(CanalWise.S1, false, false)]
-    [InlineData(CanalWise.S8, true, true)]    // sem garrafas na entrada → alarme
+    [InlineData(CanalWise.S8, true, true)]
     [InlineData(CanalWise.S8, false, false)]
-    [InlineData(CanalWise.S4, false, true)]   // presença contínua na saída → alarme
-    [InlineData(CanalWise.S4, true, false)]
-    [InlineData(CanalWise.S7, false, true)]
-    [InlineData(CanalWise.S7, true, false)]
+    [InlineData(CanalWise.S4, true, true)]
+    [InlineData(CanalWise.S4, false, false)]
+    [InlineData(CanalWise.S7, true, true)]
+    [InlineData(CanalWise.S7, false, false)]
     public void Polaridade_DosSensoresDeEstado(CanalWise canal, bool valorBruto, bool emAlarme)
     {
         Assert.Equal(emAlarme, MapaWise.Definicao(canal).EstaEmAlarme(valorBruto));

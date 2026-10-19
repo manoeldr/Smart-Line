@@ -176,8 +176,8 @@ public class RegrasPadraoServiceTests : IDisposable
         var regras = MapeadorRegras.ParaDominio(RegrasDa(maquina));
         var motivoFalta = RegrasDa(maquina).Single(r => r.Prioridade == 1).MotivoParadaId;
 
-        // S8 = 1 (sem garrafas, sensor invertido) e S7 = 0 (saída bloqueada): vence a prioridade 1.
-        var estados = new Dictionary<CanalWise, bool> { [CanalWise.S8] = true, [CanalWise.S7] = false };
+        // S8 = 1 (sem garrafas) e S7 = 1 (saída bloqueada): vence a prioridade 1.
+        var estados = new Dictionary<CanalWise, bool> { [CanalWise.S8] = true, [CanalWise.S7] = true };
         var classificacao = MotorRegras.Classificar(regras, new ContextoParada(estados, TimeSpan.FromMinutes(1)));
 
         Assert.Equal(motivoFalta, classificacao.MotivoParadaId);

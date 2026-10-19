@@ -187,14 +187,14 @@ public class RegistradorColetaTests : IDisposable
         var estado = new EstadoMaquinaIot(await _c.Configuracao());
         uint s2 = 1000;
 
-        // Sensores invertidos: S8 = 1 → sem garrafas; S1/S8 normais em 0; S4/S7 normais em 1.
+        // S8 = 1 → sem garrafas; todos os sensores normais em 0.
         AmostraWise Amostra(int seg, bool semGarrafa) => new()
         {
             TimestampUtc = Em(seg),
             Contadores = new Dictionary<CanalWise, uint> { [CanalWise.S2] = s2, [CanalWise.S3] = 0 },
             Estados = new Dictionary<CanalWise, bool>
             {
-                [CanalWise.S1] = false, [CanalWise.S4] = true, [CanalWise.S7] = true, [CanalWise.S8] = semGarrafa
+                [CanalWise.S1] = false, [CanalWise.S4] = false, [CanalWise.S7] = false, [CanalWise.S8] = semGarrafa
             }
         };
 

@@ -6,10 +6,10 @@ namespace SmartLine.Core.Iot;
 /// <summary>Tipos de condição que uma regra pode testar.</summary>
 public enum TipoCondicao
 {
-    /// <summary>O sensor de estado está em alarme (já considerando a polaridade).</summary>
+    /// <summary>O sensor de estado está ativo (entrada em 1).</summary>
     SensorEmAlarme,
 
-    /// <summary>O sensor de estado está fora de alarme.</summary>
+    /// <summary>O sensor de estado está normal (entrada em 0).</summary>
     SensorForaDeAlarme,
 
     /// <summary>A parada já dura pelo menos o tempo informado.</summary>

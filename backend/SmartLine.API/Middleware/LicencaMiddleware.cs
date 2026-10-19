@@ -2,9 +2,11 @@ using SmartLine.Core.Interfaces;
 
 namespace SmartLine.API.Middleware;
 
-// Bloqueia toda a API se a licença não estiver ativa nesta máquina —
-// exceto os próprios endpoints de licença (status/ativar), que precisam
-// funcionar mesmo sem ativação, e o Swagger em ambiente de desenvolvimento.
+// Bloqueia as chamadas de API de negócio se a licença não estiver ativa nesta máquina —
+// exceto os próprios endpoints de licença (status/ativar), que precisam funcionar mesmo
+// sem ativação, e o Swagger em ambiente de desenvolvimento. Libera o frontend inteiro
+// (HTML/JS/CSS, sem dado sensível) mesmo sem licença — sem isso, a própria tela de
+// ativação nunca carrega numa máquina ainda não licenciada.
 public class LicencaMiddleware
 {
     private readonly RequestDelegate _next;
@@ -18,7 +20,8 @@ public class LicencaMiddleware
     {
         var caminho = context.Request.Path.Value ?? "";
 
-        var rotaLiberada = caminho.StartsWith("/api/licenca")
+        var rotaLiberada = !caminho.StartsWith("/api")
+            || caminho.StartsWith("/api/licenca")
             || caminho.StartsWith("/swagger");
 
         if (!rotaLiberada)

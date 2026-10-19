@@ -55,10 +55,10 @@ public class MaquinaSimuladaTests
     {
         var a = Ler(Nova().GerarPayload(T0), T0);
 
-        // Invertidos: normal = S1/S8 em 0 (com presença), S4/S7 em 1 (sem acúmulo).
+        // Normal = 0 em todos os sensores.
         Assert.False(a.Estados[CanalWise.S1]);
-        Assert.True(a.Estados[CanalWise.S4]);
-        Assert.True(a.Estados[CanalWise.S7]);
+        Assert.False(a.Estados[CanalWise.S4]);
+        Assert.False(a.Estados[CanalWise.S7]);
         Assert.False(a.Estados[CanalWise.S8]);
         Assert.All(a.Estados, e => Assert.False(MapaWise.Definicao(e.Key).EstaEmAlarme(e.Value)));
     }

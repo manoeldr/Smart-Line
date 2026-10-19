@@ -15,7 +15,7 @@ public class MotorRegrasTests
     [Fact]
     public void SemNenhumSensorEmAlarme_NaoClassificada()
     {
-        var c = MotorRegras.Classificar(Padrao, Contexto(null, (CanalWise.S8, false), (CanalWise.S7, true)));
+        var c = MotorRegras.Classificar(Padrao, Contexto(null, (CanalWise.S8, false), (CanalWise.S7, false)));
         Assert.Same(ClassificacaoParada.NaoClassificada, c);
         Assert.True(c.EhNaoClassificada);
         Assert.Equal(TipoParada.Interna, c.Tipo);
@@ -34,8 +34,8 @@ public class MotorRegrasTests
     public void DoisSensoresEmAlarme_VencePrioridadeMenor_IndependenteDaOrdemDaLista()
     {
         var invertida = MotorRegras.Preparar(RegrasPadrao.Reverse());
-        // S7 = 0 → saída de garrafas bloqueada; S8 = 1 → falta na entrada.
-        var c = MotorRegras.Classificar(invertida, Contexto(null, (CanalWise.S7, false), (CanalWise.S8, true)));
+        // S7 = 1 → saída de garrafas bloqueada; S8 = 1 → falta na entrada.
+        var c = MotorRegras.Classificar(invertida, Contexto(null, (CanalWise.S7, true), (CanalWise.S8, true)));
         Assert.Equal(MotivoFaltaGarrafas, c.MotivoParadaId);
     }
 

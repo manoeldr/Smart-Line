@@ -14,8 +14,8 @@ public sealed record TextoEntrada(CanalWise Canal, string Nome, string? TextoAti
 /// seus; o que ela não personalizou fica com estes.
 /// </summary>
 /// <remarks>
-/// Só texto: o que é alarme em cada sensor (a ligação invertida) continua
-/// definido pelo <see cref="MapaWise"/> e não muda com a personalização.
+/// Só texto. "Ativo" é a entrada em 1 e "normal" em 0, em todos os sensores; se a
+/// falha é com o sensor ativo ou normal, quem diz é a regra de classificação.
 /// </remarks>
 public static class TextosEntradasWise
 {

@@ -10,6 +10,7 @@ namespace SmartLine.Iot.Coleta;
 /// </summary>
 /// <param name="ProducaoPendente">Apurada desde a última consolidação, ainda não gravada.</param>
 /// <param name="Sensores">Último valor bruto de cada sensor de estado lido.</param>
+/// <param name="SensoresEmFalha">Sensores que, pelas regras da máquina, estão do lado da falha agora.</param>
 /// <param name="Contadores">Último valor bruto de cada contador lido.</param>
 public sealed record SituacaoColetaIot(
     Guid MaquinaLinhaId,
@@ -20,6 +21,7 @@ public sealed record SituacaoColetaIot(
     DateTime? UltimaAmostraUtc,
     ProducaoPendente ProducaoPendente,
     IReadOnlyDictionary<CanalWise, bool> Sensores,
+    IReadOnlySet<CanalWise> SensoresEmFalha,
     IReadOnlyDictionary<CanalWise, uint> Contadores);
 
 /// <summary>Um IP que publicou no broker desde que o backend subiu (em medição ou livre).</summary>

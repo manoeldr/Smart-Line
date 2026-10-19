@@ -31,7 +31,7 @@ Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e
 **WISE e medição**
 - Cadastro de WISE em Configurações → Dispositivos IoT: IP fixo e nome opcional, com **ping antes de adicionar** (se não responder, avisa e deixa adicionar mesmo assim)
 - Ao iniciar a medição, o WISE é escolhido da lista (conectado / desconectado / em uso em outra medição); só inicia com ele conectado e livre. Fica associado à medição até ela ser finalizada
-- Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga
+- Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga. **Sem polaridade fixa** (desde 19/10): sensor **ativo** = entrada em 1 e **normal** = em 0, em todos; se a falha é com o sensor ativo ou normal, quem diz é a regra de classificação da máquina
 - "Produção até então" informada ao iniciar, como no Manual: a primeira leitura da sessão é o contador da máquina e o WISE soma a partir dele
 - Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo; se não conseguir, a medição começa mesmo assim e a tela avisa
 - Diagnóstico por WISE: Validar entradas (valores ao vivo de cada canal) e Ping ("WISE conectado" / "WISE desconectado")
@@ -40,7 +40,7 @@ Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e
 - Contínua: vira o dia à meia-noite (o novo dia continua de onde o contador parou) e só termina quando alguém finaliza. Várias máquinas em paralelo
 - Produção gravada a cada 5 minutos, nos múltiplos do relógio
 - Parada detectada quando a produção não anda por um tempo configurável por máquina (Z, padrão 60 s); o início é o instante do último incremento
-- **Regras de classificação** por máquina (e personalizáveis por máquina da linha): o sensor em alarme vira o motivo da parada. Uma parada é um registro só, com a **primeira causa** identificada, até a máquina voltar a produzir; parada sem causa conta como Interna e pode ser classificada depois, com histórico
+- **Regras de classificação** por máquina (e personalizáveis por máquina da linha): cada condição diz se o sensor precisa estar **ativo (1)** ou **normal (0)** para a parada ganhar aquele motivo. No bloco da coleta, o chip do sensor fica amarelo quando ele está do lado da falha segundo as regras; o texto segue ativo/normal. Uma parada é um registro só, com a **primeira causa** identificada, até a máquina voltar a produzir; parada sem causa conta como Interna e pode ser classificada depois, com histórico
 - Textos das entradas editáveis por máquina (ex.: S8 = "Falta de garrafas na entrada")
 - Backend reiniciado: a coleta é retomada sozinha e o tempo fora do ar vira período sem comunicação
 
@@ -93,7 +93,8 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Filtro por data no topo, com **bolinha azul nos dias que tiveram sessão**
 
 ### Dashboard
-- Seleção de linha e período (calendário com bolinha azul nos dias com sessão da linha)
+- Seleção de linha; o dia é o do **filtro de data do topo** (sem filtro = hoje, ao vivo), o mesmo do Overview e dos Relatórios
+- **Só em medição**: mostra só as máquinas com sessão em andamento (lembrado no navegador; só aparece em hoje). Na visão Linha, os indicadores da linha continuam os da linha inteira; o filtro vale para a tabela e os gráficos por máquina
 - Atualiza sozinho logo depois de cada gravação de produção (a cada 5 min), sem recarregar a tela
 - **Visão Máquinas**: um card por máquina com os valores exatos de uma sessão — a em andamento ("ao vivo", com a situação agora) ou a última do período: OEE, Disponibilidade, Performance, Qualidade, Produção, Refugo, tempo rodando/parado
 - **Visão Linha**: indicadores da linha inteira
@@ -328,7 +329,7 @@ Pela tela web do WISE (`http://<ip-do-wise>`, usuário `root`). Os nomes dos can
 | Onde | O quê |
 |---|---|
 | Configuration → Network | IP fixo na mesma rede do PC; a senha de acesso é a que vai em `WISE_HTTP_SENHA` |
-| I/O Status / Configuration → DI | DI1, DI2, DI4, DI5 (S2, S3, S5, S6) em modo **Counter**; DI0, DI3, DI6, DI7 (S1, S4, S7, S8) em modo **DI**. **Sem Invert Signal** (a inversão de S4 e S7 é do sistema). Filtro curto nos contadores, ~10 s nos sensores |
+| I/O Status / Configuration → DI | DI1, DI2, DI4, DI5 (S2, S3, S5, S6) em modo **Counter**; DI0, DI3, DI6, DI7 (S1, S4, S7, S8) em modo **DI**. **Sem Invert Signal**: o sistema lê 1 = ativo, 0 = normal, e a regra da máquina diz se a falha é com o sensor ativo ou normal. Filtro curto nos contadores, ~10 s nos sensores |
 | Configuration → Cloud | Select Service: **iSensing MQTT**. Host: IP do PC. Porta `1883`. SSL e WebSocket: Disable. Usuário e senha: em branco (o broker não autentica). QoS 0, Retain: Disable |
 | Advanced → Data Logger → Logger Configuration | **Push Notification → I/O Log** ligado (Memory Storage pode ficar desligado) |
 | Advanced → Data Logger → Data Configuration → I/O | **By Period** = `100` (a unidade é 0,1 s → 10 s; o sistema considera sem comunicação aos 90 s). Em **Log Data → DI**: **Log Enabled** nos 8 canais; **Change of State** só nos sensores (S1, S4, S7, S8); **Reset Counter desligado** em todos |

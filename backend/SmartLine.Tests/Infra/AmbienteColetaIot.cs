@@ -131,13 +131,12 @@ internal sealed class AmbienteColetaIot : IAsyncDisposable
     }
 
     /// <summary>
-    /// Mensagem do WISE como o broker enfileira. Sensores no normal por padrão
-    /// (invertidos: S1/S8 em 0, S4/S7 em 1).
+    /// Mensagem do WISE como o broker enfileira. Sensores no normal (0) por padrão.
     /// </summary>
     public void Enviar(string ip, DateTime recebidaEmUtc, uint s2, uint s3 = 0, bool faltaGarrafas = false)
     {
         var payload = $$"""
-            {"s":1,"t":"x","q":192,"c":0,"di1":false,"di2":{{s2}},"di3":{{s3}},"di4":true,"di5":0,"di6":0,"di7":true,"di8":{{(faltaGarrafas ? "true" : "false")}}}
+            {"s":1,"t":"x","q":192,"c":0,"di1":false,"di2":{{s2}},"di3":{{s3}},"di4":false,"di5":0,"di6":0,"di7":false,"di8":{{(faltaGarrafas ? "true" : "false")}}}
             """;
         Enviar(ip, recebidaEmUtc, payload);
     }

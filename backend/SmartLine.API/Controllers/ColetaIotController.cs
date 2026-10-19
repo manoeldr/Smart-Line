@@ -168,15 +168,18 @@ public class ColetaIotController : ControllerBase
                 .Where(d => d.Tipo == TipoCanal.Estado && lidos.Contains(d.Canal) && aoVivo.Sensores.ContainsKey(d.Canal))
                 .Select(d =>
                 {
+                    // O texto segue o sensor (ativo = 1, normal = 0); a cor segue a regra da máquina:
+                    // "em falha" é estar do lado que alguma regra usa para classificar a parada.
                     var bruto = aoVivo.Sensores[d.Canal];
-                    var emAlarme = d.EstaEmAlarme(bruto);
+                    var ativo = d.EstaEmAlarme(bruto);
+                    var emFalha = aoVivo.SensoresEmFalha.Contains(d.Canal);
                     var texto = textos.GetValueOrDefault(d.Canal);
                     return new SensorAoVivoDto(
                         d.Canal,
                         texto?.Nome ?? d.Descricao,
                         bruto,
-                        emAlarme,
-                        (emAlarme ? texto?.TextoAtivo : texto?.TextoNormal) ?? d.Descricao);
+                        emFalha,
+                        (ativo ? texto?.TextoAtivo : texto?.TextoNormal) ?? d.Descricao);
                 })
                 .ToList();
 
@@ -217,4 +220,5 @@ public record ColetaIotPainelDto(
 /// <param name="Nome">Nome da entrada (personalizável por máquina do catálogo).</param>
 /// <param name="ValorBruto">Como veio do WISE (sensores invertidos: true = sem presença).</param>
 /// <param name="Texto">O que o sensor está dizendo agora: o texto de ativo ou de normal (ex.: "Com garrafas na entrada").</param>
+/// <param name="EmAlarme">Do lado da falha segundo as regras da máquina (a tela pinta). O texto segue ativo/normal.</param>
 public record SensorAoVivoDto(CanalWise Canal, string Nome, bool ValorBruto, bool EmAlarme, string Texto);

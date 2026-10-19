@@ -24,8 +24,8 @@ interface Props {
 }
 
 const TIPOS: { valor: TipoCondicao; texto: string }[] = [
-  { valor: 'SensorEmAlarme', texto: 'Sensor ativo' },
-  { valor: 'SensorForaDeAlarme', texto: 'Sensor normal' },
+  { valor: 'SensorEmAlarme', texto: 'Sensor ativo (entrada em 1)' },
+  { valor: 'SensorForaDeAlarme', texto: 'Sensor normal (entrada em 0)' },
   { valor: 'TempoParadaMinimo', texto: 'Parada há pelo menos' },
 ]
 

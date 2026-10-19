@@ -712,6 +712,7 @@ public sealed class ColetaIotService : BackgroundService
             e.UltimaAmostraUtc,
             coleta.Pendente,
             new Dictionary<CanalWise, bool>(e.EstadosSensores),
+            e.SensoresEmFalha(),
             new Dictionary<CanalWise, uint>(e.ContadoresBrutos));
     }
 

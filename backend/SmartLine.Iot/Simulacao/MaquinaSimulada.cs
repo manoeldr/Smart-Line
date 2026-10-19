@@ -48,7 +48,7 @@ public enum FalhaComunicacao
 /// vezes não muda o que a máquina produziu, só a resolução com que se observa.
 /// Guarda o tempo rodando em ticks (inteiro, exato) e calcula os pulsos em
 /// decimal na hora de ler, para não acumular erro de arredondamento.
-/// Sensores com a mesma ligação invertida da fábrica: 1 = sem presença.
+/// Sensores: 1 = ativo (situação de falha do cenário), 0 = normal, em todos.
 /// </remarks>
 public sealed class MaquinaSimulada
 {
@@ -150,14 +150,14 @@ public sealed class MaquinaSimulada
             json.WriteString("t", agoraUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
             json.WriteNumber("q", 192);
             json.WriteNumber("c", _sequencia);
-            // Invertidos: 1 = sem presença. Normal: S1/S8 com presença (false), S4/S7 sem acúmulo (true).
+            // Sensor ativo (1) = situação de falha do cenário; normal (0) fora dela, em todos os sensores.
             json.WriteBoolean("di1", Cenario == CenarioSimulado.AbaixoAcumuloMinimo);
             json.WriteNumber("di2", ContadorProducao);
             json.WriteNumber("di3", ContadorRejeito);
-            json.WriteBoolean("di4", Cenario != CenarioSimulado.SaidaCaixasBloqueada);
+            json.WriteBoolean("di4", Cenario == CenarioSimulado.SaidaCaixasBloqueada);
             json.WriteNumber("di5", 0);
             json.WriteNumber("di6", 0);
-            json.WriteBoolean("di7", Cenario != CenarioSimulado.SaidaGarrafasBloqueada);
+            json.WriteBoolean("di7", Cenario == CenarioSimulado.SaidaGarrafasBloqueada);
             json.WriteBoolean("di8", Cenario == CenarioSimulado.FaltaGarrafas);
             json.WriteEndObject();
         }

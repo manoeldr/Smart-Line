@@ -79,6 +79,23 @@ public sealed class EstadoMaquinaIot
     public IReadOnlyDictionary<CanalWise, bool> EstadosSensores => _estados;
 
     /// <summary>
+    /// Sensores cujo estado atual satisfaz alguma condição de regra da máquina — ou seja,
+    /// que estão "do lado da falha" segundo as regras (a tela pinta esses). Um sensor sem
+    /// regra nunca entra aqui.
+    /// </summary>
+    public IReadOnlySet<CanalWise> SensoresEmFalha() =>
+        _config.Regras
+            .SelectMany(r => r.Condicoes)
+            .Where(c => c.Canal is { } canal && _estados.TryGetValue(canal, out var bruto) && c.Tipo switch
+            {
+                TipoCondicao.SensorEmAlarme => bruto,
+                TipoCondicao.SensorForaDeAlarme => !bruto,
+                _ => false
+            })
+            .Select(c => c.Canal!.Value)
+            .ToHashSet();
+
+    /// <summary>
     /// Último valor bruto de cada contador. O serviço grava isto junto da
     /// consolidação para, após reiniciar, retomar com <c>contadoresRestaurados</c>.
     /// </summary>
