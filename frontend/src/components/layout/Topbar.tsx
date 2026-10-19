@@ -7,6 +7,8 @@ interface TopbarProps {
   titulo: string
   dataFiltro?: string | null
   clienteNome?: string | null
+  // Linha escolhida no topo (Overview e Medição usam ela)
+  linhaNome?: string | null
   isSuperAdmin?: boolean
   seletorAnchorRef?: RefObject<HTMLButtonElement | null>
   onOpenFiltro: (ref: RefObject<HTMLButtonElement | null>) => void
@@ -17,6 +19,7 @@ export default function Topbar({
   titulo,
   dataFiltro,
   clienteNome,
+  linhaNome,
   isSuperAdmin,
   seletorAnchorRef,
   onOpenFiltro,
@@ -36,14 +39,15 @@ export default function Topbar({
   return (
     <header className="h-12 bg-superficie border-b border-borda flex items-center px-4 gap-3 flex-shrink-0">
       <div className="flex items-center gap-2 flex-1">
-        {/* Seletor de cliente */}
-        {isSuperAdmin && onOpenSeletor ? (
+        {/* Seletor de cliente e linha: Administrador/Desenvolvedor trocam os dois; os outros só a linha */}
+        {onOpenSeletor ? (
           <button
             ref={seletorAnchorRef}
             onClick={onOpenSeletor}
             className="flex items-center gap-1.5 text-sm font-medium text-texto hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
           >
-            {clienteNome ?? 'Selecionar cliente'}
+            {clienteNome ?? (isSuperAdmin ? 'Selecionar cliente' : 'Smart Line Scan')}
+            {linhaNome && <span className="text-texto-2 font-normal">· {linhaNome}</span>}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 9 12 15 18 9"/>
             </svg>

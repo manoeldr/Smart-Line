@@ -17,6 +17,8 @@ interface Props {
 
 type TipoGrafico = 'paradasMotivo' | 'paradasHora'
 
+// Produção em azul (o mesmo do relatório e do detalhe da máquina), em qualquer tema
+const COR_PRODUCAO = '#1961ac'
 const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
   { valor: 'paradasMotivo', rotulo: 'Paradas por motivo' },
   { valor: 'paradasHora', rotulo: 'Paradas por hora' },
@@ -196,7 +198,8 @@ function LinhaMaquina({ m, cor, onClick }: { m: MaquinaResumoLinhaDto; cor: stri
   return (
     <tr
       onClick={onClick}
-      className={`border-b border-borda-suave cursor-pointer hover:bg-superficie-2 ${m.referencia ? 'font-medium' : ''}`}
+      // Zebra como nas tabelas de Configurações (par mais escura); o hover usa o tom seguinte
+      className={`border-b border-borda-suave even:bg-superficie-2 cursor-pointer hover:bg-superficie-3 ${m.referencia ? 'font-medium' : ''}`}
     >
       <td className="py-2">
         {/* Nome e etiqueta ocupam o que precisam; "ao vivo" vai para a borda da coluna, alinhado em todas as linhas */}
@@ -269,11 +272,11 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
               : rotulo
           }}
         />
-        <Bar dataKey="producao" name="Produção" stackId="producao" fill="var(--color-accent-600)">
+        <Bar dataKey="producao" name="Produção" stackId="producao" fill={COR_PRODUCAO}>
           {pontos.map((p, i) => (
             <Cell
               key={i}
-              fill={p.parcial ? 'color-mix(in srgb, var(--color-accent-600) 30%, transparent)' : 'var(--color-accent-600)'}
+              fill={p.parcial ? 'color-mix(in srgb, #1961ac 30%, transparent)' : COR_PRODUCAO}
               stroke={p.parcial ? 'var(--color-accent-600)' : 'none'}
               strokeWidth={p.parcial ? 1.5 : 0}
               strokeDasharray={p.parcial ? '4 3' : undefined}
@@ -315,6 +318,8 @@ function GraficoPorMotivo({ dados, maquinas, cores, ocultas, onAlternar }: Grafi
   const linhas = dados.paradasPorMotivo.map(m => ({
     motivo: m.motivo,
     quantidade: m.quantidade,
+    // Quantidade de cada máquina, para a dica ("12 min · 3×")
+    quantidades: Object.fromEntries(m.porMaquina.map(p => [p.maquinaLinhaId, p.quantidade ?? 0])),
     ...minutosPorMaquina(m.porMaquina),
   }))
 
@@ -324,7 +329,20 @@ function GraficoPorMotivo({ dados, maquinas, cores, ocultas, onAlternar }: Grafi
         <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 10 }} unit=" min" />
         <YAxis type="category" dataKey="motivo" width={170} interval={0} tick={{ fontSize: 10 }} />
-        <Tooltip formatter={valor => `${valor} min`} cursor={{ fill: 'rgba(161, 161, 170, 0.12)' }} />
+        <Tooltip
+          // Cada máquina: minutos e quantas vezes parou por esse motivo
+          formatter={(valor, _nome, item) => {
+            const quantidades = (item?.payload as { quantidades?: Record<string, number> } | undefined)?.quantidades
+            const vezes = typeof item?.dataKey === 'string' ? quantidades?.[item.dataKey] : undefined
+            return vezes ? `${valor} min · ${vezes}×` : `${valor} min`
+          }}
+          // Título da dica: o motivo e quantas vezes ele parou (somando as máquinas)
+          labelFormatter={(motivo, itens) => {
+            const quantidade = (itens?.[0]?.payload as { quantidade?: number } | undefined)?.quantidade
+            return quantidade != null ? `${motivo} · Quantidade de paradas: ${quantidade}×` : String(motivo)
+          }}
+          cursor={{ fill: 'rgba(161, 161, 170, 0.12)' }}
+        />
         <Legend {...legendaClicavel(onAlternar)} />
         {maquinas.map(m => (
           <Bar key={m.maquinaLinhaId} dataKey={m.maquinaLinhaId} name={m.nome} fill={cores[m.maquinaLinhaId]} radius={[0, 4, 4, 0]} maxBarSize={14} hide={ocultas.has(m.maquinaLinhaId)} />
@@ -348,7 +366,7 @@ function GraficoPorHora({ dados, maquinas, cores, ocultas, onAlternar }: Grafico
       <LineChart data={linhas} accessibilityLayer={false} margin={{ right: 12 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
         <XAxis dataKey="hora" interval={0} tick={{ fontSize: 10 }} />
-        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} allowDecimals={false} />
+        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} allowDecimals={false} domain={[0, (max: number) => Math.max(10, Math.ceil((max * 1.15) / 5) * 5)]} />
         <Tooltip formatter={valor => `${valor} min`} />
         <Legend {...legendaClicavel(onAlternar)} />
         {maquinas.map(m => (

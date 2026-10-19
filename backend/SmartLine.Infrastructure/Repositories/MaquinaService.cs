@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
@@ -56,7 +56,7 @@ public class MaquinaService : IMaquinaService
         {
             Id = Guid.NewGuid(),
             MaquinaId = maquinaId,
-            Nome = nome,
+            Nome = LimitarNome(nome),
             Tipo = tipoEnum,
             Ativo = true,
         };
@@ -65,13 +65,20 @@ public class MaquinaService : IMaquinaService
         return new MotivoParadaDto(motivo.Id.ToString(), motivo.Nome, motivo.Tipo.ToString());
     }
 
+    // Nome do motivo com até 28 caracteres: é o que cabe numa linha da linha do tempo do relatório
+    private static string LimitarNome(string? nome)
+    {
+        var limpo = (nome ?? "").Trim();
+        return limpo.Length > 28 ? limpo[..28].TrimEnd() : limpo;
+    }
+
     public async Task<MotivoParadaDto> CriarMotivoParadaPlanejadoAsync(Guid maquinaId, string nome)
     {
         var motivo = new SmartLine.Core.Entities.Global.MotivoParada
         {
             Id = Guid.NewGuid(),
             MaquinaId = maquinaId,
-            Nome = nome,
+            Nome = LimitarNome(nome),
             Tipo = TipoParada.Planejada,
             Ativo = true,
         };

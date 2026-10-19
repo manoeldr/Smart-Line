@@ -1,19 +1,20 @@
 // Páginas 2 em diante do relatório — uma por máquina medida no dia, com os mesmos indicadores
 // do detalhe da máquina (modal do Dashboard) e três gráficos: produção por hora em colunas,
-// paradas por motivo em barras deitadas e paradas por hora em linhas (uma por tipo). Larguras fixas: a folha é A4 e, na impressão,
+// paradas por motivo em barras deitadas e paradas por hora em linhas (uma por tipo). A produção
+// por hora é a bruta (normal + sem comunicação), numa barra só. Larguras fixas: a folha é A4 e, na impressão,
 // o gráfico não pode depender de medir a janela.
-import { BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
+import { BarChart, Bar, Cell, LabelList, LineChart, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import type { SessaoDetalheDto } from '../../services/sessaoDetalheService'
 import { areaGrafico } from '../../styles/graficos'
 import { inteiro } from './formatos'
 import type { Bloco } from './blocos'
 import type { ParteMaquina } from './partesMaquina'
 
-// Cor pelo tipo da parada no relatório: interna vermelho, externa azul claro, programada cinza
-const CORES_TIPO: Record<string, string> = { Interna: '#ef4444', Externa: '#1961ac', Planejada: '#a1a1aa' }
+// Cor pelo tipo da parada, igual ao detalhe da máquina: interna vermelho, externa amarelo, programada roxo
+const CORES_TIPO: Record<string, string> = { Interna: '#e60000', Externa: '#f5b800', Planejada: '#8b5cf6' }
 const CORES_MOTIVO = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b', '#a3e635']
-const COR_PRODUCAO = '#18181b'
-const COR_SEM_COMUNICACAO = '#a1a1aa'
+const COR_PRODUCAO = '#1961ac'
+const COR_NOMINAL = '#ef4444'
 
 // Largura útil da folha (210 mm menos as margens) em px, com folga
 const LARGURA = 640
@@ -34,6 +35,41 @@ function horaCurta(iso: string): string {
 
 function minutos(ms: number): number {
   return Math.round(ms / 60000)
+}
+
+// Marca do eixo de produção: a da velocidade nominal sai em vermelho e negrito, as outras em cinza
+function MarcaEixoProducao(props: { x?: number | string; y?: number | string; payload?: { value?: number }; nominal: number }) {
+  const valor = props.payload?.value ?? 0
+  const ehNominal = props.nominal > 0 && valor === props.nominal
+  return (
+    <text x={Number(props.x)} y={Number(props.y)} textAnchor="end" dominantBaseline="central" fontSize={11} fontWeight={ehNominal ? 700 : 400} fill={ehNominal ? COR_NOMINAL : '#52525b'}>
+      {inteiro(valor)}
+    </text>
+  )
+}
+
+// Produção da hora na vertical: dentro da barra, em branco, quando cabe; senão logo acima
+// dela, em cinza-escuro.
+function RotuloProducao(props: { x?: number | string; y?: number | string; width?: number | string; height?: number | string; value?: unknown }) {
+  const x = Number(props.x), y = Number(props.y), w = Number(props.width), h = Number(props.height)
+  const valor = Number(props.value)
+  if (!Number.isFinite(valor) || valor <= 0 || !Number.isFinite(x) || !Number.isFinite(w)) return null
+  const texto = inteiro(valor)
+  const alturaTexto = texto.length * 7 + 8
+  const cx = x + w / 2
+  if (h >= alturaTexto) {
+    return (
+      <text x={cx} y={y + h / 2} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} fill="#ffffff" transform={`rotate(-90 ${cx} ${y + h / 2})`}>
+        {texto}
+      </text>
+    )
+  }
+  const cy = y - 4 - alturaTexto / 2
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} fill="#27272a" transform={`rotate(-90 ${cx} ${cy})`}>
+      {texto}
+    </text>
+  )
 }
 
 function Quadro({ rotulo, valor }: { rotulo: string; valor: string }) {
@@ -63,12 +99,23 @@ interface Props {
 export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo }: Props) {
   const tem = (b: Bloco) => blocos.includes(b) && (
     parte === 'indicadores' ? b !== 'paradasHora' : b === 'paradasHora')
+  // Velocidade nominal (garrafas/h) da sessão: linha tracejada vermelha e base do percentual
+  const nominal = Number(sessao.velocidadeNominal) || 0
+  // Uma barra por hora com a produção bruta (normal + sem comunicação), toda em azul
   const producao = sessao.pontosProducao.map(p => ({
     hora: horaCurta(p.hora),
-    quantidade: p.quantidade,
-    semComunicacao: p.semComunicacao ?? 0,
+    quantidade: p.quantidade + (p.semComunicacao ?? 0),
     parcial: !!p.parcial,
   }))
+  const maiorProducao = Math.max(0, ...producao.map(p => p.quantidade))
+  const tetoProducao = Math.ceil((Math.max(maiorProducao * 1.3, nominal * 1.12)) / 100) * 100
+  // Marcas do eixo: 4 divisões iguais mais a nominal no lugar dela (em vermelho); uma marca
+  // normal que ficaria colada na nominal sai, para não sobrepor
+  const passo = Math.max(1, Math.ceil(tetoProducao / 4 / 50) * 50)
+  const marcasBase = [0, 1, 2, 3, 4].map(i => Math.min(i * passo, tetoProducao))
+  const marcasProducao = nominal > 0
+    ? [...marcasBase.filter(m => Math.abs(m - nominal) > tetoProducao * 0.07), nominal].sort((a, b) => a - b)
+    : marcasBase
 
   const porMotivo = (sessao.paradasPorMotivo ?? [])
     .filter(m => m.duracaoMs > 0)
@@ -124,13 +171,19 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
           <BarChart width={LARGURA} height={230} data={producao} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
             <XAxis dataKey="hora" tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={{ stroke: '#d4d4d8' }} interval={0} />
-            <YAxis tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={false} width={56} tickFormatter={v => inteiro(v)} />
-            <Bar dataKey="quantidade" name="Produção" stackId="p" isAnimationActive={false}>
+            <YAxis
+              ticks={marcasProducao}
+              tick={props => <MarcaEixoProducao {...props} nominal={nominal} />}
+              tickLine={false}
+              axisLine={false}
+              width={56}
+              domain={[0, tetoProducao]}
+            />
+            {nominal > 0 && <ReferenceLine y={nominal} stroke={COR_NOMINAL} strokeWidth={1.5} strokeDasharray="6 4" />}
+            <Bar dataKey="quantidade" name="Produção" isAnimationActive={false}>
               {producao.map((p, i) => <Cell key={i} fill={COR_PRODUCAO} fillOpacity={p.parcial ? 0.5 : 1} />)}
+              <LabelList dataKey="quantidade" content={RotuloProducao} />
             </Bar>
-            {producao.some(p => p.semComunicacao > 0) && (
-              <Bar dataKey="semComunicacao" name="Sem comunicação" stackId="p" fill={COR_SEM_COMUNICACAO} isAnimationActive={false} />
-            )}
           </BarChart>
         )}
       </div>}
@@ -175,7 +228,7 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
           <LineChart width={LARGURA} height={230} data={porHora} margin={{ top: 8, right: 28, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
             <XAxis dataKey="nome" tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={{ stroke: '#d4d4d8' }} interval={0} />
-            <YAxis tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={false} width={56} unit=" min" allowDecimals={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={false} width={56} unit=" min" allowDecimals={false} domain={[0, (max: number) => Math.max(10, Math.ceil((max * 1.15) / 5) * 5)]} />
             <Legend iconSize={8} align="right" wrapperStyle={{ fontSize: 11 }} />
             {(['Interna', 'Externa', 'Planejada'] as const)
               .filter(t => porHora.some(h => h[t] > 0))

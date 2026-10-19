@@ -27,7 +27,7 @@ function descricao(e: EventoTimelineDto): { evento: string; detalhe: string; cor
       return {
         evento: 'Parada',
         detalhe: e.motivoNome ? `${e.motivoNome} (${tipo})` : 'sem motivo (conta como interna)',
-        cor: e.motivoTipo === 'Externa' ? 'text-[#1961ac]' : e.motivoTipo === 'Planejada' ? 'text-texto-2' : 'text-red-600',
+        cor: e.motivoTipo === 'Externa' ? 'text-[#d49a00]' : e.motivoTipo === 'Planejada' ? 'text-[#8b5cf6]' : 'text-[#e60000]',
       }
     }
   }
@@ -35,13 +35,13 @@ function descricao(e: EventoTimelineDto): { evento: string; detalhe: string; cor
 
 export default function LinhaDoTempo({ eventos, continuacao }: { eventos: EventoTimelineDto[]; continuacao: boolean }) {
   return (
-    <table className="w-full text-[10pt] leading-tight border-collapse">
+    <table className="w-full text-[10pt] leading-tight border-collapse text-left table-fixed">
       <thead>
         <tr className="border-b border-texto text-[10pt] text-texto-3">
-          <th className="text-left py-1 font-medium w-24">Horário</th>
-          <th className="text-left py-1 font-medium w-56">Evento</th>
+          <th className="text-left py-1 font-medium w-20">Horário</th>
+          <th className="text-left py-1 font-medium w-40">Evento</th>
           <th className="text-left py-1 font-medium">Motivo</th>
-          <th className="text-right py-1 font-medium w-40">Duração</th>
+          <th className="text-right py-1 font-medium w-28">Duração</th>
         </tr>
       </thead>
       <tbody>
@@ -52,10 +52,11 @@ export default function LinhaDoTempo({ eventos, continuacao }: { eventos: Evento
           const d = descricao(e)
           return (
             <tr key={i} className="border-b border-borda-suave">
-              <td className="py-0.5 text-texto-2 tabular-nums">{hora(e.horario)}</td>
-              <td className={`py-0.5 font-medium ${d.cor}`}>{d.evento}</td>
-              <td className="py-0.5 text-texto">{d.detalhe}</td>
-              <td className="py-0.5 text-right text-texto-2 tabular-nums">{duracao(e.duracaoMs, e.emAndamento)}</td>
+              {/* Uma linha por evento, sempre: motivo comprido é cortado com "…", para a conta de linhas por folha fechar */}
+              <td className="py-0.5 text-texto-2 tabular-nums whitespace-nowrap">{hora(e.horario)}</td>
+              <td className={`py-0.5 font-medium whitespace-nowrap ${d.cor}`}>{d.evento}</td>
+              <td className="py-0.5 text-texto whitespace-nowrap overflow-hidden text-ellipsis" title={d.detalhe}>{d.detalhe}</td>
+              <td className="py-0.5 text-right text-texto-2 tabular-nums whitespace-nowrap">{duracao(e.duracaoMs, e.emAndamento)}</td>
             </tr>
           )
         })}

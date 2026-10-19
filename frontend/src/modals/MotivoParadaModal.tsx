@@ -147,6 +147,7 @@ export default function MotivoParadaModal({ open, motivos, loading, onConfirmar,
                   type="text"
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
+                  maxLength={28}
                   placeholder="Ex: Falta de matéria-prima"
                   autoFocus
                   className={inputBase.replace('h-8', 'h-9')}

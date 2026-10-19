@@ -37,9 +37,10 @@ interface Props {
 type TipoColeta = 'Manual' | 'SemiAutomatico' | 'Automatico'
 
 export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: Props) {
-  const { clienteId } = useAuth()
+  const { clienteId, linhaId } = useAuth()
   const [linhas, setLinhas] = useState<Linha[]>([])
-  const [linhaSelecionada, setLinhaSelecionada] = useState<Linha | null>(null)
+  // A linha é a escolhida no topo (cliente · linha); aqui só se escolhe a máquina
+  const linhaSelecionada = linhas.find(l => l.id === linhaId) ?? null
   const [maquinaSelecionada, setMaquinaSelecionada] = useState<MaquinaLinha | null>(null)
   const [loadingLinhas, setLoadingLinhas] = useState(false)
   // "Configurar medição" aberto fica na URL (?configurar=<máquina>) para o F5 reabri-lo.
@@ -78,7 +79,6 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
           const linha = data.find(l => l.maquinas.some(m => m.id === configurar))
           const maquina = linha?.maquinas.find(m => m.id === configurar)
           if (linha && maquina && !maquina.sessaoAtiva) {
-            setLinhaSelecionada(linha)
             selecionarMaquina(maquina)
           } else {
             setConfigurarUrl(null)
@@ -90,12 +90,6 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     }
     carregar()
   }, [clienteId, recarregar, setConfigurarUrl])
-
-  function handleLinhaChange(linhaId: string) {
-    const linha = linhas.find(l => l.id === linhaId) ?? null
-    setLinhaSelecionada(linha)
-    setMaquinaSelecionada(null)
-  }
 
   function handleMaquinaChange(maquinaId: string) {
     selecionarMaquina(linhaSelecionada?.maquinas.find(m => m.id === maquinaId) ?? null)
@@ -134,7 +128,6 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setModalOpen(false)
     setSucesso(mensagem)
     setAviso(avisoIniciar ?? null)
-    setLinhaSelecionada(null)
     setMaquinaSelecionada(null)
     setRecarregar(r => r + 1)
   }
@@ -241,32 +234,16 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
             </div>
           )}
 
-          {/* Linha */}
-          <div className="flex flex-col gap-1.5 mb-3">
-            <label className={label}>Linha de produção</label>
-            <select
-              value={linhaSelecionada?.id ?? ''}
-              onChange={e => handleLinhaChange(e.target.value)}
-              disabled={loadingLinhas}
-              className={inputMdFull}
-            >
-              <option value="">{loadingLinhas ? 'Carregando...' : 'Selecionar linha...'}</option>
-              {linhas.map(l => (
-                <option key={l.id} value={l.id}>{l.nome}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Máquina */}
           <div className="flex flex-col gap-1.5 mb-4">
             <label className={label}>Máquina</label>
             <select
               value={maquinaSelecionada?.id ?? ''}
               onChange={e => handleMaquinaChange(e.target.value)}
-              disabled={!linhaSelecionada}
+              disabled={!linhaSelecionada || loadingLinhas}
               className={inputMdFull}
             >
-              <option value="">Selecionar máquina...</option>
+              <option value="">{loadingLinhas ? 'Carregando...' : 'Selecionar máquina'}</option>
               {linhaSelecionada?.maquinas
                 .sort((a, b) => a.ordem - b.ordem)
                 .map(m => (

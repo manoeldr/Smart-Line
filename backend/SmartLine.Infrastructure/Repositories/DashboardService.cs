@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
 using SmartLine.Infrastructure.Data;
@@ -106,7 +106,7 @@ public class DashboardService : IDashboardService
             .FirstOrDefault();
 
         // Paradas de cada máquina, com os mesmos cálculos do detalhe da máquina.
-        var porMotivo = new Dictionary<(string Motivo, string Tipo), (double Ms, int Qtd, Dictionary<string, double> PorMaquina)>();
+        var porMotivo = new Dictionary<(string Motivo, string Tipo), (double Ms, int Qtd, Dictionary<string, (double Ms, int Qtd)> PorMaquina)>();
         var porHora = new SortedDictionary<DateTime, Dictionary<string, double>>();
         var resumos = new List<MaquinaResumoLinhaDto>();
 
@@ -125,8 +125,9 @@ public class DashboardService : IDashboardService
             {
                 var chave = (m.Motivo, m.Tipo);
                 if (!porMotivo.TryGetValue(chave, out var atual))
-                    atual = (0d, 0, new Dictionary<string, double>());
-                atual.PorMaquina[id] = atual.PorMaquina.GetValueOrDefault(id) + m.DuracaoMs;
+                    atual = (0d, 0, new Dictionary<string, (double Ms, int Qtd)>());
+                var daMaquina = atual.PorMaquina.GetValueOrDefault(id);
+                atual.PorMaquina[id] = (daMaquina.Ms + m.DuracaoMs, daMaquina.Qtd + m.Quantidade);
                 porMotivo[chave] = (atual.Ms + m.DuracaoMs, atual.Qtd + m.Quantidade, atual.PorMaquina);
             }
 
@@ -152,7 +153,7 @@ public class DashboardService : IDashboardService
         var paradasPorMotivo = porMotivo
             .Select(kv => new ParadaLinhaPorMotivoDto(
                 kv.Key.Motivo, kv.Key.Tipo, kv.Value.Ms, kv.Value.Qtd,
-                kv.Value.PorMaquina.Select(p => new TempoParadoMaquinaDto(p.Key, p.Value)).ToList()))
+                kv.Value.PorMaquina.Select(p => new TempoParadoMaquinaDto(p.Key, p.Value.Ms, p.Value.Qtd)).ToList()))
             .OrderByDescending(m => m.DuracaoMs)
             .ThenBy(m => m.Motivo)
             .ToList();

@@ -402,7 +402,7 @@ export default function ConfiguracaoMaquinaModal({ open, maquina, onFechar, onSa
             <div className="flex flex-col gap-3 mb-4">
               <div>
                 <label className={label}>Descrição</label>
-                <input value={formMotivo.nome} onChange={e => setFormMotivo(f => ({ ...f, nome: e.target.value }))}
+                <input value={formMotivo.nome} maxLength={28} onChange={e => setFormMotivo(f => ({ ...f, nome: e.target.value }))}
                   placeholder="Ex: Falta de matéria-prima..." className={inputBase} />
               </div>
               <div>

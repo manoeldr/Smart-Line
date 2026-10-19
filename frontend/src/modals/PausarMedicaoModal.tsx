@@ -117,6 +117,7 @@ export default function PausarMedicaoModal({ open, motivos, loading, onConfirmar
                   type="text"
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
+                  maxLength={28}
                   placeholder="Ex: Almoço, Setup, Reunião..."
                   autoFocus
                   className={inputBase.replace('h-8', 'h-9')}

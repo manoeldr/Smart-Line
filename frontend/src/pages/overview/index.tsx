@@ -1,4 +1,4 @@
-// Tela Overview — lista todas as linhas do cliente com status ao vivo das máquinas.
+// Tela Overview — a linha escolhida no topo (cliente · linha) com status ao vivo das máquinas.
 // Administrador/Desenvolvedor podem finalizar sessões ativas de outros usuários direto daqui.
 // Clicar numa máquina abre o detalhe (o mesmo do Dashboard); na coleta IoT ele
 // mostra a coleta ao vivo. Finalizar uma coleta IoT não pede leitura final: o
@@ -11,6 +11,10 @@ import { sessaoService } from '../../services/sessaoService'
 import { configuracaoService, type CampoMaquinaDto } from '../../services/configuracaoService'
 import type { Linha } from '../../types'
 import LinhaCard from './LinhaCard'
+import GraficoPrincipalMotivo from './GraficoPrincipalMotivo'
+import TimelineMaquinas from './TimelineMaquinas'
+import GaugesCritica from './GaugesCritica'
+import { useLinhaGeral } from './useLinhaGeral'
 import LeituraFinalModal from '../../modals/LeituraFinalModal'
 import MaquinaDetalheModal from '../../modals/MaquinaDetalheModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -36,7 +40,7 @@ interface FinalizandoState {
 
 export default function Overview() {
   const { dataFiltro } = useOutletContext<OutletContext>()
-  const { clienteId, usuario } = useAuth()
+  const { clienteId, usuario, linhaId } = useAuth()
   const podeClassificar = ['Administrador', 'Desenvolvedor', 'Auditor'].includes(usuario?.nivel ?? '')
   const [linhas, setLinhas] = useState<Linha[]>([])
   // Cliente cujas linhas estão na tela: "Carregando..." só enquanto ele não bate com o
@@ -59,6 +63,8 @@ export default function Overview() {
   // Com o filtro por data, o detalhe abre a sessão daquele dia (não a última da máquina)
   const [sessaoDetalhe, setSessaoDetalhe] = useParametroUrl('sessao')
   const [recarregar, setRecarregar] = useState(0)
+  // Versão da atualização de 30 s: o gráfico de motivos recarrega junto
+  const [versaoAtualizacao, setVersaoAtualizacao] = useState(0)
 
   // Paradas das coletas automáticas sem motivo nos últimos 7 dias (botão no topo)
   const [semMotivo, setSemMotivo] = useState(0)
@@ -76,6 +82,7 @@ export default function Overview() {
         setLinhas(data)
         setClienteCarregado(clienteId)
         setErro(null)
+        setVersaoAtualizacao(v => v + 1)
       } catch (e: unknown) {
         // Com as linhas já na tela, uma falha na atualização só mantém o que estava.
         if (ativo) setErro(e instanceof Error ? e.message : 'Erro ao carregar linhas')
@@ -160,6 +167,13 @@ export default function Overview() {
     }
   }
 
+  // Só a linha escolhida no topo (sem escolha válida ainda: a primeira)
+  const linhasNaTela = linhas.filter(l => l.id === linhaId)
+  const linhasVisiveis = linhasNaTela.length > 0 ? linhasNaTela : linhas.slice(0, 1)
+  const colunas = Math.max(1, ...linhasVisiveis.map(l => l.maquinas.length))
+  // Visão geral da linha na tela (motivos e indicadores da crítica), atualizada com os cards
+  const linhaGeral = useLinhaGeral(linhasVisiveis[0]?.id ?? '', dataFiltro, versaoAtualizacao)
+
   if (!clienteId) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-texto-3">
@@ -169,6 +183,7 @@ export default function Overview() {
   }
 
   const carregado = clienteCarregado === clienteId
+
 
   if (!carregado && !erro) {
     return (
@@ -186,8 +201,6 @@ export default function Overview() {
     )
   }
 
-  // Todas as linhas com o mesmo número de colunas: os cards ficam do mesmo tamanho na tela toda.
-  const colunas = Math.max(1, ...linhas.map(l => l.maquinas.length))
 
   return (
     <div className="p-4 flex flex-col gap-3">
@@ -207,12 +220,13 @@ export default function Overview() {
           <button onClick={() => setErroAcao(null)} className="text-red-400 hover:text-red-600">fechar</button>
         </div>
       )}
+      {linhasVisiveis[0] && <GaugesCritica dados={linhaGeral} />}
       {linhas.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-sm text-texto-3">
           Nenhuma linha cadastrada
         </div>
       ) : (
-        linhas.map(linha => (
+        linhasVisiveis.map(linha => (
           <LinhaCard
             key={linha.id}
             linha={linha}
@@ -223,6 +237,15 @@ export default function Overview() {
             colunas={colunas}
           />
         ))
+      )}
+      {/* Abaixo da linha: gráficos lado a lado, o de motivos na metade esquerda */}
+      {linhasVisiveis[0] && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <GraficoPrincipalMotivo dados={linhaGeral} />
+            <TimelineMaquinas linha={linhasVisiveis[0]} versao={versaoAtualizacao} />
+          </div>
+        </>
       )}
 
       <MaquinaDetalheModal

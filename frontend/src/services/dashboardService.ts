@@ -43,6 +43,8 @@ export interface MaquinaResumoLinhaDto {
 export interface TempoParadoMaquinaDto {
   maquinaLinhaId: string
   duracaoMs: number
+  // Quantas paradas (só nas paradas por motivo)
+  quantidade?: number
 }
 
 export interface ParadaLinhaPorMotivoDto {

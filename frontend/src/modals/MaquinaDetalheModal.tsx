@@ -4,7 +4,7 @@
 // Só a linha do tempo tem scroll próprio — o resto (métricas, gráfico) fica fixo.
 import { useEffect, useRef, useState } from 'react'
 import {
-  BarChart, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart, ComposedChart, Bar, Cell, LabelList, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { fetchAutenticado } from '../services/api'
 import { sessaoDetalheService, type EventoTimelineDto, type ParadaPorHoraDto, type ParadaPorMotivoDto, type SessaoDetalheDto } from '../services/sessaoDetalheService'
@@ -59,7 +59,59 @@ function formatarDuracao(ms: number) {
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`
 }
 
+// Produção em azul (o mesmo do relatório), em qualquer tema; velocidade nominal em vermelho
+const COR_PRODUCAO = '#1961ac'
+const COR_NOMINAL = '#ef4444'
 const CORES_LINHA = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
+
+// Produção da hora dentro da barra, na vertical, em branco; barra baixa demais: acima dela, em cinza
+function RotuloProducao(props: { x?: number | string; y?: number | string; width?: number | string; height?: number | string; value?: unknown }) {
+  const x = Number(props.x), y = Number(props.y), w = Number(props.width), h = Number(props.height)
+  const valor = Number(props.value)
+  if (!Number.isFinite(valor) || valor <= 0 || !Number.isFinite(x) || !Number.isFinite(w)) return null
+  const texto = valor.toLocaleString('pt-BR')
+  const dentro = h >= texto.length * 6.5 + 8
+  const cx = x + w / 2
+  return dentro ? (
+    <text x={cx} y={y + h / 2} textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600} fill="#ffffff" transform={`rotate(-90 ${cx} ${y + h / 2})`}>
+      {texto}
+    </text>
+  ) : (
+    <text x={cx} y={y - 3} textAnchor="middle" fontSize={10} fontWeight={600} fill="#71717a">
+      {texto}
+    </text>
+  )
+}
+
+// Dica do gráfico de produção: produção, sem comunicação e a soma (produção bruta) quando há
+// as duas; depois os campos extras.
+function DicaProducao({ active, payload, label }: {
+  active?: boolean
+  payload?: { name?: string; value?: number | string; color?: string; payload?: Record<string, string | number | boolean> }[]
+  label?: string | number
+}) {
+  if (!active || !payload?.length) return null
+  const ponto = payload[0].payload ?? {}
+  const producao = Number(ponto['Produção'] ?? 0)
+  const semComunicacao = Number(ponto['Sem comunicação'] ?? 0)
+  const titulo = ponto.parcial ? `Em andamento: ${label}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min` : String(label)
+  const extras = payload.filter(p => p.name !== 'Produção' && p.name !== 'Sem comunicação')
+  return (
+    <div className="bg-superficie border border-borda px-3 py-2 text-xs shadow-md">
+      <p className="text-texto-2 mb-1">{titulo}</p>
+      <p style={{ color: COR_PRODUCAO }}>Produção: {producao.toLocaleString('pt-BR')}</p>
+      {semComunicacao > 0 && (
+        <>
+          <p className="text-texto-3">Sem comunicação: {semComunicacao.toLocaleString('pt-BR')}</p>
+          <p className="text-texto font-medium">Produção bruta: {(producao + semComunicacao).toLocaleString('pt-BR')}</p>
+        </>
+      )}
+      {extras.map(e => (
+        <p key={e.name} style={{ color: e.color }}>{e.name}: {e.value}</p>
+      ))}
+    </div>
+  )
+}
 
 type TipoGrafico = 'producao' | 'paradasHora' | 'paradasMotivo'
 
@@ -69,7 +121,7 @@ const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
   { valor: 'paradasMotivo', rotulo: 'Paradas por motivo' },
 ]
 
-// Mesmas cores da linha do tempo: interna vermelho, externa amarelo, planejada laranja.
+// Cores dos tipos de parada nos gráficos (por hora e por motivo): interna vermelho, externa amarelo, planejada roxo.
 // Cor de cada tipo de evento na linha do tempo (sem comunicação em cinza, fora do OEE).
 const COR_EVENTO = {
   Inicio: { ponto: 'bg-accent-600', texto: 'text-texto' },
@@ -79,7 +131,7 @@ const COR_EVENTO = {
   SemComunicacao: { ponto: 'bg-texto-3', texto: 'text-texto-2' },
 } as const
 
-const CORES_TIPO_PARADA = { Interna: '#ef4444', Externa: '#facc15', Planejada: '#f97316' } as const
+const CORES_TIPO_PARADA = { Interna: '#e60000', Externa: '#f5b800', Planejada: '#8b5cf6' } as const
 
 function minutos(ms: number) {
   return Math.round(ms / 6000) / 10 // 1 casa decimal
@@ -195,6 +247,10 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
 
   if (!open) return null
 
+  // Velocidade nominal da sessão (garrafas/h): linha tracejada, marca vermelha no eixo e
+  // percentual em cada barra, como no relatório
+  const nominal = Number(dados?.velocidadeNominal) || 0
+
   const dadosGrafico = (() => {
     if (!dados) return []
     const horarios = new Set<string>()
@@ -216,6 +272,7 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
       }
       if (producaoPonto) ponto['Produção'] = producaoPonto.quantidade
       if (producaoPonto?.semComunicacao) ponto['Sem comunicação'] = producaoPonto.semComunicacao
+      if (producaoPonto && nominal > 0) ponto.percentual = Math.round((producaoPonto.quantidade / nominal) * 100)
 
       dados.camposExtras.forEach(campo => {
         const extraPonto = campo.pontos.find(p => p.hora === hora)
@@ -225,6 +282,15 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
       return ponto
     })
   })()
+
+  // Eixo da produção: vai até a nominal (com folga) e tem a nominal como marca, em vermelho
+  const maiorProducao = Math.max(0, ...dadosGrafico.map(p => Number(p['Produção'] ?? 0) + Number(p['Sem comunicação'] ?? 0)))
+  const tetoProducao = Math.ceil((Math.max(maiorProducao, nominal) * 1.12) / 100) * 100 || 100
+  const passoProducao = Math.max(1, Math.ceil(tetoProducao / 4 / 50) * 50)
+  const marcasBase = [0, 1, 2, 3, 4].map(i => Math.min(i * passoProducao, tetoProducao))
+  const marcasProducao = nominal > 0
+    ? [...marcasBase.filter(m => Math.abs(m - nominal) > tetoProducao * 0.07), nominal].sort((a, b) => a - b)
+    : marcasBase
 
   return (
     <div className={modalOverlayDark}>
@@ -363,27 +429,34 @@ export default function MaquinaDetalheModal({ open, maquinaLinhaId, sessaoId = n
                           )
                         }}
                       />
-                      <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
-                      <Tooltip
-                        labelFormatter={(rotulo, itens) => {
-                          const ponto = itens?.[0]?.payload as Record<string, string | number | boolean> | undefined
-                          return ponto?.parcial
-                            ? `Em andamento: ${rotulo}–${ponto.fimDaHora} · parcial, atualiza a cada 5 min`
-                            : rotulo
+                      <YAxis
+                        yAxisId="left"
+                        ticks={marcasProducao}
+                        domain={[0, tetoProducao]}
+                        tick={({ x, y, payload }) => {
+                          const ehNominal = nominal > 0 && payload.value === nominal
+                          return (
+                            <text x={x} y={y} textAnchor="end" dominantBaseline="central" fontSize={10} fontWeight={ehNominal ? 700 : 400} fill={ehNominal ? COR_NOMINAL : '#71717a'}>
+                              {Number(payload.value).toLocaleString('pt-BR')}
+                            </text>
+                          )
                         }}
                       />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
+                      <Tooltip content={<DicaProducao />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar yAxisId="left" dataKey="Produção" stackId="producao" fill="var(--color-accent-600)">
+                      {nominal > 0 && <ReferenceLine yAxisId="left" y={nominal} stroke={COR_NOMINAL} strokeWidth={1.5} strokeDasharray="6 4" />}
+                      <Bar yAxisId="left" dataKey="Produção" stackId="producao" fill={COR_PRODUCAO}>
                         {dadosGrafico.map((ponto, i) => (
                           <Cell
                             key={i}
-                            fill={ponto.parcial ? 'color-mix(in srgb, var(--color-accent-600) 30%, transparent)' : 'var(--color-accent-600)'}
+                            fill={ponto.parcial ? 'color-mix(in srgb, #1961ac 30%, transparent)' : COR_PRODUCAO}
                             stroke={ponto.parcial ? 'var(--color-accent-600)' : 'none'}
                             strokeWidth={ponto.parcial ? 1.5 : 0}
                             strokeDasharray={ponto.parcial ? '4 3' : undefined}
                           />
                         ))}
+                        <LabelList dataKey="Produção" content={RotuloProducao} />
                       </Bar>
                       {/* Produção feita sem comunicação: em cinza, em cima da normal (fora do OEE) */}
                       {dados.pontosProducao.some(p => (p.semComunicacao ?? 0) > 0) && (
@@ -543,7 +616,7 @@ function GraficoParadasPorHora({ horas }: { horas: ParadaPorHoraDto[] }) {
       <BarChart data={dadosHoras} accessibilityLayer={false}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
         <XAxis dataKey="hora" interval={0} tick={{ fontSize: 10 }} />
-        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} />
+        <YAxis tick={{ fontSize: 10 }} unit=" min" width={50} domain={[0, (max: number) => Math.max(10, Math.ceil((max * 1.15) / 5) * 5)]} />
         <Tooltip formatter={valor => `${valor} min`} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar dataKey="Interna" stackId="paradas" fill={CORES_TIPO_PARADA.Interna} />

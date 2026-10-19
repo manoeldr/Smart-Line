@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 public interface IDashboardService
 {
@@ -56,8 +56,8 @@ public record MaquinaResumoLinhaDto(
     int NumParadas
 );
 
-/// <summary>Tempo parado de uma máquina (numa hora ou num motivo).</summary>
-public record TempoParadoMaquinaDto(string MaquinaLinhaId, double DuracaoMs);
+/// <summary>Tempo parado de uma máquina (numa hora ou num motivo); Quantidade = quantas paradas (só por motivo).</summary>
+public record TempoParadoMaquinaDto(string MaquinaLinhaId, double DuracaoMs, int Quantidade = 0);
 
 /// <summary>Um motivo somado em todas as máquinas (motivos com o mesmo nome e tipo juntos), maior primeiro.</summary>
 public record ParadaLinhaPorMotivoDto(string Motivo, string Tipo, double DuracaoMs, int Quantidade, IList<TempoParadoMaquinaDto> PorMaquina);
