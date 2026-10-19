@@ -16,7 +16,8 @@ export default function Switch({ checked, onChange, disabled }: Props) {
         className="sr-only peer"
       />
       <div className="w-9 h-5 bg-superficie-3 rounded-full peer-checked:bg-accent-600 transition-colors" />
-      <div className="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform peer-checked:translate-x-4" />
+      {/* Ligado, a bolinha usa a cor do texto sobre o destaque (no tema escuro o trilho é claro) */}
+      <div className="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform peer-checked:translate-x-4 peer-checked:bg-accent-fg" />
     </label>
   )
 }

@@ -123,6 +123,18 @@ public class SessaoDetalheService : ISessaoDetalheService
             if (indice >= 0) pontos[indice] = pontos[indice] with { SemComunicacao = pontos[indice].SemComunicacao + quantidade };
             else pontos.Add(new PontoProducaoDto(hora, 0, SemComunicacao: quantidade));
         }
+
+        // Toda hora da sessão aparece no gráfico, mesmo sem produção (fica em zero): da hora do
+        // início até a hora do fim (sessão finalizada) ou da última gravação (em andamento — a
+        // hora atual entra quando a primeira gravação dela chegar). Fim exatamente na hora cheia
+        // (16:00) não abre a hora seguinte.
+        var ate = sessao.Fim ?? producaoOrdenada.LastOrDefault()?.Hora ?? sessao.Inicio;
+        var ultimaHora = InicioDaHora(ate > sessao.Inicio ? ate.AddTicks(-1) : sessao.Inicio);
+        for (var hora = InicioDaHora(sessao.Inicio); hora <= ultimaHora; hora = hora.AddHours(1))
+        {
+            if (pontos.All(p => p.Hora != hora))
+                pontos.Add(new PontoProducaoDto(hora, 0));
+        }
         pontos = pontos.OrderBy(p => p.Hora).ToList();
 
         return sessao.Status == StatusSessao.EmAndamento
