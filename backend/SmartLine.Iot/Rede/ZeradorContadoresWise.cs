@@ -13,11 +13,13 @@ namespace SmartLine.Iot.Rede;
 /// mexer em mais nada. Usado ao iniciar a medição Semi Automática.
 /// </summary>
 /// <remarks>
-/// O WISE-4000 expõe cada entrada em <c>/di_value/slot_0/ch_N</c> (ch_0 = S1 …
-/// ch_7 = S8) com usuário e senha (Basic). Lê o registro do canal, põe o valor
-/// em zero e grava de volta — assim os demais campos do canal ficam como estavam.
-/// O formato exato do registro só se confirma na bancada; se o WISE recusar, o
-/// erro traz a resposta dele para ajustar.
+/// Confirmado na bancada em 19/10/2026 (captura da própria tela do WISE-4051):
+/// <c>GET /di_value/slot_0/ch_N</c> (ch_0 = S1 … ch_7 = S8) devolve
+/// <c>{"Ch":1,"Md":1,"Val":307,"Stat":0,"Cnting":1,"OvLch":0}</c> (Md 1 = contador), e o
+/// comando de limpar é <c>PATCH /di_value/slot_0</c> com
+/// <c>{"DIVal":[{"ClrCnt":1,"Ch":1}]}</c> — um item por canal. Gravar <c>Val: 0</c> por
+/// PUT no canal responde 200 e não faz nada. Usuário e senha em Basic. Como o WISE
+/// responde 200 mesmo ignorando, o valor é lido antes e depois: só é sucesso se caiu.
 /// </remarks>
 public interface IZeradorContadoresWise
 {
@@ -92,59 +94,94 @@ public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
     /// <summary>Caminho do canal no WISE: S1 = ch_0 … S8 = ch_7.</summary>
     public static string Caminho(CanalWise canal) => $"/di_value/slot_0/ch_{(int)canal - 1}";
 
+    /// <summary>Caminho do slot inteiro, onde vai o comando de limpar contadores.</summary>
+    public const string CaminhoSlot = "/di_value/slot_0";
+
+    /// <summary>Corpo do comando que a própria tela do WISE manda para limpar contadores (um item por canal).</summary>
+    public static string CorpoLimparContadores(IEnumerable<CanalWise> contadores)
+    {
+        var itens = new JsonArray();
+        foreach (var canal in contadores)
+            itens.Add(new JsonObject { ["ClrCnt"] = 1, ["Ch"] = (int)canal - 1 });
+        return new JsonObject { ["DIVal"] = itens }.ToJsonString();
+    }
+
     public async Task<ResultadoZerarContadores> ZerarAsync(string enderecoIp, IReadOnlyCollection<CanalWise> contadores, CancellationToken cancellationToken = default)
     {
         if (contadores.Count == 0)
             return ResultadoZerarContadores.Ok;
 
         var baseUrl = $"http://{enderecoIp}:{_opcoes.Porta}";
-        foreach (var canal in contadores)
+        try
         {
-            try
-            {
-                var url = baseUrl + Caminho(canal);
+            // Valores de antes, para conferir depois (o WISE responde 200 mesmo quando ignora).
+            var antes = new Dictionary<CanalWise, long>();
+            foreach (var canal in contadores)
+                antes[canal] = ValorDe(await LerAsync(baseUrl + Caminho(canal), cancellationToken));
+            if (antes.Values.All(v => v == 0))
+                return ResultadoZerarContadores.Ok;
 
-                // Lê o registro do canal para gravar de volta só com o valor zerado.
-                JsonObject registro;
-                using (var resposta = await _http.GetAsync(url, cancellationToken))
-                {
-                    if (resposta.StatusCode == HttpStatusCode.Unauthorized)
-                        return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do Smart Line Scan.");
-                    resposta.EnsureSuccessStatusCode();
-                    var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken);
-                    registro = JsonNode.Parse(corpo) as JsonObject ?? new JsonObject();
-                }
+            using var pedido = new HttpRequestMessage(HttpMethod.Patch, baseUrl + CaminhoSlot)
+            {
+                Content = ConteudoJson(CorpoLimparContadores(contadores))
+            };
+            using var resposta = await _http.SendAsync(pedido, cancellationToken);
+            if (resposta.StatusCode == HttpStatusCode.Unauthorized)
+                return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do Smart Line Scan.");
+            if (!resposta.IsSuccessStatusCode)
+            {
+                var detalhe = await resposta.Content.ReadAsStringAsync(cancellationToken);
+                return ResultadoZerarContadores.Falha(
+                    $"O WISE não aceitou zerar os contadores (resposta {(int)resposta.StatusCode}{(string.IsNullOrWhiteSpace(detalhe) ? "" : ": " + detalhe.Trim())}).");
+            }
 
-                registro["Ch"] = (int)canal - 1;
-                registro["Val"] = 0;
-                if (registro.ContainsKey("Ov")) registro["Ov"] = 0; // flag de estouro do contador
-
-                using var conteudo = new StringContent(registro.ToJsonString(), Encoding.UTF8, "application/json");
-                using var gravacao = await _http.PutAsync(url, conteudo, cancellationToken);
-                if (gravacao.StatusCode == HttpStatusCode.Unauthorized)
-                    return ResultadoZerarContadores.Falha("O WISE recusou o usuário e a senha do Smart Line Scan.");
-                if (!gravacao.IsSuccessStatusCode)
-                {
-                    var detalhe = await gravacao.Content.ReadAsStringAsync(cancellationToken);
-                    return ResultadoZerarContadores.Falha(
-                        $"O WISE não aceitou zerar o contador {canal} (resposta {(int)gravacao.StatusCode}{(string.IsNullOrWhiteSpace(detalhe) ? "" : ": " + detalhe.Trim())}).");
-                }
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            foreach (var (canal, valorAntes) in antes)
             {
-                return ResultadoZerarContadores.Falha($"O WISE não respondeu ao comando de zerar os contadores (porta {_opcoes.Porta}).");
+                if (valorAntes == 0) continue;
+                var depois = ValorDe(await LerAsync(baseUrl + Caminho(canal), cancellationToken));
+                // Pode não ser 0 exato se entrou pulso no meio; o que importa é ter caído.
+                if (depois >= valorAntes)
+                    return ResultadoZerarContadores.Falha($"O WISE aceitou o comando, mas o contador {canal} continuou em {depois}.");
             }
-            catch (HttpRequestException ex)
-            {
-                return ResultadoZerarContadores.Falha($"Não foi possível falar com o WISE pela porta {_opcoes.Porta}: {ex.Message}");
-            }
-            catch (JsonException)
-            {
-                return ResultadoZerarContadores.Falha("O WISE respondeu num formato que o SmartLine não reconhece.");
-            }
+            return ResultadoZerarContadores.Ok;
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return ResultadoZerarContadores.Falha($"O WISE não respondeu ao comando de zerar os contadores (porta {_opcoes.Porta}).");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return ResultadoZerarContadores.Falha(ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ResultadoZerarContadores.Falha($"Não foi possível falar com o WISE pela porta {_opcoes.Porta}: {ex.Message}");
+        }
+        catch (JsonException)
+        {
+            return ResultadoZerarContadores.Falha("O WISE respondeu num formato que o SmartLine não reconhece.");
+        }
+    }
 
-        return ResultadoZerarContadores.Ok;
+    private async Task<JsonObject> LerAsync(string url, CancellationToken cancellationToken)
+    {
+        using var resposta = await _http.GetAsync(url, cancellationToken);
+        if (resposta.StatusCode == HttpStatusCode.Unauthorized)
+            throw new HttpRequestException("O WISE recusou o usuário e a senha do Smart Line Scan.", null, HttpStatusCode.Unauthorized);
+        resposta.EnsureSuccessStatusCode();
+        var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken);
+        return JsonNode.Parse(corpo) as JsonObject ?? new JsonObject();
+    }
+
+    private static long ValorDe(JsonObject registro) =>
+        registro["Val"] is JsonValue v && v.TryGetValue<long>(out var n) ? n : 0;
+
+    /// <summary>Content-Type sem "; charset=utf-8": firmware embarcado costuma comparar o cabeçalho inteiro.</summary>
+    private static StringContent ConteudoJson(string json)
+    {
+        var conteudo = new StringContent(json, Encoding.UTF8);
+        conteudo.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        return conteudo;
     }
 
     public void Dispose() => _http.Dispose();

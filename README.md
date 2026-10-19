@@ -33,7 +33,7 @@ Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e
 - Ao iniciar a medição, o WISE é escolhido da lista (conectado / desconectado / em uso em outra medição); só inicia com ele conectado e livre. Fica associado à medição até ela ser finalizada
 - Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga. **Sem polaridade fixa** (desde 19/10): sensor **ativo** = entrada em 1 e **normal** = em 0, em todos; se a falha é com o sensor ativo ou normal, quem diz é a regra de classificação da máquina
 - "Produção até então" informada ao iniciar, como no Manual: a primeira leitura da sessão é o contador da máquina e o WISE soma a partir dele
-- Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo; se não conseguir, a medição começa mesmo assim e a tela avisa
+- Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo — o mesmo comando da tela do WISE (`PATCH /di_value/slot_0` com `{"DIVal":[{"ClrCnt":1,"Ch":N}]}`, confirmado na bancada em 19/10), conferindo depois se o contador caiu; se não conseguir, a medição começa mesmo assim e a tela avisa
 - Diagnóstico por WISE: Validar entradas (valores ao vivo de cada canal) e Ping ("WISE conectado" / "WISE desconectado")
 
 **Coleta**
@@ -334,7 +334,7 @@ Pela tela web do WISE (`http://<ip-do-wise>`, usuário `root`). Os nomes dos can
 | Advanced → Data Logger → Logger Configuration | **Push Notification → I/O Log** ligado (Memory Storage pode ficar desligado) |
 | Advanced → Data Logger → Data Configuration → I/O | **By Period** = `100` (a unidade é 0,1 s → 10 s; o sistema considera sem comunicação aos 90 s). Em **Log Data → DI**: **Log Enabled** nos 8 canais; **Change of State** só nos sensores (S1, S4, S7, S8); **Reset Counter desligado** em todos |
 
-Conferência: em Configurações → Dispositivos IoT o WISE aparece **conectado**; na Área do Desenvolvedor → Logs, com `MQTT_LOG_BRUTO=true`, chega uma linha `Advantech/<MAC>/data` a cada 10 s com `{"s":…,"di1":false,"di2":0,…}` (contadores como número, sensores como true/false); **Validar entradas** mostra os 8 canais; ao iniciar uma medição o log diz "Contadores do WISE … zerados".
+Conferência: em Configurações → Dispositivos IoT o WISE aparece **conectado**; na Área do Desenvolvedor → Logs, com `MQTT_LOG_BRUTO=true`, chega uma linha `Advantech/<MAC>/data` a cada 10 s com `{"s":…,"di1":false,"di2":0,…}` (contadores como número, sensores como true/false); **Validar entradas** mostra os 8 canais; ao iniciar uma medição o log diz "Contadores do WISE … zerados" e o `Val` em `http://<ip>/di_value/slot_0/ch_1` volta a 0.
 
 > **Nota (Windows):** se o `global.json` exigir uma versão específica do SDK que você não tem instalada, ajuste o campo `version` para a versão disponível e adicione `"rollForward": "latestMinor"`.
 

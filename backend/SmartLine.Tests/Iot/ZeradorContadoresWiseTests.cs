@@ -39,7 +39,8 @@ public class ZeradorContadoresWiseTests : IDisposable
 
         Assert.True(r.Sucesso, r.Erro);
         Assert.Equal((0u, 0u), (_maquina.ContadorProducao, _maquina.ContadorRejeito));
-        Assert.Equal(2, _servidor.Zeradas);
+        // O simulador zera S2 e S3 juntos no primeiro PUT; o zerador lê o S3 já em zero e não grava.
+        Assert.Equal(1, _servidor.Zeradas);
     }
 
     [Fact]
@@ -70,6 +71,15 @@ public class ZeradorContadoresWiseTests : IDisposable
         using var zerador = Zerador();
         Assert.True((await zerador.ZerarAsync("127.0.0.1", [])).Sucesso);
         Assert.Equal(0, _servidor.Zeradas);
+    }
+
+    [Fact]
+    public void CorpoDoComando_EhOQueATelaDoWiseManda()
+    {
+        // Capturado da tela do WISE-4051 real em 19/10/2026: PATCH /di_value/slot_0
+        Assert.Equal("""{"DIVal":[{"ClrCnt":1,"Ch":1}]}""", ZeradorContadoresWise.CorpoLimparContadores([CanalWise.S2]));
+        Assert.Equal("""{"DIVal":[{"ClrCnt":1,"Ch":1},{"ClrCnt":1,"Ch":2}]}""", ZeradorContadoresWise.CorpoLimparContadores([CanalWise.S2, CanalWise.S3]));
+        Assert.Equal("/di_value/slot_0", ZeradorContadoresWise.CaminhoSlot);
     }
 
     [Fact]

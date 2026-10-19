@@ -7,9 +7,9 @@ namespace SmartLine.Iot.Simulacao;
 
 /// <summary>
 /// A interface HTTP de um WISE simulado, só o bastante para o SmartLine zerar
-/// os contadores: <c>GET</c> e <c>PUT /di_value/slot_0/ch_N</c> com usuário e
-/// senha (Basic), no mesmo formato de registro do WISE-4000. Um <c>PUT</c> com
-/// <c>"Val": 0</c> num canal de contador reinicia os contadores da máquina.
+/// os contadores: <c>GET /di_value/slot_0/ch_N</c> e <c>PATCH /di_value/slot_0</c> com
+/// usuário e senha (Basic), no mesmo formato do WISE-4051 real. Um <c>PATCH</c> com
+/// <c>{"DIVal":[{"ClrCnt":1,"Ch":N}]}</c> num canal de contador reinicia os contadores da máquina.
 /// </summary>
 /// <remarks>
 /// Servidor HTTP mínimo sobre TCP (uma requisição por conexão), para não
@@ -143,6 +143,30 @@ public sealed class ServidorHttpWise : IDisposable
         var resto = caminho["/di_value/slot_0".Length..].Trim('/');
         if (resto.Length == 0)
         {
+            if (metodo == "PATCH")
+            {
+                // Como o WISE real: {"DIVal":[{"ClrCnt":1,"Ch":1}]} limpa o contador do canal.
+                JsonObject? comando;
+                try { comando = JsonNode.Parse(corpo) as JsonObject; }
+                catch { comando = null; }
+                var itens = comando?["DIVal"] as JsonArray;
+                if (itens is null)
+                    return Resposta(400, "Bad Request", "{\"error\":\"bad json\"}");
+                var limpar = itens.OfType<JsonObject>().Any(item =>
+                    item["ClrCnt"]?.GetValue<int>() == 1 && item["Ch"] is { } ch && EhContador(ch.GetValue<int>()));
+                if (limpar)
+                {
+                    // O simulador guarda um único tempo rodando, então S2 e S3 zeram juntos.
+                    await _trava.WaitAsync(_cancelamento.Token);
+                    try
+                    {
+                        _maquina.Reiniciar(DateTime.UtcNow);
+                        Zeradas++;
+                    }
+                    finally { _trava.Release(); }
+                }
+                return Resposta(200, "OK", "{}");
+            }
             if (metodo != "GET") return Resposta(405, "Method Not Allowed", "{}");
             var todos = new JsonArray();
             for (var ch = 0; ch < 8; ch++) todos.Add(Registro(ch));
@@ -164,18 +188,7 @@ public sealed class ServidorHttpWise : IDisposable
         if (pedido is null)
             return Resposta(400, "Bad Request", "{\"error\":\"bad json\"}");
 
-        // Zerar um contador: o simulador guarda um único tempo rodando, então S2 e S3 zeram juntos.
-        if (EhContador(canal) && pedido["Val"] is { } val && val.GetValueKind() == System.Text.Json.JsonValueKind.Number && val.GetValue<double>() == 0)
-        {
-            await _trava.WaitAsync(_cancelamento.Token);
-            try
-            {
-                _maquina.Reiniciar(DateTime.UtcNow);
-                Zeradas++;
-            }
-            finally { _trava.Release(); }
-        }
-
+        // Como o WISE real: PUT com "Val": 0 responde 200 e não zera nada (o zerar é o PATCH no slot).
         return Resposta(200, "OK", Registro(canal).ToJsonString());
     }
 
@@ -187,16 +200,16 @@ public sealed class ServidorHttpWise : IDisposable
     {
         var contador = EhContador(canal);
         uint valor = canal switch { 1 => _maquina.ContadorProducao, 2 => _maquina.ContadorRejeito, _ => 0 };
+        // Mesmo formato do WISE-4051 real (bancada de 19/10/2026):
+        // {"Ch":1,"Md":1,"Val":307,"Stat":0,"Cnting":1,"OvLch":0}
         return new JsonObject
         {
             ["Ch"] = canal,
-            ["Md"] = contador ? 1 : 0,   // 0 = entrada digital, 1 = contador
+            ["Md"] = contador ? 1 : 0,       // 0 = entrada digital, 1 = contador
             ["Val"] = contador ? valor : 0,
-            ["Stat"] = contador ? 1 : 0, // contador ligado
-            ["Uf"] = 0,
-            ["Cnt"] = 0,
-            ["Ov"] = 0,
-            ["Et"] = 0,
+            ["Stat"] = 0,
+            ["Cnting"] = contador ? 1 : 0,   // contador contando
+            ["OvLch"] = 0,
         };
     }
 
