@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Interfaces;
@@ -24,14 +24,14 @@ public class RelatorioController : ControllerBase
         _context = context;
     }
 
-    public record PdfRequest(string LinhaId, string Data, string Produto, string ResponsavelCliente);
+    public record PdfRequest(string LinhaId, string Data, string Produto, string ResponsavelCliente, string? Blocos);
 
     [HttpPost("pdf")]
     public async Task<IActionResult> Pdf([FromBody] PdfRequest req)
     {
         try
         {
-            var (bytes, nome) = await GerarAsync(req.LinhaId, req.Data, req.Produto, req.ResponsavelCliente);
+            var (bytes, nome) = await GerarAsync(req.LinhaId, req.Data, req.Produto, req.ResponsavelCliente, req.Blocos ?? "");
             return File(bytes, "application/pdf", nome);
         }
         catch (RelatorioPdfException e) { return BadRequest(new { mensagem = e.Message }); }
@@ -39,7 +39,7 @@ public class RelatorioController : ControllerBase
 
     // Gera o PDF abrindo a tela como o usuário logado; o nome segue o padrão
     // SmartLineScan_[Cliente]_[Linha]_[dd-mm-aaaa].pdf
-    private async Task<(byte[] Bytes, string Nome)> GerarAsync(string linhaId, string data, string produto, string responsavel)
+    private async Task<(byte[] Bytes, string Nome)> GerarAsync(string linhaId, string data, string produto, string responsavel, string blocos)
     {
         if (!Guid.TryParse(linhaId, out var lid)) throw new RelatorioPdfException("Linha inválida.");
         var linha = await _context.Linhas.Include(l => l.Cliente).FirstOrDefaultAsync(l => l.Id == lid)
@@ -54,7 +54,7 @@ public class RelatorioController : ControllerBase
         var urlBase = Environment.GetEnvironmentVariable("RELATORIO_URL_BASE");
         if (string.IsNullOrWhiteSpace(urlBase)) urlBase = $"{Request.Scheme}://{Request.Host}";
 
-        var bytes = await _pdf.GerarAsync(urlBase, token, clienteId, new ParametrosRelatorio(linhaId, data, produto, responsavel));
+        var bytes = await _pdf.GerarAsync(urlBase, token, clienteId, new ParametrosRelatorio(linhaId, data, produto, responsavel, blocos));
 
         var partes = data.Split('-');
         var dataNome = partes.Length == 3 ? $"{partes[2]}-{partes[1]}-{partes[0]}" : data;

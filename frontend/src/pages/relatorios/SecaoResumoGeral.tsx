@@ -7,9 +7,9 @@ import { duracaoHoras, inteiro } from './formatos'
 
 function Quadro({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div className="flex-1 min-w-0 border border-borda bg-superficie-2 px-2 py-1.5">
-      <p className="text-[7.5px] uppercase tracking-wide text-texto-3 leading-tight whitespace-nowrap overflow-hidden">{rotulo}</p>
-      <p className="text-xs leading-snug text-texto font-medium">{valor}</p>
+    <div className="min-w-0 border border-borda bg-superficie-2 px-2 py-1.5">
+      <p className="text-[10pt] text-texto-3 leading-tight whitespace-nowrap overflow-hidden">{rotulo}</p>
+      <p className="text-[10pt] leading-snug text-texto font-medium">{valor}</p>
     </div>
   )
 }
@@ -30,19 +30,21 @@ export default function SecaoResumoGeral({ sessao, agora }: { sessao: SessaoDeta
 
   return (
     <section className="break-inside-avoid mt-5">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-texto-2 border-b-2 border-texto pb-1 mb-2">
-        2. Resumo geral
+      <h2 className="text-[14pt] font-semibold uppercase tracking-wider text-texto-2 border-b-2 border-texto pb-1 mb-3">
+        Resumo geral
       </h2>
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Quadro rotulo="Tempo medido" valor={duracaoHoras(medidoMs)} />
           <Quadro rotulo="Tempo disponível" valor={duracaoHoras(disponivelMs)} />
           <Quadro rotulo="Tempo produzindo" valor={duracaoHoras(produzindoMs)} />
-          <Quadro rotulo="Produção total" valor={`${inteiro(sessao.producao)} garrafas`} />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
+          <Quadro rotulo="Produção total" valor={`${inteiro(sessao.producao)} garrafas`} />
           <Quadro rotulo="Paradas programadas" valor={duracaoHoras(planejadoMs)} />
           <Quadro rotulo="Paradas internas (tempo)" valor={duracaoHoras(internoMs)} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <Quadro rotulo="Paradas internas" valor={String(eventosInternas)} />
           <Quadro rotulo="Paradas externas (tempo)" valor={duracaoHoras(externoMs)} />
           <Quadro rotulo="Paradas externas" valor={String(eventosExternas)} />

@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 /// <summary>
 /// Gera o PDF do relatório para o cliente no servidor: abre a própria tela de Relatórios num
@@ -13,7 +13,8 @@ public interface IRelatorioPdfService
     Task<byte[]> GerarAsync(string urlBase, string token, string clienteId, ParametrosRelatorio parametros);
 }
 
-public record ParametrosRelatorio(string LinhaId, string Data, string Produto, string ResponsavelCliente);
+/// <param name="Blocos">Blocos ligados nas páginas das máquinas, separados por vírgula (a tela sabe os nomes).</param>
+public record ParametrosRelatorio(string LinhaId, string Data, string Produto, string ResponsavelCliente, string Blocos = "");
 
 public class RelatorioPdfException : Exception
 {

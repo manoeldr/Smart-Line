@@ -1,4 +1,4 @@
-using System.Web;
+﻿using System.Web;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using SmartLine.Core.Interfaces;
@@ -45,6 +45,7 @@ public class RelatorioPdfService : IRelatorioPdfService
         consulta["data"] = p.Data;
         consulta["produto"] = p.Produto;
         consulta["responsavel"] = p.ResponsavelCliente;
+        consulta["blocos"] = p.Blocos ?? "";
         consulta["impressao"] = "1";
         var url = $"{urlBase.TrimEnd('/')}/relatorios?{consulta}";
 

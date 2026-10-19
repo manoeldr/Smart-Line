@@ -2,7 +2,7 @@
 // digitado, confere a folha A4 na tela e exporta em PDF. A exportação é a impressão da própria
 // folha (Ctrl+P / "Salvar como PDF"); o resto da tela some na impressão (ver index.css).
 // Produto e Responsável do Cliente são obrigatórios para exportar.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { linhaService } from '../../services/linhaService'
@@ -19,6 +19,11 @@ import SecaoDadosMedicao, { type DadosMedicao } from './SecaoDadosMedicao'
 import SecaoResumoGeral from './SecaoResumoGeral'
 import SecaoIndicadores from './SecaoIndicadores'
 import PaginaMaquina from './PaginaMaquina'
+import { partesDaMaquina } from './partesMaquina'
+import LinhaDoTempo from './LinhaDoTempo'
+import { LINHAS_POR_FOLHA, LINHAS_APOS_GRAFICO, fatiarEventos, eventosCronologicos } from './linhaDoTempoFolhas'
+import { BLOCOS, type Bloco, lerBlocos, guardarBlocos } from './blocos'
+import Switch from '../../components/Switch'
 import EnviarRelatorioEmailModal from '../../modals/EnviarRelatorioEmailModal'
 import { btnSecondary } from '../../styles/buttons'
 import { relatorioService } from '../../services/relatorioService'
@@ -85,6 +90,7 @@ function parametrosUrl() {
     produto: q.get('produto') ?? '',
     responsavel: q.get('responsavel') ?? '',
     impressao: q.get('impressao') === '1',
+    blocos: q.get('blocos'),
   }
 }
 
@@ -94,6 +100,27 @@ export default function Relatorios() {
   // Os campos vindos da URL só valem no primeiro cliente carregado; trocar de cliente limpa
   const primeiroClienteRef = useRef(true)
   const modoImpressao = urlInicial.impressao
+  // Blocos ligados (todas as máquinas); da URL quando o servidor gera o PDF, senão lembrados
+  const [blocos, setBlocos] = useState<Bloco[]>(() => lerBlocos(urlInicial.blocos))
+  const [conteudoAberto, setConteudoAberto] = useState(false)
+  const conteudoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!conteudoAberto) return
+    function clique(e: MouseEvent) {
+      if (conteudoRef.current && !conteudoRef.current.contains(e.target as Node)) setConteudoAberto(false)
+    }
+    document.addEventListener('mousedown', clique)
+    return () => document.removeEventListener('mousedown', clique)
+  }, [conteudoAberto])
+
+  function alternarBloco(b: Bloco) {
+    setBlocos(atual => {
+      const novo = atual.includes(b) ? atual.filter(x => x !== b) : [...atual, b]
+      guardarBlocos(novo)
+      return novo
+    })
+  }
   // Folha timbrada (Configurações → Relatório): fundo de cada página e margens do conteúdo
   const { modelo, imagemUrl: timbreUrl } = useModeloRelatorio()
   const comTimbre = !!modelo?.existe && !!timbreUrl
@@ -264,7 +291,7 @@ export default function Relatorios() {
   }
 
   function parametros() {
-    return { linhaId, data, produto: dados.produto, responsavelCliente: dados.responsavelCliente }
+    return { linhaId, data, produto: dados.produto, responsavelCliente: dados.responsavelCliente, blocos: blocos.join(',') }
   }
 
   // Lembra os campos digitados (o mesmo que o Exportar faz) e manda o desktop abrir a mensagem
@@ -327,6 +354,23 @@ export default function Relatorios() {
               obrigatorio
             />
           </div>
+          <div ref={conteudoRef} className="relative flex flex-col gap-1.5">
+            <label className={label}>Conteúdo</label>
+            <button onClick={() => setConteudoAberto(a => !a)} className={`${btnSecondary} h-9`}>
+              {blocos.length === BLOCOS.length ? 'Tudo' : `${blocos.length} de ${BLOCOS.length}`} ▾
+            </button>
+            {conteudoAberto && (
+              <div className="absolute top-full left-0 mt-1 z-40 bg-superficie border border-borda-forte shadow-lg p-3 flex flex-col gap-2 w-56">
+                <p className="text-[10px] text-texto-3">Nas páginas de cada máquina</p>
+                {BLOCOS.map(b => (
+                  <label key={b.id} className="flex items-center justify-between gap-3 text-xs text-texto cursor-pointer">
+                    {b.rotulo}
+                    <Switch checked={blocos.includes(b.id)} onChange={() => alternarBloco(b.id)} />
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="ml-auto flex flex-col items-end gap-1">
             <div className="flex gap-2">
               {noDesktop() && (
@@ -364,8 +408,8 @@ export default function Relatorios() {
             {comTimbre ? (
               // Com timbre a marca já vem da folha: só a linha do que é este relatório
               <header className="relative flex items-baseline justify-between border-b border-zinc-300 pb-2 mb-5">
-                <p className="text-base font-semibold">Relatório de medição</p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-[16pt] font-semibold">Relatório de medição</p>
+                <p className="text-[10pt] text-zinc-500">
                   {dados.linhaNome} · {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')} · emitido em {emitidoEm.toLocaleDateString('pt-BR')} às {emitidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </header>
@@ -374,11 +418,11 @@ export default function Relatorios() {
                 <div className="flex items-center gap-3">
                   <Logo tamanho={36} />
                   <div>
-                    <p className="text-base font-semibold leading-tight">Relatório de medição</p>
-                    <p className="text-xs text-zinc-500">Smart Line Scan · Sanmartin</p>
+                    <p className="text-[16pt] font-semibold leading-tight">Relatório de medição</p>
+                    <p className="text-[10pt] text-zinc-500">Smart Line Scan · Sanmartin</p>
                   </div>
                 </div>
-                <div className="text-right text-xs text-zinc-500">
+                <div className="text-right text-[10pt] text-zinc-500">
                   <p>{dados.linhaNome} · {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                   <p>Emitido em {emitidoEm.toLocaleDateString('pt-BR')} às {emitidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
@@ -392,16 +436,56 @@ export default function Relatorios() {
                 <SecaoIndicadores sessao={sessao} />
               </>
             ) : (
-              <p className="text-sm text-zinc-500 italic">Nenhuma máquina desta linha foi medida no dia escolhido.</p>
+              <p className="text-[12pt] text-zinc-500 italic">Nenhuma máquina desta linha foi medida no dia escolhido.</p>
             )}
           </Pagina>
 
           {/* Uma página por máquina medida */}
-          {sessoesMaquinas.map((m, i) => (
-            <Pagina key={m.sessao.sessaoId} comTimbre={comTimbre} timbreUrl={timbreUrl} margens={modelo?.margens}>
-              <PaginaMaquina numero={4 + i} sessao={m.sessao} critica={m.critica} />
-            </Pagina>
-          ))}
+          {sessoesMaquinas.map((m, i) => {
+            const numero = 1 + i
+            const partes = partesDaMaquina(blocos)
+            const eventos = blocos.includes('linhaTempo') ? eventosCronologicos(m.sessao.eventos) : []
+            // A linha do tempo começa embaixo do gráfico de paradas por hora (quando ele sai) e
+            // continua em folhas próprias; sem esse gráfico, começa numa folha própria.
+            const comecaAposGrafico = partes.includes('paradas')
+            const fatias = fatiarEventos(eventos, comecaAposGrafico ? LINHAS_APOS_GRAFICO : LINHAS_POR_FOLHA)
+            const tituloTempo = (f: number) => (
+              <h3 className="text-[10pt] font-semibold uppercase tracking-wider text-texto-2 mb-2">
+                Linha do tempo{fatias.length > 1 ? ` (${f + 1}/${fatias.length})` : ''}
+              </h3>
+            )
+            return (
+              <Fragment key={m.sessao.sessaoId}>
+                {partes.map((parte, k) => (
+                  <Pagina key={parte} comTimbre={comTimbre} timbreUrl={timbreUrl} margens={modelo?.margens}>
+                    <PaginaMaquina numero={numero} sessao={m.sessao} blocos={blocos} parte={parte} comTitulo={k === 0} />
+                    {parte === 'paradas' && fatias.length > 0 && (
+                      <div className="mt-4">
+                        {tituloTempo(0)}
+                        <LinhaDoTempo eventos={fatias[0]} continuacao={false} />
+                      </div>
+                    )}
+                  </Pagina>
+                ))}
+                {fatias.map((fatia, f) => {
+                  if (comecaAposGrafico && f === 0) return null
+                  // Sem nenhuma outra folha, a primeira da linha do tempo leva o título da máquina
+                  const primeiraDaMaquina = partes.length === 0 && f === 0
+                  return (
+                    <Pagina key={f} comTimbre={comTimbre} timbreUrl={timbreUrl} margens={modelo?.margens}>
+                      {primeiraDaMaquina && (
+                        <h2 className="flex items-baseline justify-between gap-4 text-[14pt] font-semibold uppercase tracking-wider text-texto-2 border-b-2 border-texto pb-1 mb-3">
+                          <span>{numero}. {m.sessao.maquinaNome}</span>
+                        </h2>
+                      )}
+                      {tituloTempo(f)}
+                      <LinhaDoTempo eventos={fatia} continuacao={f > 0} />
+                    </Pagina>
+                  )
+                })}
+              </Fragment>
+            )
+          })}
         </div>
       )}
       </div>
