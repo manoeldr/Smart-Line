@@ -62,7 +62,7 @@ interface Props {
 
 export default function ConfigurarSemiAuto({ maquina, seletorForma, onCancelar, onIniciada }: Props) {
   const [velocidadeNominal, setVelocidadeNominal] = useState(String(maquina.velocidadeNominal ?? ''))
-  const [sobreVelocidade, setSobreVelocidade] = useState('0')
+  const [sobreVelocidade, setSobreVelocidade] = useState(String(maquina.sobreVelocidade ?? 0))
   const [producaoInicial, setProducaoInicial] = useState('')
   const [canais, setCanais] = useState<Record<string, CanalConfig>>(configuracaoPadrao)
 

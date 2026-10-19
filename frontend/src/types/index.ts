@@ -35,6 +35,7 @@ export interface MaquinaLinha {
   maquinaNome: string
   tipoColeta: TipoColeta
   velocidadeNominal: number
+  sobreVelocidade: number
   critica: boolean
   medeProducao: boolean
   ordem: number

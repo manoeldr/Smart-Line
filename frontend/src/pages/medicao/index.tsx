@@ -49,6 +49,7 @@ export default function Medicao() {
           maquinaNome: ativa.maquinaNome,
           tipoColeta: 'Manual',
           velocidadeNominal: ativa.velocidadeNominal,
+          sobreVelocidade: ativa.sobreVelocidade ?? 0,
           critica: ativa.critica,
           medeProducao: ativa.medeProducao,
           ordem: 0,

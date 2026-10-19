@@ -104,9 +104,9 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
   async function selecionarMaquina(maquina: MaquinaLinha | null) {
     setMaquinaSelecionada(maquina)
     if (maquina) {
-      // Velocidade nominal vem pré-preenchida da configuração da linha, mas é editável aqui
+      // Velocidade nominal e sobrevelocidade vêm pré-preenchidas da configuração da linha, mas são editáveis aqui
       setVelocidadeNominal(String(maquina.velocidadeNominal ?? ''))
-      setSobreVelocidade('0')
+      setSobreVelocidade(String(maquina.sobreVelocidade ?? 0))
       setPrevisaoTermino('')
       setProducaoInicial('')
       setTipoColeta('Manual')
