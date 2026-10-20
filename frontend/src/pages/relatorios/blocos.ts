@@ -1,17 +1,18 @@
 // Blocos que o usuário liga/desliga no relatório (valem para todas as máquinas). A escolha
 // fica neste navegador e vai na URL (?blocos=) para o PDF do servidor sair igual.
-export type Bloco = 'indicadores' | 'producaoHora' | 'paradasMotivo' | 'paradasHora' | 'linhaTempo'
+export type Bloco = 'indicadores' | 'producaoHora' | 'paradasMotivo' | 'producaoAcumulada' | 'paradasHora' | 'linhaTempo'
 
 export const BLOCOS: { id: Bloco; rotulo: string }[] = [
   { id: 'indicadores', rotulo: 'Indicadores' },
   { id: 'producaoHora', rotulo: 'Produção por hora' },
   { id: 'paradasMotivo', rotulo: 'Paradas por motivo' },
+  { id: 'producaoAcumulada', rotulo: 'Produção acumulada × esperada' },
   { id: 'paradasHora', rotulo: 'Paradas por hora' },
   { id: 'linhaTempo', rotulo: 'Linha do tempo' },
 ]
 
 // Padrão: tudo menos a linha do tempo (pode ocupar várias folhas por máquina)
-export const BLOCOS_PADRAO: Bloco[] = ['indicadores', 'producaoHora', 'paradasMotivo', 'paradasHora']
+export const BLOCOS_PADRAO: Bloco[] = ['indicadores', 'producaoHora', 'paradasMotivo', 'producaoAcumulada', 'paradasHora']
 
 const CHAVE = 'smartline.relatorio.blocos'
 

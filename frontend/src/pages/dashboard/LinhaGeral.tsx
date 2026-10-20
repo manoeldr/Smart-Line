@@ -9,6 +9,7 @@ import type { LinhaDashboardDto, MaquinaResumoLinhaDto, TempoParadoMaquinaDto } 
 import { badgeCritica } from '../../styles/badges'
 import { cardPadded } from '../../styles/cards'
 import { areaGrafico } from '../../styles/graficos'
+import { COR_ACUMULADA, COR_ESPERADA, producaoAcumulada } from '../../utils/producaoAcumulada'
 
 interface Props {
   dados: LinhaDashboardDto
@@ -16,6 +17,7 @@ interface Props {
 }
 
 type TipoGrafico = 'paradasMotivo' | 'paradasHora'
+type TipoProducao = 'porHora' | 'acumulada'
 
 // Produção em azul (o mesmo do relatório e do detalhe da máquina), em qualquer tema
 const COR_PRODUCAO = '#1961ac'
@@ -24,7 +26,13 @@ const OPCOES_GRAFICO: { valor: TipoGrafico; rotulo: string }[] = [
   { valor: 'paradasHora', rotulo: 'Paradas por hora' },
 ]
 
+const OPCOES_PRODUCAO: { valor: TipoProducao; rotulo: string }[] = [
+  { valor: 'porHora', rotulo: 'Por hora' },
+  { valor: 'acumulada', rotulo: 'Acumulada' },
+]
+
 const CHAVE_GRAFICO = 'smartline.dashboard.graficoParadas'
+const CHAVE_PRODUCAO = 'smartline.dashboard.graficoProducao'
 const CHAVE_OCULTAS = 'smartline.dashboard.maquinasOcultas'
 
 function lerGuardado(chave: string): string | null {
@@ -80,9 +88,17 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
     try { return new Set<string>(JSON.parse(lerGuardado(CHAVE_OCULTAS) ?? '[]')) } catch { return new Set() }
   })
 
+  const [producaoTipo, setProducaoTipoEstado] = useState<TipoProducao>(() =>
+    lerGuardado(CHAVE_PRODUCAO) === 'acumulada' ? 'acumulada' : 'porHora')
+
   function setGrafico(tipo: TipoGrafico) {
     setGraficoEstado(tipo)
     guardar(CHAVE_GRAFICO, tipo)
+  }
+
+  function setProducaoTipo(tipo: TipoProducao) {
+    setProducaoTipoEstado(tipo)
+    guardar(CHAVE_PRODUCAO, tipo)
   }
 
   function alternarMaquina(maquinaLinhaId: string) {
@@ -133,11 +149,27 @@ export default function LinhaGeral({ dados, onAbrirMaquina }: Props) {
       <div className={cardPadded}>
         <div className="flex items-center justify-between gap-3 mb-3 min-h-7">
           <p className="text-xs font-medium text-texto">
-            Produção por hora{dados.maquinaReferencia && <span className="font-normal text-texto-3"> · {dados.maquinaReferencia}</span>}
+            {producaoTipo === 'porHora' ? 'Produção por hora' : 'Produção acumulada × esperada'}
+            {dados.maquinaReferencia && <span className="font-normal text-texto-3"> · {dados.maquinaReferencia}</span>}
           </p>
+          <div className="flex">
+            {OPCOES_PRODUCAO.map(o => (
+              <button
+                key={o.valor}
+                onClick={() => setProducaoTipo(o.valor)}
+                className={`h-7 px-3 -ml-px first:ml-0 text-[11px] font-medium border transition-colors ${
+                  producaoTipo === o.valor
+                    ? 'relative bg-accent-600 text-accent-fg border-accent-600'
+                    : 'border-borda-forte text-texto-2 hover:bg-superficie-2'
+                }`}
+              >
+                {o.rotulo}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={`h-72 ${areaGrafico}`}>
-          <GraficoProducao dados={dados} />
+          {producaoTipo === 'porHora' ? <GraficoProducao dados={dados} /> : <GraficoAcumulada dados={dados} />}
         </div>
       </div>
 
@@ -286,6 +318,49 @@ function GraficoProducao({ dados }: { dados: LinhaDashboardDto }) {
         {/* Produção feita sem comunicação: em cinza, em cima da normal (fora do OEE) */}
         {temSemComunicacao && <Bar dataKey="semComunicacao" name="Sem comunicação" stackId="producao" fill="#a1a1aa" />}
       </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// Produção acumulada da máquina de referência contra a esperada pela velocidade nominal:
+// azul a acumulada, vermelho pontilhado a esperada, como o gráfico de paradas por hora.
+function GraficoAcumulada({ dados }: { dados: LinhaDashboardDto }) {
+  if (dados.producaoPorHora.length === 0 || !dados.sessaoInicio) {
+    return <p className="text-xs text-texto-3 text-center pt-24">Nenhuma produção registrada ainda</p>
+  }
+
+  const pontos = producaoAcumulada(dados.producaoPorHora, dados.sessaoInicio, dados.sessaoFim, dados.velocidadeNominal)
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={pontos} accessibilityLayer={false} margin={{ right: 12 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+        <XAxis dataKey="hora" interval={0} tick={{ fontSize: 10 }} />
+        <YAxis tick={{ fontSize: 10 }} width={56} allowDecimals={false} tickFormatter={v => Number(v).toLocaleString('pt-BR')} />
+        <Tooltip formatter={(valor, nome) => [Number(valor).toLocaleString('pt-BR'), nome]} />
+        <Legend />
+        {dados.velocidadeNominal > 0 && (
+          <Line
+            dataKey="esperada"
+            name="Nominal esperada"
+            type="monotone"
+            stroke={COR_ESPERADA}
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            dot={false}
+            activeDot={{ r: 4 }}
+          />
+        )}
+        <Line
+          dataKey="acumulada"
+          name="Produção acumulada"
+          type="monotone"
+          stroke={COR_ACUMULADA}
+          strokeWidth={2}
+          dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
+          activeDot={{ r: 5 }}
+        />
+      </LineChart>
     </ResponsiveContainer>
   )
 }

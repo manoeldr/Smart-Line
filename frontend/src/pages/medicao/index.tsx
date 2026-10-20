@@ -4,6 +4,9 @@ import { sessaoService, type SessaoDto } from '../../services/sessaoService'
 import { useAuth } from '../../contexts/AuthContext'
 import SelecaoMaquina from './SelecaoMaquina'
 import TelaMedicao from './TelaMedicao'
+import MedicoesEmAndamento from './MedicoesEmAndamento'
+import { tabButton } from '../../styles/tables'
+import { useSearchParams } from 'react-router-dom'
 
 interface SessaoAtiva {
   maquina: MaquinaLinha
@@ -21,6 +24,13 @@ export default function Medicao() {
   const [erro, setErro] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [restaurando, setRestaurando] = useState(true)
+  // Abas como nas Configurações: "Medição atual" (com medição manual própria) ou "Nova medição",
+  // e "Medições em andamento" (todas as da linha do topo, com quem iniciou e o Finalizar).
+  // A aba fica na URL (?aba=) para o F5.
+  const [params, setParams] = useSearchParams()
+  const abaAtiva: 'atual' | 'andamento' = params.get('aba') === 'andamento' ? 'andamento' : 'atual'
+  const setAbaAtiva = (aba: 'atual' | 'andamento') => setParams(aba === 'atual' ? {} : { aba }, { replace: true })
+  const [versaoAndamento, setVersaoAndamento] = useState(0)
 
   // Ao entrar na tela, pergunta ao SERVIDOR (não só ao navegador) se o usuário tem uma sessão
   // ativa pendente — sobrevive a reiniciar o servidor, trocar de dispositivo ou limpar o navegador.
@@ -158,28 +168,47 @@ export default function Medicao() {
     )
   }
 
-  if (sessaoAtiva) {
-    return (
-      <TelaMedicao
-        maquina={sessaoAtiva.maquina}
-        linha={sessaoAtiva.linha}
-        sessao={sessaoAtiva.sessao}
-        leiturasIniciais={sessaoAtiva.leiturasIniciais}
-        onFinalizar={handleFinalizar}
-      />
-    )
-  }
+  const abas = [
+    { id: 'atual' as const, label: sessaoAtiva ? 'Medição atual' : 'Nova medição' },
+    { id: 'andamento' as const, label: 'Medições em andamento' },
+  ]
 
   return (
-    <>
-      {erro && (
-        <div className="max-w-lg mx-auto mt-4 px-4">
-          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
-            {erro}
-          </div>
+    <div className="flex flex-col h-full">
+      <div className="border-b border-borda flex flex-shrink-0">
+        {abas.map(aba => (
+          <button key={aba.id} onClick={() => setAbaAtiva(aba.id)} className={tabButton(abaAtiva === aba.id)}>
+            {aba.label}
+          </button>
+        ))}
+      </div>
+
+      {abaAtiva === 'andamento' ? (
+        <div className="flex-1 overflow-auto p-4">
+          <MedicoesEmAndamento versao={versaoAndamento} onFinalizada={() => setVersaoAndamento(v => v + 1)} />
+        </div>
+      ) : sessaoAtiva ? (
+        <div className="flex-1 min-h-0">
+          <TelaMedicao
+            maquina={sessaoAtiva.maquina}
+            linha={sessaoAtiva.linha}
+            sessao={sessaoAtiva.sessao}
+            leiturasIniciais={sessaoAtiva.leiturasIniciais}
+            onFinalizar={handleFinalizar}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col overflow-auto">
+          {erro && (
+            <div className="max-w-lg mx-auto mt-4 px-4">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                {erro}
+              </div>
+            </div>
+          )}
+          <SelecaoMaquina onIniciar={handleIniciar} loading={loading} onMudou={() => setVersaoAndamento(v => v + 1)} />
         </div>
       )}
-      <SelecaoMaquina onIniciar={handleIniciar} loading={loading} />
-    </>
+    </div>
   )
 }

@@ -76,6 +76,10 @@ export interface LinhaDashboardDto {
   paradasPorHora: ParadaLinhaPorHoraDto[]
   // Gráfico de produção da máquina de referência (o mesmo do detalhe dela)
   producaoPorHora: PontoProducaoDto[]
+  // Sessão de referência: velocidade nominal (garrafas/h) e limites, para a produção esperada
+  velocidadeNominal: number
+  sessaoInicio: string | null
+  sessaoFim: string | null
 }
 
 export const dashboardService = {

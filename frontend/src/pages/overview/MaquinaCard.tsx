@@ -1,12 +1,11 @@
 // Card individual de máquina no Overview.
 // Mostra status ao vivo (bolinha colorida) quando há sessão ativa,
 // ou "última sessão: [data]" com bolinha cinza quando a última sessão já foi finalizada.
-// Administrador/Desenvolvedor veem um botão de Finalizar quando há sessão ativa.
+// O botão "N paradas sem classificação" abre a classificação já na máquina (o Finalizar fica na Medição).
 // Máquina em coleta IoT (WISE): etiqueta IoT, situação da coleta (inclusive sem
 // comunicação e aguardando o WISE), motivo da parada atual e quantas paradas estão sem motivo.
 // Todos os cards têm sempre o mesmo tamanho: as linhas opcionais ("sem motivo", Finalizar)
 // guardam o espaço mesmo quando não aparecem, e a faixa da crítica é desenhada por dentro.
-import { useAuth } from '../../contexts/AuthContext'
 import type { MaquinaLinha } from '../../types'
 import { badgeCritica, badgeIot, dotColorByStatus } from '../../styles/badges'
 import { cardPaddedSm } from '../../styles/cards'
@@ -14,7 +13,8 @@ import { cardPaddedSm } from '../../styles/cards'
 interface Props {
   maquina: MaquinaLinha
   filtroAtivo: boolean
-  onFinalizar?: () => void
+  // Abre a classificação das paradas sem motivo desta máquina
+  onParadasSemMotivo?: () => void
   onAbrir?: () => void
 }
 
@@ -67,9 +67,7 @@ function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
   )
 }
 
-export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir }: Props) {
-  const { usuario } = useAuth()
-  const podeFinalizar = usuario?.nivel === 'Administrador' || usuario?.nivel === 'Desenvolvedor'
+export default function MaquinaCard({ maquina, filtroAtivo, onParadasSemMotivo, onAbrir }: Props) {
 
   const temHistorico = !maquina.sessaoAtiva && maquina.ultimaSessaoFim
   const iot = !filtroAtivo && maquina.sessaoAtiva && !!maquina.acompanhamentoId
@@ -135,24 +133,18 @@ export default function MaquinaCard({ maquina, filtroAtivo, onFinalizar, onAbrir
         </div>
       )}
 
-      {/* Paradas da coleta automática ainda sem motivo (o espaço fica reservado) */}
+      {/* Paradas da coleta IoT ainda sem motivo: botão que abre a classificação já nesta máquina
+          (o espaço fica reservado para os cards terem o mesmo tamanho) */}
       {!filtroAtivo && (
-        <p className={`mt-1 text-[10px] text-amber-600 dark:text-amber-400 truncate ${semMotivo > 0 ? '' : 'invisible'}`}>
-          {semMotivo > 1 ? `${semMotivo} paradas sem classificação` : '1 parada sem classificação'}
-        </p>
-      )}
-
-      {/* Finalizar — só Admin/Desenvolvedor, só com sessão ativa (o espaço fica reservado) */}
-      {!filtroAtivo && podeFinalizar && onFinalizar && (
         <div className="mt-auto pt-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onFinalizar() }}
-          disabled={!maquina.sessaoAtiva}
-          tabIndex={maquina.sessaoAtiva ? undefined : -1}
-          className={`w-full text-[10px] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors ${maquina.sessaoAtiva ? '' : 'invisible'}`}
-        >
-          {iot ? 'Finalizar coleta' : 'Finalizar sessão'}
-        </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onParadasSemMotivo?.() }}
+            disabled={semMotivo === 0 || !onParadasSemMotivo}
+            tabIndex={semMotivo > 0 ? undefined : -1}
+            className={`w-full text-[10px] text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 py-1 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors ${semMotivo > 0 ? '' : 'invisible'}`}
+          >
+            {semMotivo > 1 ? `${semMotivo} paradas sem classificação` : '1 parada sem classificação'}
+          </button>
         </div>
       )}
     </div>

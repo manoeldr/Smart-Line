@@ -19,9 +19,10 @@ import SecaoDadosMedicao, { type DadosMedicao } from './SecaoDadosMedicao'
 import SecaoResumoGeral from './SecaoResumoGeral'
 import SecaoIndicadores from './SecaoIndicadores'
 import PaginaMaquina from './PaginaMaquina'
-import { partesDaMaquina } from './partesMaquina'
+import { partesDaMaquina, graficosNaSegundaFolha } from './partesMaquina'
 import LinhaDoTempo from './LinhaDoTempo'
-import { LINHAS_POR_FOLHA, LINHAS_APOS_GRAFICO, fatiarEventos, eventosCronologicos } from './linhaDoTempoFolhas'
+import TimelineSessao from './TimelineSessao'
+import { LINHAS_PRIMEIRA_FOLHA, LINHAS_APOS_GRAFICO, LINHAS_POR_FOLHA, fatiarEventos, eventosCronologicos } from './linhaDoTempoFolhas'
 import { BLOCOS, type Bloco, lerBlocos, guardarBlocos } from './blocos'
 import Switch from '../../components/Switch'
 import EnviarRelatorioEmailModal from '../../modals/EnviarRelatorioEmailModal'
@@ -445,10 +446,12 @@ export default function Relatorios() {
             const numero = 1 + i
             const partes = partesDaMaquina(blocos)
             const eventos = blocos.includes('linhaTempo') ? eventosCronologicos(m.sessao.eventos) : []
-            // A linha do tempo começa embaixo do gráfico de paradas por hora (quando ele sai) e
-            // continua em folhas próprias; sem esse gráfico, começa numa folha própria.
-            const comecaAposGrafico = partes.includes('paradas')
-            const fatias = fatiarEventos(eventos, comecaAposGrafico ? LINHAS_APOS_GRAFICO : LINHAS_POR_FOLHA)
+            // A barra da linha do tempo vai na 2ª folha (quando ela sai). Com um gráfico só nessa
+            // folha, a tabela começa embaixo dele e continua em folhas próprias; com os dois
+            // gráficos (ou sem a 2ª folha) começa numa folha própria.
+            const barraNaSegundaFolha = partes.includes('paradas')
+            const comecaAposGrafico = graficosNaSegundaFolha(blocos) === 1
+            const fatias = fatiarEventos(eventos, comecaAposGrafico ? LINHAS_APOS_GRAFICO : barraNaSegundaFolha ? LINHAS_POR_FOLHA : LINHAS_PRIMEIRA_FOLHA)
             const tituloTempo = (f: number) => (
               <h3 className="text-[10pt] font-semibold uppercase tracking-wider text-texto-2 mb-2">
                 Linha do tempo{fatias.length > 1 ? ` (${f + 1}/${fatias.length})` : ''}
@@ -459,9 +462,9 @@ export default function Relatorios() {
                 {partes.map((parte, k) => (
                   <Pagina key={parte} comTimbre={comTimbre} timbreUrl={timbreUrl} margens={modelo?.margens}>
                     <PaginaMaquina numero={numero} sessao={m.sessao} blocos={blocos} parte={parte} comTitulo={k === 0} />
+                    {parte === 'paradas' && blocos.includes('linhaTempo') && <TimelineSessao sessao={m.sessao} agora={emitidoEm} />}
                     {parte === 'paradas' && fatias.length > 0 && (
-                      <div className="mt-4">
-                        {tituloTempo(0)}
+                      <div className="mt-3">
                         <LinhaDoTempo eventos={fatias[0]} continuacao={false} />
                       </div>
                     )}
@@ -478,7 +481,8 @@ export default function Relatorios() {
                           <span>{numero}. {m.sessao.maquinaNome}</span>
                         </h2>
                       )}
-                      {tituloTempo(f)}
+                      {f === 0 && !barraNaSegundaFolha && <TimelineSessao sessao={m.sessao} agora={emitidoEm} />}
+                      {f === 0 && !barraNaSegundaFolha ? <div className="mt-3" /> : tituloTempo(f)}
                       <LinhaDoTempo eventos={fatia} continuacao={f > 0} />
                     </Pagina>
                   )

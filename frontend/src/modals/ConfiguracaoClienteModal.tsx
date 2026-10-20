@@ -16,7 +16,7 @@ import { linhaMaquinaService, type MaquinaLinhaConfDto } from '../services/linha
 import ConfirmModal from '../components/ConfirmModal'
 import MaquinaLinhaSemiModal from './MaquinaLinhaSemiModal'
 import { useAlterarUrl } from '../hooks/useParametroUrl'
-import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIconDanger } from '../styles/buttons'
+import { btnPrimary, btnPrimaryXs, btnSecondarySm, btnIcon, btnIconDanger } from '../styles/buttons'
 import { inputBase, label } from '../styles/inputs'
 import Switch from '../components/Switch'
 import { badgeStatus, badgeCritica, badgeNovo } from '../styles/badges'
@@ -48,7 +48,7 @@ interface MaquinaLinhaStaged extends MaquinaLinhaConfDto {
 }
 
 // Item arrastável de máquina dentro de uma linha (drag and drop via @dnd-kit)
-function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: MaquinaLinhaStaged; onRemover: () => void; onConfigurarSemi?: () => void }) {
+function SortableMaquinaItem({ item, onEditar, onRemover, onConfigurarSemi }: { item: MaquinaLinhaStaged; onEditar: () => void; onRemover: () => void; onConfigurarSemi?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -88,6 +88,9 @@ function SortableMaquinaItem({ item, onRemover, onConfigurarSemi }: { item: Maqu
           IoT
         </button>
       )}
+      <button onClick={onEditar} title="Editar velocidade, sobrevelocidade, crítica e contagem" className={btnIcon}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
       <button onClick={onRemover} className={btnIconDanger}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       </button>
@@ -232,8 +235,45 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
   }
 
   // ── Máquinas dentro de uma linha — mesmo padrão staged ──
+  // Máquina em edição (nula = adicionando): o mesmo modal, com a máquina travada
+  const [editandoMaquinaLinha, setEditandoMaquinaLinha] = useState<MaquinaLinhaStaged | null>(null)
+
+  function abrirEditarMaquina(linhaId: string, item: MaquinaLinhaStaged) {
+    setLinhaAlvo(linhaId)
+    setEditandoMaquinaLinha(item)
+    setFormMaquina({
+      maquinaId: item.maquinaId,
+      critica: item.critica,
+      velocidadeNominal: String(item.velocidadeNominal),
+      sobreVelocidade: String(item.sobreVelocidade),
+      medeProducao: item.medeProducao,
+      tempoDeteccao: String(item.tempoDeteccaoParadaSegundos ?? 60),
+    })
+    setModalAdicionarMaquinaOpen(true)
+  }
+
+  // Grava a edição no item (vira "atualizar" no Salvar; máquina nova continua nova)
+  function salvarEdicaoMaquina() {
+    if (!linhaAlvo || !editandoMaquinaLinha) return
+    const alvo = editandoMaquinaLinha
+    setMaquinasPorLinha(prev => ({
+      ...prev,
+      [linhaAlvo]: (prev[linhaAlvo] ?? []).map(m => m.id !== alvo.id ? m : {
+        ...m,
+        critica: formMaquina.critica,
+        velocidadeNominal: Number(formMaquina.velocidadeNominal) || 0,
+        sobreVelocidade: Number(formMaquina.sobreVelocidade) || 0,
+        medeProducao: formMaquina.medeProducao,
+        tempoDeteccaoParadaSegundos: Number(formMaquina.tempoDeteccao) || 60,
+      }),
+    }))
+    setEditandoMaquinaLinha(null)
+    setModalAdicionarMaquinaOpen(false)
+  }
+
   async function abrirAdicionarMaquina(linhaId: string) {
     setLinhaAlvo(linhaId)
+    setEditandoMaquinaLinha(null)
     setFormMaquina({ maquinaId: '', critica: false, velocidadeNominal: '', sobreVelocidade: '0', medeProducao: true, tempoDeteccao: '60' })
     if (todasMaquinas.length === 0) {
       const maquinas = await configuracaoService.getMaquinas()
@@ -469,6 +509,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                                     <SortableMaquinaItem
                                       key={item.id}
                                       item={item}
+                                      onEditar={() => abrirEditarMaquina(linha.id, item)}
                                       onRemover={() => setAcaoPendente({ tipo: 'maquina', linhaId: linha.id, maquinaLinhaId: item.id })}
                                       onConfigurarSemi={item.isNew ? undefined : () => setSemiItem(item)}
                                     />
@@ -535,9 +576,10 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
       {modalAdicionarMaquinaOpen && (
         <div className={modalOverlayNested}>
           <div className={modalContainerSm.replace('w-72', 'w-80')}>
-            <p className={`${modalTitle} mb-4`}>Adicionar máquina</p>
+            <p className={`${modalTitle} mb-4`}>{editandoMaquinaLinha ? `Editar ${editandoMaquinaLinha.maquinaNome}` : 'Adicionar máquina'}</p>
             <div className="flex flex-col gap-3 mb-4">
-              <div>
+              {/* Editando, a máquina já está no título: o seletor some */}
+              {!editandoMaquinaLinha && <div>
                 <label className={label}>Máquina</label>
                 <select
                   value={formMaquina.maquinaId}
@@ -547,7 +589,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   <option value="">Selecione...</option>
                   {todasMaquinas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                 </select>
-              </div>
+              </div>}
               <div>
                 <label className={label}>Velocidade nominal (prod/h)</label>
                 <input
@@ -569,7 +611,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   className={`${inputBase} ${!formMaquina.medeProducao ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
-              <div>
+              {(!editandoMaquinaLinha || editandoMaquinaLinha.isNew) && <div>
                 <label className={label}>Parada após (s) — IoT</label>
                 <input
                   type="number" min="10" max="3600"
@@ -578,7 +620,7 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
                   className={inputBase}
                 />
                 <p className="text-[10px] text-texto-3 mt-1">Segundos sem contar produção para considerar a máquina parada.</p>
-              </div>
+              </div>}
               <div className="flex items-center gap-2">
                 <Switch checked={formMaquina.critica} onChange={v => setFormMaquina(f => ({ ...f, critica: v }))} />
                 <span onClick={() => setFormMaquina(f => ({ ...f, critica: !f.critica }))} className="text-xs text-texto cursor-pointer">Máquina crítica</span>
@@ -589,15 +631,15 @@ export default function ConfiguracaoClienteModal({ open, cliente, somenteLinhas,
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModalAdicionarMaquinaOpen(false)} className={btnSecondarySm}>
+              <button onClick={() => { setModalAdicionarMaquinaOpen(false); setEditandoMaquinaLinha(null) }} className={btnSecondarySm}>
                 Cancelar
               </button>
               <button
-                onClick={adicionarMaquinaLocal}
+                onClick={editandoMaquinaLinha ? salvarEdicaoMaquina : adicionarMaquinaLocal}
                 disabled={!formMaquina.maquinaId || (formMaquina.medeProducao && !formMaquina.velocidadeNominal) || !zValido}
                 className={btnPrimary}
               >
-                Adicionar
+                {editandoMaquinaLinha ? 'Aplicar' : 'Adicionar'}
               </button>
             </div>
           </div>

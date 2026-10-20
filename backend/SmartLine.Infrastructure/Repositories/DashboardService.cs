@@ -180,7 +180,10 @@ public class DashboardService : IDashboardService
             // Produção por hora da máquina de referência (a mesma do OEE da linha).
             ProducaoPorHora: referencia?.Sessao is { } sessaoReferencia
                 ? SessaoDetalheService.ProducaoPorHora(sessaoReferencia, agora, await _context.PeriodosSemComunicacaoAsync(sessaoReferencia))
-                : []);
+                : [],
+            VelocidadeNominal: (double)(referencia?.Sessao?.VelocidadeNominal ?? 0),
+            SessaoInicio: referencia?.Sessao?.Inicio,
+            SessaoFim: referencia?.Sessao?.Fim);
     }
 
     /// <summary>A sessão que o card e o detalhe da máquina mostram: a em andamento, senão a última do período.</summary>

@@ -1,6 +1,7 @@
 // Páginas 2 em diante do relatório — uma por máquina medida no dia, com os mesmos indicadores
-// do detalhe da máquina (modal do Dashboard) e três gráficos: produção por hora em colunas,
-// paradas por motivo em barras deitadas e paradas por hora em linhas (uma por tipo). A produção
+// do detalhe da máquina (modal do Dashboard) e quatro gráficos: produção por hora em colunas,
+// paradas por motivo em barras deitadas, produção acumulada × nominal esperada em linhas e
+// paradas por hora em linhas (uma por tipo). A produção
 // por hora é a bruta (normal + sem comunicação), numa barra só. Larguras fixas: a folha é A4 e, na impressão,
 // o gráfico não pode depender de medir a janela.
 import { BarChart, Bar, Cell, LabelList, LineChart, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
@@ -8,7 +9,8 @@ import type { SessaoDetalheDto } from '../../services/sessaoDetalheService'
 import { areaGrafico } from '../../styles/graficos'
 import { inteiro } from './formatos'
 import type { Bloco } from './blocos'
-import type { ParteMaquina } from './partesMaquina'
+import { BLOCOS_SEGUNDA_FOLHA, type ParteMaquina } from './partesMaquina'
+import { producaoAcumulada } from '../../utils/producaoAcumulada'
 
 // Cor pelo tipo da parada, igual ao detalhe da máquina: interna vermelho, externa amarelo, programada roxo
 const CORES_TIPO: Record<string, string> = { Interna: '#e60000', Externa: '#f5b800', Planejada: '#8b5cf6' }
@@ -98,7 +100,7 @@ interface Props {
 
 export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo }: Props) {
   const tem = (b: Bloco) => blocos.includes(b) && (
-    parte === 'indicadores' ? b !== 'paradasHora' : b === 'paradasHora')
+    parte === 'indicadores' ? !BLOCOS_SEGUNDA_FOLHA.includes(b) : BLOCOS_SEGUNDA_FOLHA.includes(b))
   // Velocidade nominal (garrafas/h) da sessão: linha tracejada vermelha e base do percentual
   const nominal = Number(sessao.velocidadeNominal) || 0
   // Uma barra por hora com a produção bruta (normal + sem comunicação), toda em azul
@@ -126,6 +128,9 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
       quantidade: m.quantidade,
       rotulo: `${m.motivo} (${m.quantidade}×)`,
     }))
+
+  // Produção acumulada (bruta) contra a esperada pela velocidade nominal, hora a hora
+  const acumulada = producaoAcumulada(sessao.pontosProducao, sessao.inicio, sessao.fim, nominal)
 
   // Todas as horas da sessão (inclusive sem parada: a linha vai a zero)
   const porHora = (sessao.paradasPorHora ?? []).map(h => ({
@@ -216,6 +221,42 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
             <span style={{ color: CORES_TIPO.Externa }}>■</span> externa{' '}
             <span style={{ color: CORES_TIPO.Planejada }}>■</span> programada
           </p>
+        )}
+      </div>}
+
+      {/* Produção acumulada × nominal esperada: azul a acumulada, vermelho pontilhado a esperada */}
+      {tem('producaoAcumulada') && <div className={`mt-4 ${areaGrafico}`}>
+        <Titulo>Produção acumulada × nominal esperada</Titulo>
+        {acumulada.length === 0 ? (
+          <p className="text-[12pt] text-texto-3 italic">Sem leituras de produção.</p>
+        ) : (
+          <LineChart width={LARGURA} height={230} data={acumulada} margin={{ top: 8, right: 28, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+            <XAxis dataKey="hora" tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={{ stroke: '#d4d4d8' }} interval={0} />
+            <YAxis tick={{ fontSize: 11, fill: '#52525b' }} tickLine={false} axisLine={false} width={56} allowDecimals={false} tickFormatter={v => inteiro(Number(v))} />
+            <Legend iconSize={8} align="right" wrapperStyle={{ fontSize: 11 }} />
+            {nominal > 0 && (
+              <Line
+                dataKey="esperada"
+                name="Nominal esperada"
+                type="monotone"
+                stroke={COR_NOMINAL}
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                dot={false}
+                isAnimationActive={false}
+              />
+            )}
+            <Line
+              dataKey="acumulada"
+              name="Produção acumulada"
+              type="monotone"
+              stroke={COR_PRODUCAO}
+              strokeWidth={2}
+              dot={{ r: 3, strokeWidth: 2, fill: '#ffffff' }}
+              isAnimationActive={false}
+            />
+          </LineChart>
         )}
       </div>}
 

@@ -20,6 +20,8 @@ interface Props {
   onFechar: () => void
   // Alguma parada foi classificada (o Overview atualiza a contagem)
   onAlterado: () => void
+  // Abrir já filtrado nesta máquina (o card do Overview)
+  maquinaLinhaIdInicial?: string | null
 }
 
 function diasAtras(dias: number) {
@@ -38,9 +40,10 @@ export default function ParadasSemMotivoModal(props: Props) {
   return props.open ? <Conteudo {...props} /> : null
 }
 
-function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado }: Props) {
-  const [linhaId, setLinhaId] = useState('')
-  const [maquinaLinhaId, setMaquinaLinhaId] = useState('')
+function Conteudo({ clienteId, linhas, podeClassificar, onFechar, onAlterado, maquinaLinhaIdInicial }: Props) {
+  const linhaInicial = maquinaLinhaIdInicial ? linhas.find(l => l.maquinas.some(m => m.id === maquinaLinhaIdInicial))?.id ?? '' : ''
+  const [linhaId, setLinhaId] = useState(linhaInicial)
+  const [maquinaLinhaId, setMaquinaLinhaId] = useState(maquinaLinhaIdInicial ?? '')
   const [desde, setDesde] = useState(diasAtras(7))
   const [ate, setAte] = useState(diasAtras(0))
 

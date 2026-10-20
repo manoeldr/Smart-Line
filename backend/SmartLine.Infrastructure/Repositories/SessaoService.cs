@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Entities.Tenant;
 using SmartLine.Core.Enums;
 using SmartLine.Core.Interfaces;
@@ -234,6 +234,10 @@ public class SessaoService : ISessaoService
             .Where(sc => sc.SessaoId == s.Id)
             .Select(sc => sc.CampoMaquinaId.ToString())
             .ToListAsync();
+        var usuarioNome = await _context.Usuarios
+            .Where(u => u.Id == s.UsuarioId)
+            .Select(u => u.Nome)
+            .FirstOrDefaultAsync();
 
         return new SessaoDto(
             Id: s.Id.ToString(),
@@ -246,7 +250,8 @@ public class SessaoService : ISessaoService
             TipoColeta: s.TipoColeta.ToString(),
             VelocidadeNominal: s.VelocidadeNominal,
             SobreVelocidade: s.SobreVelocidade,
-            CamposSelecionados: camposSelecionados
+            CamposSelecionados: camposSelecionados,
+            UsuarioNome: usuarioNome
         );
     }
 }

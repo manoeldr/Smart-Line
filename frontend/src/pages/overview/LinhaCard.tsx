@@ -10,14 +10,14 @@ interface Props {
   linha: Linha
   filtroAtivo: boolean
   dataFiltro: string | null
-  onFinalizarMaquina?: (maquinaLinhaId: string, maquinaNome: string, medeProducao: boolean) => void
+  onParadasSemMotivo?: (maquinaLinhaId: string) => void
   // sessaoId: com o filtro por data, a sessão daquele dia
   onAbrirMaquina?: (maquinaLinhaId: string, sessaoId?: string | null) => void
   // Colunas da tela inteira: o número de máquinas da linha mais comprida
   colunas: number
 }
 
-export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarMaquina, onAbrirMaquina, colunas }: Props) {
+export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onParadasSemMotivo, onAbrirMaquina, colunas }: Props) {
   const temSessao = linha.maquinas.some(m => m.sessaoAtiva)
   const temDados = filtroAtivo ? linha.maquinas.some(m => m.sessaoDia) : temSessao
   const dataTexto = dataFiltro ? `${dataFiltro.slice(8, 10)}/${dataFiltro.slice(5, 7)}/${dataFiltro.slice(0, 4)}` : ''
@@ -55,7 +55,7 @@ export default function LinhaCard({ linha, filtroAtivo, dataFiltro, onFinalizarM
                 <MaquinaCard
                   maquina={maquina}
                   filtroAtivo={filtroAtivo}
-                  onFinalizar={onFinalizarMaquina ? () => onFinalizarMaquina(maquina.id, maquina.maquinaNome, maquina.medeProducao) : undefined}
+                  onParadasSemMotivo={onParadasSemMotivo ? () => onParadasSemMotivo(maquina.id) : undefined}
                   onAbrir={onAbrirMaquina && (!filtroAtivo || maquina.sessaoDia)
                     ? () => onAbrirMaquina(maquina.id, maquina.sessaoDia?.sessaoId)
                     : undefined}

@@ -3,8 +3,10 @@ import type { EventoTimelineDto } from '../../services/sessaoDetalheService'
 
 // Quantas linhas cabem numa folha A4 depois do título (10 pt: altura de linha ~6 mm)
 export const LINHAS_POR_FOLHA = 32
-// Quantas cabem na folha de "Paradas por hora", embaixo do gráfico
-export const LINHAS_APOS_GRAFICO = 16
+// Primeira folha própria da linha do tempo (sem o gráfico): a barra ocupa ~4 linhas
+export const LINHAS_PRIMEIRA_FOLHA = 28
+// Quantas cabem na folha de "Paradas por hora", embaixo do gráfico e da barra da linha do tempo
+export const LINHAS_APOS_GRAFICO = 12
 
 // Divide os eventos em fatias: a primeira com o tamanho pedido, as demais com uma folha inteira
 export function fatiarEventos<T>(eventos: T[], primeira: number): T[][] {

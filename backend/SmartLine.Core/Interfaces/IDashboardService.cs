@@ -23,6 +23,9 @@ public interface IDashboardService
 /// <param name="TempoParadoTotalMs">Tempo parado somado de todas as máquinas (a parada em curso conta até agora).</param>
 /// <param name="NumParadas">Paradas somadas de todas as máquinas.</param>
 /// <param name="ProducaoPorHora">Gráfico de produção da máquina de referência (o mesmo do detalhe dela).</param>
+/// <param name="VelocidadeNominal">Velocidade nominal (garrafas/h) da sessão de referência — base da produção esperada.</param>
+/// <param name="SessaoInicio">Início da sessão de referência (nulo sem sessão).</param>
+/// <param name="SessaoFim">Fim da sessão de referência (nulo em andamento ou sem sessão).</param>
 public record LinhaDashboardDto(
     string? MaquinaReferencia,
     bool ReferenciaCritica,
@@ -37,7 +40,10 @@ public record LinhaDashboardDto(
     IList<MaquinaResumoLinhaDto> Maquinas,
     IList<ParadaLinhaPorMotivoDto> ParadasPorMotivo,
     IList<ParadaLinhaPorHoraDto> ParadasPorHora,
-    IList<PontoProducaoDto> ProducaoPorHora
+    IList<PontoProducaoDto> ProducaoPorHora,
+    double VelocidadeNominal,
+    DateTime? SessaoInicio,
+    DateTime? SessaoFim
 );
 
 /// <summary>Uma máquina na visão da linha (sem sessão no período: tudo zero).</summary>

@@ -1,4 +1,4 @@
-namespace SmartLine.Core.Interfaces;
+﻿namespace SmartLine.Core.Interfaces;
 
 public interface ISessaoService
 {
@@ -24,7 +24,9 @@ public record SessaoDto(
     string TipoColeta,
     decimal VelocidadeNominal,
     decimal SobreVelocidade,
-    IList<string> CamposSelecionados
+    IList<string> CamposSelecionados,
+    // Quem iniciou (nome do usuário), para a tabela de medições em andamento
+    string? UsuarioNome = null
 );
 
 public record AbrirSessaoRequest(

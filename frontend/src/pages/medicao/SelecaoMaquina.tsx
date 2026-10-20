@@ -31,12 +31,14 @@ interface Props {
       campoMaquinaIds: string[]
     }
   ) => void
+  // Uma coleta IoT foi iniciada por aqui (a tabela de medições em andamento recarrega)
+  onMudou?: () => void
   loading?: boolean
 }
 
 type TipoColeta = 'Manual' | 'SemiAutomatico' | 'Automatico'
 
-export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: Props) {
+export default function SelecaoMaquina({ onIniciar, onMudou, loading: loadingExterno }: Props) {
   const { clienteId, linhaId } = useAuth()
   const [linhas, setLinhas] = useState<Linha[]>([])
   // A linha é a escolhida no topo (cliente · linha); aqui só se escolhe a máquina
@@ -130,6 +132,7 @@ export default function SelecaoMaquina({ onIniciar, loading: loadingExterno }: P
     setAviso(avisoIniciar ?? null)
     setMaquinaSelecionada(null)
     setRecarregar(r => r + 1)
+    onMudou?.()
   }
 
   function toggleCampo(campoId: string) {

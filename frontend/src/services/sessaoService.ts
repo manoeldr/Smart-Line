@@ -12,6 +12,8 @@ export interface SessaoDto {
   velocidadeNominal: number
   sobreVelocidade: number
   camposSelecionados: string[]
+  // Quem iniciou (nome), para a tabela de medições em andamento
+  usuarioNome?: string | null
 }
 
 export interface AbrirSessaoParams {
