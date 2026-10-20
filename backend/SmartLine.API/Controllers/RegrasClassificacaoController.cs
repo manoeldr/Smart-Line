@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartLine.API.Autorizacao;
 using SmartLine.Core.Interfaces;
+using SmartLine.Iot.Coleta;
 
 namespace SmartLine.API.Controllers;
 
 /// <summary>
 /// Regras de classificação automática das paradas (Semi Automático): padrão do
-/// catálogo e personalização por máquina da linha. Mudanças valem para as
-/// coletas iniciadas (ou retomadas) depois.
+/// catálogo e personalização por máquina da linha. Ao salvar, as coletas em
+/// andamento recarregam a configuração: a mudança vale na hora (desde 19/10).
 /// </summary>
 [ApiController]
 [Route("api/regras-classificacao")]
@@ -16,10 +17,20 @@ namespace SmartLine.API.Controllers;
 public class RegrasClassificacaoController : ControllerBase
 {
     private readonly IRegrasClassificacaoService _service;
+    private readonly ColetaIotService _coleta;
 
-    public RegrasClassificacaoController(IRegrasClassificacaoService service)
+    public RegrasClassificacaoController(IRegrasClassificacaoService service, ColetaIotService coleta)
     {
         _service = service;
+        _coleta = coleta;
+    }
+
+    /// <summary>Depois de salvar: as coletas em andamento passam a usar as regras novas.</summary>
+    private async Task<IActionResult> ResponderERecarregar(ResultadoCadastro<ConjuntoRegrasDto> resultado, CancellationToken cancellationToken)
+    {
+        if (resultado.Sucesso)
+            await _coleta.RecarregarConfiguracoesAsync(cancellationToken);
+        return Responder(resultado);
     }
 
     [HttpGet("catalogo/{maquinaId:guid}")]
@@ -30,12 +41,12 @@ public class RegrasClassificacaoController : ControllerBase
     [HttpPut("catalogo/{maquinaId:guid}")]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> SalvarDoCatalogo(Guid maquinaId, [FromBody] SalvarRegrasRequest request, CancellationToken cancellationToken) =>
-        Responder(await _service.SalvarDoCatalogoAsync(maquinaId, request, cancellationToken));
+        await ResponderERecarregar(await _service.SalvarDoCatalogoAsync(maquinaId, request, cancellationToken), cancellationToken);
 
     [HttpPost("catalogo/{maquinaId:guid}/restaurar-padrao")]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> RestaurarPadrao(Guid maquinaId, CancellationToken cancellationToken) =>
-        Responder(await _service.RestaurarPadraoAsync(maquinaId, cancellationToken));
+        await ResponderERecarregar(await _service.RestaurarPadraoAsync(maquinaId, cancellationToken), cancellationToken);
 
     /// <summary>Regras que valem para a máquina da linha (personalizadas ou, se não houver, as do catálogo).</summary>
     [HttpGet("maquina-linha/{maquinaLinhaId:guid}")]
@@ -46,13 +57,13 @@ public class RegrasClassificacaoController : ControllerBase
     [HttpPut("maquina-linha/{maquinaLinhaId:guid}")]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> SalvarDaMaquinaLinha(Guid maquinaLinhaId, [FromBody] SalvarRegrasRequest request, CancellationToken cancellationToken) =>
-        Responder(await _service.SalvarDaMaquinaLinhaAsync(maquinaLinhaId, request, cancellationToken));
+        await ResponderERecarregar(await _service.SalvarDaMaquinaLinhaAsync(maquinaLinhaId, request, cancellationToken), cancellationToken);
 
     /// <summary>Tira a personalização: a máquina volta às regras do catálogo.</summary>
     [HttpDelete("maquina-linha/{maquinaLinhaId:guid}")]
     [Authorize(Policy = Politicas.Operacao)]
     public async Task<IActionResult> RemoverPersonalizacao(Guid maquinaLinhaId, CancellationToken cancellationToken) =>
-        Responder(await _service.RemoverPersonalizacaoAsync(maquinaLinhaId, cancellationToken));
+        await ResponderERecarregar(await _service.RemoverPersonalizacaoAsync(maquinaLinhaId, cancellationToken), cancellationToken);
 
     private IActionResult Responder(ResultadoCadastro<ConjuntoRegrasDto> resultado)
     {

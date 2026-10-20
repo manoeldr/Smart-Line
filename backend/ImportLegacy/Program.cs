@@ -1,19 +1,25 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Microsoft.EntityFrameworkCore;
+using SmartLine.Infrastructure.Data;
 
-var origem = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
-var destino = @"D:\Smart Line\backend\SmartLine.Desktop\bin\Debug\net10.0-windows\smartline.db";
+var caminhoDb = @"D:\Smart Line\backend\SmartLine.API\bin\Debug\net10.0\smartline.db";
 
-// Apaga o banco antigo (e seus arquivos auxiliares) antes de gerar a cópia nova
-File.Delete(destino);
-if (File.Exists(destino + "-wal")) File.Delete(destino + "-wal");
-if (File.Exists(destino + "-shm")) File.Delete(destino + "-shm");
+var optionsBuilder = new DbContextOptionsBuilder<SmartLineDbContext>();
+optionsBuilder.UseSqlite($"Data Source={caminhoDb}");
+using var context = new SmartLineDbContext(optionsBuilder.Options);
 
-using var connection = new SqliteConnection($"Data Source={origem}");
-connection.Open();
+var sessoes = context.Sessoes
+    .Include(s => s.MaquinaLinha).ThenInclude(ml => ml.Maquina)
+    .OrderByDescending(s => s.Inicio)
+    .Take(10)
+    .ToList();
 
-// VACUUM INTO gera uma cópia limpa e consistente do banco
-using var cmd = connection.CreateCommand();
-cmd.CommandText = $"VACUUM INTO '{destino.Replace("\\", "/")}'";
-cmd.ExecuteNonQuery();
-
-Console.WriteLine("Cópia limpa gerada com sucesso!");
+Console.WriteLine("Últimas 10 sessões (medições) registradas:");
+Console.WriteLine();
+foreach (var s in sessoes)
+{
+    Console.WriteLine($"Máquina: {s.MaquinaLinha.Maquina.Nome}");
+    Console.WriteLine($"  Início: {s.Inicio}");
+    Console.WriteLine($"  Fim: {s.Fim}");
+    Console.WriteLine($"  Status: {s.Status}");
+    Console.WriteLine();
+}

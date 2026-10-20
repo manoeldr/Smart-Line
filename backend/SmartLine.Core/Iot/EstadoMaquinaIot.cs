@@ -53,7 +53,7 @@ public enum SituacaoMaquina
 /// </remarks>
 public sealed class EstadoMaquinaIot
 {
-    private readonly ConfiguracaoColetaIot _config;
+    private ConfiguracaoColetaIot _config;
     private readonly Dictionary<CanalWise, uint> _contadores = new();
     private readonly Dictionary<CanalWise, bool> _estados = new();
 
@@ -100,6 +100,33 @@ public sealed class EstadoMaquinaIot
     /// consolidação para, após reiniciar, retomar com <c>contadoresRestaurados</c>.
     /// </summary>
     public IReadOnlyDictionary<CanalWise, uint> ContadoresBrutos => _contadores;
+
+    /// <summary>
+    /// Troca regras e tempos no meio da coleta (o usuário salvou a configuração da máquina),
+    /// sem perder contadores, sensores nem a parada em curso. Os canais lidos são os da
+    /// medição e não mudam. Uma parada em curso ainda sem motivo é classificada de novo com
+    /// as regras novas; uma já classificada fica com a primeira causa, como sempre.
+    /// </summary>
+    /// <param name="agoraUtc">Instante atual, em UTC.</param>
+    /// <exception cref="ArgumentException">Instante não está em UTC.</exception>
+    public IReadOnlyList<EventoColeta> AtualizarConfiguracao(ConfiguracaoColetaIot nova, DateTime agoraUtc)
+    {
+        if (agoraUtc.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("Instante precisa estar em UTC.", nameof(agoraUtc));
+        _config = nova;
+
+        var eventos = new List<EventoColeta>();
+        if (Situacao == SituacaoMaquina.Parada && ClassificacaoAtual is not { EhNaoClassificada: false })
+        {
+            var classificacao = Classificar(agoraUtc);
+            if (!classificacao.EhNaoClassificada)
+            {
+                ClassificacaoAtual = classificacao;
+                eventos.Add(new ParadaReclassificada(agoraUtc, classificacao));
+            }
+        }
+        return eventos;
+    }
 
     /// <param name="config">Configuração da medição.</param>
     /// <param name="contadoresRestaurados">

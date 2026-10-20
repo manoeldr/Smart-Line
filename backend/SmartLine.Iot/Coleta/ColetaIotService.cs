@@ -176,6 +176,24 @@ public sealed class ColetaIotService : BackgroundService
     }
 
     /// <summary>
+    /// Recarrega do cadastro a configuração (regras, Z) de todas as coletas em andamento —
+    /// chamado quando alguém salva regras ou a máquina da linha, para valer na hora, não só
+    /// na próxima medição. Devolve quando todas as filas aplicaram.
+    /// </summary>
+    public async Task RecarregarConfiguracoesAsync(CancellationToken cancellationToken = default)
+    {
+        var pendentes = new List<Task>();
+        foreach (var fila in _filas.Values)
+        {
+            if (fila.Atual is null) continue;
+            var concluido = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (fila.Enviar(new ComandoRecarregar(concluido)))
+                pendentes.Add(concluido.Task);
+        }
+        await Task.WhenAll(pendentes).WaitAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Um ciclo do relógio, agora: verifica todas as máquinas com coleta ligada
     /// (inclusive as que ainda não mandaram mensagem). Devolve quando todas
     /// terminaram. O relógio automático chama a cada
@@ -463,6 +481,10 @@ public sealed class ColetaIotService : BackgroundService
                     case ComandoDesligar c:
                         await DesligarNaFilaAsync(fila, c.AgoraUtc);
                         break;
+                    case ComandoRecarregar c:
+                        await RecarregarNaFilaAsync(fila);
+                        c.Concluido.TrySetResult();
+                        break;
                 }
             }
             catch (Exception ex)
@@ -471,6 +493,8 @@ public sealed class ColetaIotService : BackgroundService
                     Interlocked.Increment(ref _descartadas);
                 if (comando is ComandoFinalizar f)
                     f.Resultado.TrySetException(ex);
+                if (comando is ComandoRecarregar r)
+                    r.Concluido.TrySetException(ex);
                 _log.LogError(ex, "Falha na coleta da máquina {MaquinaLinhaId} ({Comando}); segue com o próximo.",
                     fila.MaquinaLinhaId, comando.GetType().Name);
             }
@@ -578,6 +602,22 @@ public sealed class ColetaIotService : BackgroundService
         }
 
         return resultado;
+    }
+
+    private async Task RecarregarNaFilaAsync(FilaMaquina fila)
+    {
+        if (fila.Atual is not { } coleta)
+            return;
+
+        await using var escopo = _escopos.CreateAsyncScope();
+        var servicos = escopo.ServiceProvider;
+        var configuracao = await servicos.GetRequiredService<IAcompanhamentoService>()
+            .CarregarConfiguracaoAsync(coleta.AcompanhamentoId);
+        var eventos = coleta.Estado.AtualizarConfiguracao(configuracao, Agora());
+        _log.LogInformation("Configuração da coleta {AcompanhamentoId} da máquina {MaquinaLinhaId} recarregada ({Regras} regras, parada após {Z} s).",
+            coleta.AcompanhamentoId, fila.MaquinaLinhaId, configuracao.Regras.Count, (int)configuracao.TempoDeteccaoParada.TotalSeconds);
+        await RegistrarAsync(servicos, coleta, eventos);
+        Publicar(fila.MaquinaLinhaId, coleta);
     }
 
     private async Task DesligarNaFilaAsync(FilaMaquina fila, DateTime agora)
@@ -725,6 +765,7 @@ public sealed class ColetaIotService : BackgroundService
         Guid AcompanhamentoId, Guid UsuarioId, bool PodeFinalizarDeOutros,
         TaskCompletionSource<ResultadoFinalizacao> Resultado) : Comando;
     private sealed record ComandoDesligar(DateTime AgoraUtc) : Comando;
+    private sealed record ComandoRecarregar(TaskCompletionSource Concluido) : Comando;
 
     /// <summary>Coleta de um acompanhamento: estado da máquina, produção ainda não gravada e agenda.</summary>
     private sealed class ColetaEmCurso

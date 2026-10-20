@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartLine.Core.Interfaces;
+using SmartLine.Iot.Coleta;
 
 namespace SmartLine.API.Controllers;
 
@@ -10,10 +11,12 @@ namespace SmartLine.API.Controllers;
 public class LinhaMaquinaController : ControllerBase
 {
     private readonly ILinhaMaquinaService _service;
+    private readonly ColetaIotService _coleta;
 
-    public LinhaMaquinaController(ILinhaMaquinaService service)
+    public LinhaMaquinaController(ILinhaMaquinaService service, ColetaIotService coleta)
     {
         _service = service;
+        _coleta = coleta;
     }
 
     [HttpGet]
@@ -56,6 +59,8 @@ public class LinhaMaquinaController : ControllerBase
             request.TempoDeteccaoParadaSegundos
         );
         if (resultado is null) return NotFound();
+        // O Z (tempo de detecção de parada) vale na hora para a coleta em andamento desta máquina.
+        await _coleta.RecarregarConfiguracoesAsync();
         return Ok(resultado);
     }
 
