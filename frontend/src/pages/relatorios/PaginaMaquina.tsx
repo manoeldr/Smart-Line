@@ -101,6 +101,9 @@ interface Props {
 export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo }: Props) {
   const tem = (b: Bloco) => blocos.includes(b) && (
     parte === 'indicadores' ? !BLOCOS_SEGUNDA_FOLHA.includes(b) : BLOCOS_SEGUNDA_FOLHA.includes(b))
+  // Produção: a do OEE (com comunicação) + a feita sem comunicação (fora do OEE) = total
+  const producaoSemComunicacao = sessao.pontosProducao.reduce((soma, p) => soma + (p.semComunicacao ?? 0), 0)
+  const producaoTotal = sessao.producao + producaoSemComunicacao
   // Velocidade nominal (garrafas/h) da sessão: linha tracejada vermelha e base do percentual
   const nominal = Number(sessao.velocidadeNominal) || 0
   // Uma barra por hora com a produção bruta (normal + sem comunicação), toda em azul
@@ -151,20 +154,26 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
         </span>
       </h2>}
 
-      {/* Indicadores — os mesmos do detalhe da máquina */}
+      {/* Indicadores — os mesmos do detalhe da máquina. Tempo e produção sem comunicação (só na
+          medição IoT) e refugo só quando houve; paradas programadas não entram. */}
       {tem('indicadores') && <div className="grid grid-cols-4 gap-2">
         <Quadro rotulo="OEE" valor={pct(sessao.oee)} />
         <Quadro rotulo="Eficiência" valor={pct(sessao.eficiencia)} />
         <Quadro rotulo="Disponibilidade" valor={pct(sessao.disponibilidade)} />
         <Quadro rotulo="Qualidade" valor={pct(sessao.qualidade)} />
         <Quadro rotulo="Tempo rodando" valor={horasMin(sessao.tempoRodandoMs)} />
-        <Quadro rotulo="Tempo parado" valor={horasMin(sessao.tempoParadoMs)} />
-        <Quadro rotulo="Produção total" valor={inteiro(sessao.producao)} />
-        <Quadro rotulo="Refugo total" valor={inteiro(sessao.refugo)} />
-        <Quadro rotulo="MTTR" valor={horasMin(sessao.mttrMs)} />
-        <Quadro rotulo="MTBF" valor={horasMin(sessao.mtbfMs)} />
+        <Quadro rotulo="Tempo parada interna" valor={horasMin(sessao.tempoInternoMs ?? 0)} />
+        <Quadro rotulo="Tempo parada externa" valor={horasMin(sessao.tempoExternoMs ?? 0)} />
+        {(sessao.tempoSemComunicacaoMs ?? 0) > 0 && <Quadro rotulo="Tempo s/ comunic." valor={horasMin(sessao.tempoSemComunicacaoMs ?? 0)} />}
+        <Quadro rotulo="Produção total" valor={inteiro(producaoTotal)} />
+        {producaoSemComunicacao > 0 && <Quadro rotulo="Produção s/ comunic." valor={inteiro(producaoSemComunicacao)} />}
+        {producaoSemComunicacao > 0 && <Quadro rotulo="Produção no OEE" valor={inteiro(sessao.producao)} />}
+        {sessao.refugo > 0 && <Quadro rotulo="Refugo total" valor={inteiro(sessao.refugo)} />}
         <Quadro rotulo="Paradas internas" valor={String(sessao.numParadasInternas ?? 0)} />
         <Quadro rotulo="Paradas externas" valor={String(sessao.numParadasExternas ?? 0)} />
+        <Quadro rotulo="MTTR" valor={horasMin(sessao.mttrMs)} />
+        <Quadro rotulo="MTBF" valor={horasMin(sessao.mtbfMs)} />
+        <Quadro rotulo="Intervalo externas" valor={horasMin(sessao.intervaloMedioExternasMs)} />
       </div>}
 
       {/* Produção por hora */}
@@ -218,8 +227,8 @@ export default function PaginaMaquina({ numero, sessao, blocos, parte, comTitulo
         {porMotivo.length > 0 && (
           <p className="mt-1 text-[8pt] text-texto-3 text-right">
             <span style={{ color: CORES_TIPO.Interna }}>■</span> interna{' '}
-            <span style={{ color: CORES_TIPO.Externa }}>■</span> externa{' '}
-            <span style={{ color: CORES_TIPO.Planejada }}>■</span> programada
+            <span style={{ color: CORES_TIPO.Externa }}>■</span> externa
+            {porMotivo.some(m => m.tipo === 'Planejada') && <>{' '}<span style={{ color: CORES_TIPO.Planejada }}>■</span> programada</>}
           </p>
         )}
       </div>}

@@ -30,8 +30,9 @@ export default function TimelineSessao({ sessao, agora }: { sessao: SessaoDetalh
         <span style={{ color: COR.rodando }}>■</span> produzindo{' '}
         <span style={{ color: COR.interna }}>■</span> interna{' '}
         <span style={{ color: COR.entrada }}>■</span> falta de produto na entrada{' '}
-        <span style={{ color: COR.saida }}>■</span> saída acumulada{' '}
-        <span style={{ color: COR.semComunicacao }}>■</span> sem comunicação
+        <span style={{ color: COR.saida }}>■</span> saída acumulada
+        {t.trechos.some(tr => tr.tipo === 'programada') && <>{' '}<span style={{ color: COR.programada }}>■</span> programada</>}
+        {t.trechos.some(tr => tr.tipo === 'semComunicacao') && <>{' '}<span style={{ color: COR.semComunicacao }}>■</span> sem comunicação</>}
       </p>
     </div>
   )

@@ -12,6 +12,11 @@ public interface IOeeService
         IEnumerable<PeriodoSemComunicacao>? semComunicacao = null);
 }
 
+/// <summary>
+/// Tempos em ms. Total = fim − início (bruto) = Rodando + Interno + Externo + Planejado + SemComunicacao.
+/// Disponível = Total − SemComunicacao − Planejado. Rodando = Disponível − Interno − Externo.
+/// Disponibilidade = Rodando ÷ Disponível; Performance = produção real ÷ (Rodando × nominal).
+/// </summary>
 public record OeeResultado(
     double TempoTotalMs,
     double TempoPlanejadoMs,

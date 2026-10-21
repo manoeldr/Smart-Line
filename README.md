@@ -112,11 +112,12 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Linha do tempo de Marcha, Parada e Sem comunicação, com data, início, fim e duração (ou "até agora"), editar motivo, histórico de classificação e foto da parada
 
 ### Cálculo de OEE
-- Disponibilidade, Performance e Qualidade calculados no backend
-- Paradas planejadas descontadas do tempo disponível; paradas externas não penalizam Disponibilidade
+- Disponibilidade, Performance e Qualidade calculados no backend, num lugar só (`OeeService`); telas, dashboard e relatório mostram esses números
+- **Fatias de tempo (21/10):** tempo total = fim − início = **rodando + parada interna + parada externa + programadas + sem comunicação**. Disponível = total − sem comunicação − programadas. **Tempo rodando = disponível − internas − externas** — é o único "tempo rodando" do sistema
+- Disponibilidade = rodando ÷ disponível (paradas internas e externas descontam); Performance (Eficiência) = produção real ÷ (rodando × velocidade nominal), limitada a 100 %
 - Produção Total exibida na tela é sempre a última leitura (o contador); internamente, Performance usa a produção real do turno (última leitura menos a leitura inicial)
-- Tempo e produção sem comunicação (Semi Automático) ficam fora do cálculo
-- MTTR (tempo médio de reparo) e MTBF (tempo médio entre falhas) calculados a partir das paradas não planejadas
+- Tempo e produção sem comunicação (IoT) ficam fora do OEE, mas o tempo aparece como fatia no relatório
+- **Confiabilidade:** "falha" é parada interna. MTTR = tempo parado interno ÷ nº de paradas internas; MTBF = tempo rodando ÷ nº de paradas internas. As externas têm estatística própria: intervalo médio entre paradas externas = tempo rodando ÷ nº de paradas externas
 - Fórmulas validadas contra o sistema legado (Python), migrando dados históricos reais e conferindo OEE/MTBF com precisão
 
 ### Configurações

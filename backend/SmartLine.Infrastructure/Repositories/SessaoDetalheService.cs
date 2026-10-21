@@ -236,32 +236,32 @@ public class SessaoDetalheService : ISessaoDetalheService
         var semComunicacao = await _context.PeriodosSemComunicacaoAsync(sessao);
         var oeeResultado = _oeeService.Calcular(sessao, sessao.VelocidadeNominal, maquinaLinha.MedeProducao, semComunicacao);
 
-        // MTBF — considera todas as paradas não planejadas (Interna/Externa), reflete o tempo
-        // médio rodando entre uma parada e outra, qualquer que seja o motivo.
-        var paradasFalha = sessao.Paradas
-            .Where(p => p.Fim.HasValue && p.TipoEfetivo() != TipoParada.Planejada)
+        // Confiabilidade (decisão de 21/10): "falha" é parada INTERNA. Uma parada externa (falta
+        // de produto, saída bloqueada) não é falha da máquina, então não entra no MTBF nem no MTTR.
+        //   MTTR = tempo parado interno ÷ nº de paradas internas (finalizadas)
+        //   MTBF = tempo rodando ÷ nº de paradas internas (finalizadas)
+        // As externas ganham uma estatística própria, sem chamar de MTBF:
+        //   intervalo médio entre paradas externas = tempo rodando ÷ nº de paradas externas.
+        var paradasInternas = sessao.Paradas
+            .Where(p => p.Fim.HasValue && p.TipoEfetivo() == TipoParada.Interna)
             .ToList();
-
-        // MTTR — considera SÓ paradas Internas (não Externas). Faz sentido: MTTR mede o tempo
-        // médio de "reparo", e uma parada Externa não é um reparo da própria máquina (ex: falta
-        // de produto vindo de outra máquina da linha) — incluí-la no MTTR distorceria a métrica.
-        var paradasInternas = paradasFalha
-            .Where(p => p.TipoEfetivo() == TipoParada.Interna)
+        var paradasExternas = sessao.Paradas
+            .Where(p => p.Fim.HasValue && p.TipoEfetivo() == TipoParada.Externa)
             .ToList();
 
         double? mttrMs = null;
         double? mtbfMs = null;
+        double? intervaloMedioExternasMs = null;
 
         if (paradasInternas.Count > 0)
         {
             var somaDuracaoInternas = paradasInternas.Sum(p => (p.Fim!.Value - p.Inicio).TotalMilliseconds);
             mttrMs = somaDuracaoInternas / paradasInternas.Count;
+            mtbfMs = oeeResultado.TempoRodandoMs / paradasInternas.Count;
         }
 
-        if (paradasFalha.Count > 0)
-        {
-            mtbfMs = oeeResultado.TempoRodandoMs / paradasFalha.Count;
-        }
+        if (paradasExternas.Count > 0)
+            intervaloMedioExternasMs = oeeResultado.TempoRodandoMs / paradasExternas.Count;
 
         // Campos extras para o gráfico — cada apontamento é sempre o valor ACUMULADO
         // (leitura bruta do contador), não um incremento desde a leitura anterior.
@@ -379,6 +379,7 @@ public class SessaoDetalheService : ISessaoDetalheService
             TipoColeta: sessao.TipoColeta.ToString(),
             ParadasPorHora: ParadasPorHora(sessao.Paradas, sessao.Inicio, sessao.Fim ?? agoraGraficos),
             ParadasPorMotivo: ParadasPorMotivo(sessao.Paradas, agoraGraficos),
+            IntervaloMedioExternasMs: intervaloMedioExternasMs,
             TempoTotalMs: oeeResultado.TempoTotalMs,
             TempoPlanejadoMs: oeeResultado.TempoPlanejadoMs,
             TempoDisponivelMs: oeeResultado.TempoDisponivelMs,

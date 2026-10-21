@@ -82,8 +82,10 @@ export interface SessaoDetalheDto {
   // Gráficos de paradas (a parada em curso conta até agora)
   paradasPorHora?: ParadaPorHoraDto[] | null
   paradasPorMotivo?: ParadaPorMotivoDto[] | null
-  // Tempos e contagens do OEE (Resumo Geral do relatório): total = fim − início sem o tempo sem
-  // comunicação; planejado = paradas programadas (pausa); disponível = total − planejado.
+  // Tempo rodando ÷ nº de paradas externas (as externas não entram no MTBF)
+  intervaloMedioExternasMs?: number | null
+  // Tempos do OEE, as fatias que somam o total: total = fim − início (bruto) = rodando + interno +
+  // externo + planejado + sem comunicação; disponível = total − sem comunicação − planejado.
   // Opcionais só porque um backend antigo não os manda (a tela trata como 0).
   tempoTotalMs?: number
   tempoPlanejadoMs?: number

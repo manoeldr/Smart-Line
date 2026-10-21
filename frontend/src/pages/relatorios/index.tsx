@@ -463,7 +463,7 @@ export default function Relatorios() {
                   <Pagina key={parte} comTimbre={comTimbre} timbreUrl={timbreUrl} margens={modelo?.margens}>
                     <PaginaMaquina numero={numero} sessao={m.sessao} blocos={blocos} parte={parte} comTitulo={k === 0} />
                     {parte === 'paradas' && blocos.includes('linhaTempo') && <TimelineSessao sessao={m.sessao} agora={emitidoEm} />}
-                    {parte === 'paradas' && fatias.length > 0 && (
+                    {parte === 'paradas' && comecaAposGrafico && fatias.length > 0 && (
                       <div className="mt-3">
                         <LinhaDoTempo eventos={fatias[0]} continuacao={false} />
                       </div>

@@ -10,10 +10,12 @@ public class OeeService : IOeeService
         IEnumerable<PeriodoSemComunicacao>? semComunicacao = null)
     {
         var fim = sessao.Fim ?? DateTime.UtcNow;
-        // Sem comunicação fica fora do cálculo: não é tempo rodando nem parado (as paradas são
-        // fechadas na última mensagem antes da queda, então não se sobrepõem a esses períodos).
+        // Tempo total = fim − início, bruto. Ele se divide em cinco fatias que somam o total
+        // (decisão de 21/10): rodando + parada interna + parada externa + parada programada +
+        // sem comunicação. Sem comunicação fica fora do OEE (nem rodando nem parado; as paradas
+        // são fechadas na última mensagem antes da queda, então não se sobrepõem).
         var tempoSemComunicacaoMs = TempoSemComunicacaoMs(semComunicacao, sessao.Inicio, fim);
-        var tempoTotalMs = Math.Max(0, (fim - sessao.Inicio).TotalMilliseconds - tempoSemComunicacaoMs);
+        var tempoTotalMs = Math.Max(0, (fim - sessao.Inicio).TotalMilliseconds);
 
         // ── Separar paradas por tipo ────────────────────────────────
         // Parada sem motivo (não classificada) conta como Interna — ver Parada.TipoEfetivo.
@@ -57,10 +59,16 @@ public class OeeService : IOeeService
         }
 
         // ── Tempos derivados ──────────────────────────────────────
-        var tempoDisponivelMs = Math.Max(0, tempoTotalMs - tempoPlanejadoMs);
-        var tempoRodandoMs = Math.Max(0, tempoDisponivelMs - tempoInternoMs);
+        // Disponível = o que sobra para produzir: total sem o que está fora do OEE (sem
+        // comunicação) e sem as paradas programadas. Rodando = disponível menos TODAS as paradas
+        // não programadas, internas e externas — é o único "tempo rodando" do sistema, usado na
+        // disponibilidade, na eficiência, no MTBF e nas telas.
+        var tempoDisponivelMs = Math.Max(0, tempoTotalMs - tempoSemComunicacaoMs - tempoPlanejadoMs);
+        var tempoRodandoMs = Math.Max(0, tempoDisponivelMs - tempoInternoMs - tempoExternoMs);
 
         // ── Disponibilidade ───────────────────────────────────────
+        // Parada externa também derruba a disponibilidade (OEE padrão). Até 21/10 ela ficava
+        // dentro do "rodando" e derrubava a eficiência; agora cada fatia tem um lugar só.
         var disponibilidade = tempoDisponivelMs > 0
             ? tempoRodandoMs / tempoDisponivelMs * 100
             : 0.0;

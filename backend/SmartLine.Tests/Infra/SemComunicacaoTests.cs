@@ -99,8 +99,9 @@ public class SemComunicacaoTests : IDisposable
 
         var r = new OeeService().Calcular(sessao, 3600, true, [periodo]);
 
-        // 70 min no cálculo, todos rodando: esperado 4200; produzido com comunicação 3600.
-        Assert.Equal((4_200_000d, 3_000_000d, 100d), (r.TempoTotalMs, r.TempoSemComunicacaoMs, r.Disponibilidade));
+        // Total bruto 120 min; 50 sem comunicação ficam fora: 70 min disponíveis, todos rodando →
+        // esperado 4200; produzido com comunicação 3600.
+        Assert.Equal((7_200_000d, 4_200_000d, 3_000_000d, 100d), (r.TempoTotalMs, r.TempoDisponivelMs, r.TempoSemComunicacaoMs, r.Disponibilidade));
         Assert.Equal(85.7, r.Performance);
         Assert.Equal(6600, r.Producao); // o contador continua mostrando tudo
     }

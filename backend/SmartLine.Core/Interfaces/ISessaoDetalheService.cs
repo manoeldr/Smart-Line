@@ -36,9 +36,11 @@ public record SessaoDetalheDto(
     // Gráficos de paradas (a parada em curso conta até agora)
     IList<ParadaPorHoraDto>? ParadasPorHora = null,
     IList<ParadaPorMotivoDto>? ParadasPorMotivo = null,
+    // Tempo rodando ÷ nº de paradas externas (estatística das externas, que não entram no MTBF)
+    double? IntervaloMedioExternasMs = null,
     // Tempos e contagens do OEE, para o Resumo Geral do relatório (mesmos números do cálculo):
-    // Total = fim − início sem o tempo sem comunicação; Planejado = paradas programadas (pausa);
-    // Disponível = total − planejado; Interno/Externo = paradas não programadas por tipo.
+    // Total = fim − início (bruto) = Rodando + Interno + Externo + Planejado + SemComunicacao;
+    // Disponível = Total − SemComunicacao − Planejado; Rodando = Disponível − Interno − Externo.
     double TempoTotalMs = 0,
     double TempoPlanejadoMs = 0,
     double TempoDisponivelMs = 0,

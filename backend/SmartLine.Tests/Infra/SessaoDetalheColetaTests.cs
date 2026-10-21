@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SmartLine.Core.Coleta;
 using SmartLine.Core.Services;
 using SmartLine.Infrastructure.Repositories;
@@ -31,6 +32,38 @@ public class SessaoDetalheColetaTests : IDisposable
         Assert.Equal((parada.Id.ToString(), _c.Motivo("Falta de garrafas na entrada").ToString(), (double?)240_000),
             (detalhe.Eventos[2].ParadaId, detalhe.Eventos[2].MotivoId, detalhe.Eventos[2].DuracaoMs));
         Assert.Equal(_c.MaquinaCatalogo.ToString(), detalhe.MaquinaId);
+    }
+
+    [Fact]
+    public async Task MtbfEMttr_SoComParadasInternas_EExternasTemIntervaloProprio()
+    {
+        // Internas (sem motivo): 60–300 s e 800–1000 s; externa: 400–700 s. Sessão fechada aos 1200 s.
+        await _c.Registrar(
+            new ParadaIniciada(Em(60), ClassificacaoParada.NaoClassificada),
+            new ParadaEncerrada(Em(300)),
+            new ParadaIniciada(Em(400), _c.Classificacao("Falta de garrafas na entrada")),
+            new ParadaEncerrada(Em(700)),
+            new ParadaIniciada(Em(800), ClassificacaoParada.NaoClassificada),
+            new ParadaEncerrada(Em(1000)));
+        await using (var db = _c.Banco.NovoContexto())
+        {
+            var sessao = await db.Sessoes.SingleAsync(x => x.Id == _c.Sessao);
+            sessao.Fim = Em(1200);
+            sessao.Status = SmartLine.Core.Enums.StatusSessao.Finalizada;
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = _c.Banco.NovoContexto();
+        var d = (await new SessaoDetalheService(leitura, new OeeService()).GetSessaoDetalheAsync(_c.Sessao))!;
+
+        // Rodando = 1200 − internas 440 − externa 300 = 460 s; é o mesmo número em todo lugar.
+        Assert.Equal(460_000d, d.TempoRodandoMs);
+        Assert.Equal(740_000d, d.TempoParadoMs);
+        Assert.Equal(d.TempoTotalMs, d.TempoRodandoMs + d.TempoInternoMs + d.TempoExternoMs + d.TempoPlanejadoMs + d.TempoSemComunicacaoMs);
+        Assert.Equal((2, 1), (d.NumParadasInternas, d.NumParadasExternas));
+        Assert.Equal(220_000d, d.MttrMs);                    // 440 ÷ 2
+        Assert.Equal(230_000d, d.MtbfMs);                    // rodando 460 ÷ 2 internas (a externa não é falha)
+        Assert.Equal(460_000d, d.IntervaloMedioExternasMs);  // rodando ÷ 1 externa
     }
 
     [Fact]
