@@ -1,7 +1,7 @@
 // Aba "Exportar/Importar" da tela de Configurações — acesso exclusivo do Administrador/Desenvolvedor.
 // Exportar: gera um .zip com as categorias selecionadas, baixado direto pelo navegador.
 // Importar: envia um .zip, mostra uma prévia (contagem por categoria) antes de aplicar no banco.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { exportImportService, type ExportOpcoes, type ImportResumoDto } from '../../services/exportImportService'
 import { btnPrimary, btnSecondarySm } from '../../styles/buttons'
 import Switch from '../../components/Switch'
@@ -42,6 +42,15 @@ export default function AbaExportImport() {
   const [carregandoPrevia, setCarregandoPrevia] = useState(false)
   const [importando, setImportando] = useState(false)
   const [resultadoImport, setResultadoImport] = useState<ImportResumoDto | null>(null)
+  // Segundos até recarregar o sistema depois de importar (nulo = sem contagem)
+  const [recarregaEm, setRecarregaEm] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (recarregaEm === null) return
+    if (recarregaEm <= 0) { window.location.reload(); return }
+    const id = setTimeout(() => setRecarregaEm(s => (s ?? 1) - 1), 1000)
+    return () => clearTimeout(id)
+  }, [recarregaEm])
   const [erroImport, setErroImport] = useState<string | null>(null)
 
   async function handleSelecionarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -71,6 +80,10 @@ export default function AbaExportImport() {
       setResultadoImport(resultado)
       setArquivo(null)
       setPrevia(null)
+      // O topo (clientes, linhas) e as outras telas carregaram os dados ao abrir e não sabem da
+      // importação: recarregar o sistema é o único jeito de tudo refletir o que entrou. A sessão
+      // fica (login guardado) e a tela volta nesta mesma aba. Dá 4 s para ler o resumo.
+      setRecarregaEm(4)
     } catch (err: unknown) {
       setErroImport(err instanceof Error ? err.message : 'Erro ao importar')
     } finally {
@@ -173,6 +186,12 @@ export default function AbaExportImport() {
             <p className="text-[11px] text-green-700 dark:text-green-400">
               {resultadoImport.clientes} clientes, {resultadoImport.linhas} linhas, {resultadoImport.maquinas} máquinas, {resultadoImport.regras} regras, {resultadoImport.textosEntradas} textos de entradas, {resultadoImport.wises} WISE, {resultadoImport.sessoes} sessões, {resultadoImport.usuarios} usuários
             </p>
+            {recarregaEm !== null && (
+              <p className="text-[11px] text-green-700 dark:text-green-400 mt-1.5 flex items-center gap-2">
+                <span>As telas serão atualizadas em {recarregaEm} s para mostrar o que foi importado.</span>
+                <button onClick={() => window.location.reload()} className="underline">Atualizar agora</button>
+              </p>
+            )}
           </div>
         )}
       </div>
