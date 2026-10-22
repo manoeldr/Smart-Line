@@ -86,7 +86,9 @@ public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
     public ZeradorContadoresWise(OpcoesHttpWise opcoes)
     {
         _opcoes = opcoes;
-        _http = new HttpClient { Timeout = opcoes.Timeout };
+        // O WISE está na rede local: nunca passar pelo proxy do Windows (um proxy corporativo
+        // responde 400 para IPs internos que não conhece — visto no .exe em 22/10).
+        _http = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = opcoes.Timeout };
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{opcoes.Usuario}:{opcoes.Senha}")));
     }
@@ -168,8 +170,15 @@ public sealed class ZeradorContadoresWise : IZeradorContadoresWise, IDisposable
         using var resposta = await _http.GetAsync(url, cancellationToken);
         if (resposta.StatusCode == HttpStatusCode.Unauthorized)
             throw new HttpRequestException("O WISE recusou o usuário e a senha do Smart Line Scan.", null, HttpStatusCode.Unauthorized);
-        resposta.EnsureSuccessStatusCode();
         var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken);
+        if (!resposta.IsSuccessStatusCode)
+        {
+            // A resposta ajuda a saber quem respondeu (o WISE ou algo no caminho, como um proxy).
+            var detalhe = corpo.Length > 200 ? corpo[..200] + "…" : corpo;
+            throw new HttpRequestException(
+                $"O WISE respondeu {(int)resposta.StatusCode} ao ler {url}{(string.IsNullOrWhiteSpace(detalhe) ? "" : ": " + detalhe.Trim())}",
+                null, resposta.StatusCode);
+        }
         return JsonNode.Parse(corpo) as JsonObject ?? new JsonObject();
     }
 
