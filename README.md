@@ -25,15 +25,15 @@ O auditor acompanha a linha presencialmente e registra as informações diretame
 - Estado da medição persistido — ao sair e retornar, a sessão continua de onde parou, incluindo o tempo da parada atual (recalculado pelo horário real de início, não um contador que zera)
 - Modal de motivo de parada só é exibido na transição real de Parada → Rodando, nunca ao clicar Marcha com a máquina já rodando
 
-### Semi Automático (IoT) ✅ Pronto — validado na bancada com o WISE real (13/10)
-Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e lê os sensores da linha. O WISE publica por **MQTT** num broker embutido no próprio SmartLine (porta 1883), e o sistema transforma essas mensagens em produção, paradas e motivos, sem operador. Testado de ponta a ponta com o simulador de WISE e, em 13/10, com um WISE-4051 real na bancada (conexão, formato das mensagens, entradas, zerar dos contadores e perda de comunicação).
+### Semi Automático (IoT) ✅ Finalizado — validado na bancada com o WISE-4051 real
+Cada máquina recebe um módulo **Advantech WISE-4051** que conta a produção e lê os sensores da linha. O WISE publica por **MQTT** num broker embutido no próprio SmartLine (porta 1883), e o sistema transforma essas mensagens em produção, paradas e motivos, sem operador. Testado de ponta a ponta com o simulador de WISE e, na bancada, com um WISE-4051 real: conexão, formato das mensagens, as oito entradas, zerar dos contadores pela rede e perda e retorno de comunicação. O modo está **fechado** — o que resta é o teste de campo com um segundo computador como estação.
 
 **WISE e medição**
 - Cadastro de WISE em Configurações → Dispositivos IoT: IP fixo e nome opcional, com **ping antes de adicionar** (se não responder, avisa e deixa adicionar mesmo assim)
 - Ao iniciar a medição, o WISE é escolhido da lista (conectado / desconectado / em uso em outra medição); só inicia com ele conectado e livre. Fica associado à medição até ela ser finalizada
-- Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga. **Sem polaridade fixa** (desde 19/10): sensor **ativo** = entrada em 1 e **normal** = em 0, em todos; se a falha é com o sensor ativo ou normal, quem diz é a regra de classificação da máquina
+- Mapa fixo das entradas: contadores de produção (S2, S5, S6) e de refugo (S3), cada um com multiplicador opcional (garrafas por pulso); sensores S1, S4, S7 e S8 liga/desliga. **Sem polaridade fixa**: sensor **ativo** = entrada em 1 e **normal** = em 0, em todos; se a falha é com o sensor ativo ou normal, quem diz é a regra de classificação da máquina
 - "Produção até então" informada ao iniciar, como no Manual: a primeira leitura da sessão é o contador da máquina e o WISE soma a partir dele
-- Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo — o mesmo comando da tela do WISE (`PATCH /di_value/slot_0` com `{"DIVal":[{"ClrCnt":1,"Ch":N}]}`, confirmado na bancada em 19/10), conferindo depois se o contador caiu; se não conseguir, a medição começa mesmo assim e a tela avisa
+- Ao iniciar, o SmartLine **zera os contadores do WISE** pela interface HTTP do aparelho (usuário e senha únicos da instalação), sem ninguém precisar abrir o WISE em campo — o mesmo comando da tela do WISE (`PATCH /di_value/slot_0` com `{"DIVal":[{"ClrCnt":1,"Ch":N}]}`, confirmado na bancada), conferindo depois se o contador caiu; se não conseguir, a medição começa mesmo assim e a tela avisa
 - Diagnóstico por WISE: Validar entradas (valores ao vivo de cada canal) e Ping ("WISE conectado" / "WISE desconectado")
 
 **Coleta**
@@ -121,7 +121,7 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 
 ### Cálculo de OEE
 - Disponibilidade, Performance e Qualidade calculados no backend, num lugar só (`OeeService`); telas, dashboard e relatório mostram esses números
-- **Fatias de tempo (21/10):** tempo total = fim − início = **rodando + parada interna + parada externa + programadas + sem comunicação**. Disponível = total − sem comunicação − programadas. **Tempo rodando = disponível − internas − externas** — é o único "tempo rodando" do sistema
+- **Fatias de tempo:** tempo total = fim − início = **rodando + parada interna + parada externa + programadas + sem comunicação**. Disponível = total − sem comunicação − programadas. **Tempo rodando = disponível − internas − externas** — é o único "tempo rodando" do sistema
 - Disponibilidade = rodando ÷ disponível (paradas internas e externas descontam); Performance (Eficiência) = produção real ÷ (rodando × velocidade nominal), limitada a 100 %
 - Produção Total exibida na tela é sempre a última leitura (o contador); internamente, Performance usa a produção real do turno (última leitura menos a leitura inicial)
 - Tempo e produção sem comunicação (IoT) ficam fora do OEE, mas o tempo aparece como fatia no relatório
@@ -139,13 +139,15 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Gestão de campos de coleta e motivos de parada por máquina
 - Semi Automático por máquina (aba "Semi Automático") e por máquina da linha ("Semi Auto"): textos das entradas, tempo de detecção de parada (Z) e regras de classificação
 - Dispositivos IoT: WISE cadastrados e WISE conectados sem cadastro (aviso se o computador não estiver recebendo os WISE)
+- Relatório: folha timbrada usada no relatório do cliente
+- **Servidor**: o papel deste computador na rede — "Utilizar esse PC como servidor" ou "Conectar-se a um servidor" (com o endereço e um teste de conexão), o endereço deste servidor para informar às estações, e a liberação do firewall (portas do sistema e dos WISE) num clique, com uma confirmação do Windows
 - Controle de acesso por nível: Administrador, Auditor, Cliente e Desenvolvedor
 
 ### Área do Desenvolvedor
 Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer instalação:
 - **Logs**: as últimas 2.000 linhas do log do backend desde que ele subiu, dentro do sistema, sem terminal — filtro por nível (tudo, avisos e erros, só erros) e por texto, atualização sozinha a cada 2 s, exceções abertas ao clicar. Somem ao reiniciar o backend.
 - **Coleta**: situação do broker MQTT (porta, WISE conectados, mensagens processadas, descartadas e perdidas) e cada coleta Semi Automática em andamento como o motor a vê: WISE e conexão, situação, parada aberta, última mensagem, sessão, sensores e contadores brutos. Embaixo, todo WISE que publicou no broker desde que o backend subiu (cadastrado ou não, conectado ou não, identificação, tópico, mensagens, última) — se o IP está aqui, rede e MQTT estão certos.
-- **Licença**: gera a chave de licença e a **senha do Desenvolvedor** de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. Vale também no pacote instalado (22/10), para o suporte ativar outra máquina do cliente ali mesmo — quem protege é o nível Desenvolvedor, cuja senha deriva do segredo da licença e do MAC daquele computador.
+- **Licença**: gera a chave de licença e a **senha do Desenvolvedor** de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. Vale também no pacote instalado, para o suporte ativar outra máquina do cliente ali mesmo — quem protege é o nível Desenvolvedor, cuja senha deriva do segredo da licença e do MAC daquele computador.
 - **Simulador de WISE**: os mesmos WISE simulados do console, ligados por dentro do backend — formulário com máquinas, pulsos por minuto (um pulso por unidade; o multiplicador é o da medição), paradas e quedas automáticas; cada máquina com os comandos como botões (rodando, falta, mínimo, saída, caixas, sem causa, sem energia, sem rede, reiniciar, automático/manual). Os IPs simulados (`127.0.0.21`…) aparecem em Dispositivos IoT como aparelhos reais.
 
 ### Usabilidade
@@ -343,7 +345,7 @@ A aba grava o `servidor.txt` **do computador onde o programa está aberto**, nã
 > New-NetFirewallRule -DisplayName "Smart Line Scan - Ping" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Action Allow
 > ```
 
-### Configuração do WISE-4051 (validada na bancada em 13/10)
+### Configuração do WISE-4051 (validada na bancada)
 
 Pela tela web do WISE (`http://<ip-do-wise>`, usuário `root`). Os nomes dos canais são só etiqueta (máximo 21 caracteres); o sistema identifica pelo número: **DI0 = S1 … DI7 = S8**.
 
@@ -436,7 +438,7 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - Filtros de data com um dia só, começando por hoje; tempo de parada (Z) no Adicionar máquina; SQLite nativo atualizado
 - **Bancada com o WISE-4051 real (13/10)**: tópico e JSON no formato esperado, contadores e sensores lidos, zerar por HTTP funcionando, perda e retorno de comunicação; guia de configuração do WISE neste README
 - **Relatório em PDF para o cliente**: tela de Relatórios com folha A4 na tela, blocos liga/desliga, folha timbrada, exportação pelo servidor e envio por e-mail
-- **Fechamento do IoT (22/10)**: fatias de tempo do OEE num cálculo só, MTBF/MTTR por parada interna, OEE indisponível em vez de 0 %, Área do Desenvolvedor completa no pacote instalado e modo servidor atendendo as estações na rede
+- **Modo Semi Automático (IoT) finalizado (23/10)**: fatias de tempo do OEE num cálculo só, MTBF/MTTR por parada interna, OEE indisponível em vez de 0 % (e a referência da visão Linha saindo só de máquinas com OEE calculável), Área do Desenvolvedor completa no pacote instalado, backend escutando a rede e a aba Configurações → Servidor, onde cada computador escolhe ser servidor ou estação e libera o firewall sozinho
 
 ### Próximo
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
