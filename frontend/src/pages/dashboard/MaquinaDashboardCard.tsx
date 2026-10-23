@@ -23,11 +23,14 @@ function formatarInicio(iso: string | null) {
 }
 
 export default function MaquinaDashboardCard({ dados }: Props) {
-  const oeeColor = dados.oee >= 85
-    ? 'text-green-600 dark:text-green-400'
-    : dados.oee >= 60
-      ? 'text-amber-600 dark:text-amber-400'
-      : 'text-red-600 dark:text-red-400'
+  // Sem OEE (sem sessão, sem contador de produção ou medição recém-iniciada): "—" em cinza
+  const oeeColor = dados.oee === null
+    ? 'text-texto-3'
+    : dados.oee >= 85
+      ? 'text-green-600 dark:text-green-400'
+      : dados.oee >= 60
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-red-600 dark:text-red-400'
 
   return (
     // Crítica: faixa azul no topo desenhada por dentro (sombra, não borda), para não mudar
@@ -47,14 +50,14 @@ export default function MaquinaDashboardCard({ dados }: Props) {
 
       {/* OEE grande */}
       <div className="mb-4">
-        <p className={`text-4xl font-medium ${oeeColor}`}>{dados.oee}%</p>
+        <p className={`text-4xl font-medium ${oeeColor}`}>{dados.oee === null ? '—' : `${dados.oee}%`}</p>
         <p className="text-xs text-texto-3">OEE</p>
       </div>
 
       {/* Disponibilidade / Performance / Qualidade */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <Indicador valor={`${dados.disponibilidade}%`} rotulo="Disponib." />
-        <Indicador valor={`${dados.performance}%`} rotulo="Perform." />
+        <Indicador valor={dados.performance === null ? '—' : `${dados.performance}%`} rotulo="Perform." />
         <Indicador valor={`${dados.qualidade}%`} rotulo="Qualid." />
       </div>
 

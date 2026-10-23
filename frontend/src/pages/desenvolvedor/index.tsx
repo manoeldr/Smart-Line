@@ -1,8 +1,8 @@
 // Área do Desenvolvedor — só o nível Desenvolvedor (o menu só mostra para ele; o backend
 // recusa os demais). Abas: Logs (as últimas linhas do backend, sem terminal) e Simulador
 // (WISE simulados dentro do próprio backend, para testar o Semi Automático sem hardware) e
-// Coleta (broker e o que o motor vê de cada máquina em medição). Licença (gerar chave) só
-// em desenvolvimento.
+// Coleta (broker e o que o motor vê de cada máquina em medição) e Licença (gerar a chave de
+// outro computador do cliente — vale também no pacote instalado).
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -28,7 +28,8 @@ export default function Desenvolvedor() {
   // Aba na URL (?aba=) para o F5 voltar nela; cada aba guarda os próprios filtros na URL.
   const [params, setParams] = useSearchParams()
 
-  // A aba Licença só existe com o backend em desenvolvimento (o pacote do cliente não a tem).
+  // A aba Licença também vale no pacote instalado (22/10). A consulta aqui é só para esconder
+  // a aba se o backend for antigo (respondia 404 fora do ambiente de desenvolvimento).
   const [comLicenca, setComLicenca] = useState(false)
   useEffect(() => {
     let ativo = true

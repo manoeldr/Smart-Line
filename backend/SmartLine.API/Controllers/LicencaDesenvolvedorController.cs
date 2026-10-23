@@ -1,7 +1,8 @@
-// Só existe no build de desenvolvimento (Debug): o publish de produção é Release e este arquivo
-// fica fora do executável, então o pacote do cliente não gera chave de licença nem com o nível
-// Desenvolvedor. Por cima disso, só responde com ASPNETCORE_ENVIRONMENT=Development.
-#if DEBUG
+// Vale também no pacote instalado (22/10): o suporte da Sanmartin, logado como Desenvolvedor,
+// precisa ativar outro computador do cliente sem voltar para o escritório. A proteção é o nível
+// Desenvolvedor, cuja senha deriva do segredo da licença e do MAC daquele computador — ninguém
+// de fora entra. O segredo já viaja no executável (é com ele que a licença é conferida), então
+// expor o gerador aqui não revela nada novo.
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartLine.API.Autorizacao;
@@ -16,23 +17,19 @@ namespace SmartLine.API.Controllers;
 public class LicencaDesenvolvedorController : ControllerBase
 {
     private readonly ILicencaService _licenca;
-    private readonly IHostEnvironment _ambiente;
 
-    public LicencaDesenvolvedorController(ILicencaService licenca, IHostEnvironment ambiente)
+    public LicencaDesenvolvedorController(ILicencaService licenca)
     {
         _licenca = licenca;
-        _ambiente = ambiente;
     }
 
     public sealed record SituacaoLicencaDevDto(bool LicencaAtiva, string MacPreferido, IReadOnlyList<string> MacsFisicos, string SenhaDesenvolvedor);
     public sealed record GerarChaveRequest(string MacAddress);
     public sealed record ChaveGeradaDto(string MacAddress, string Chave, string SenhaDesenvolvedor);
 
-    /// <summary>404 fora do ambiente de desenvolvimento: a tela esconde a aba.</summary>
     [HttpGet]
     public async Task<ActionResult<SituacaoLicencaDevDto>> Situacao()
     {
-        if (!_ambiente.IsDevelopment()) return NotFound();
         var status = await _licenca.ObterStatusAsync();
         var mac = _licenca.ObterMacAddress();
         return new SituacaoLicencaDevDto(status.Ativa, mac, _licenca.ObterMacsFisicos(), _licenca.GerarSenhaDesenvolvedor(mac));
@@ -41,8 +38,6 @@ public class LicencaDesenvolvedorController : ControllerBase
     [HttpPost("gerar")]
     public ActionResult<ChaveGeradaDto> Gerar([FromBody] GerarChaveRequest pedido)
     {
-        if (!_ambiente.IsDevelopment()) return NotFound();
-
         var mac = (pedido.MacAddress ?? "").Trim().ToUpperInvariant().Replace(":", "").Replace("-", "").Replace(" ", "");
         if (mac.Length != 12 || !mac.All(Uri.IsHexDigit))
             return BadRequest(new { mensagem = "Informe o MAC com 12 caracteres hexadecimais (ex.: 00-11-22-33-44-AA)." });
@@ -50,4 +45,3 @@ public class LicencaDesenvolvedorController : ControllerBase
         return new ChaveGeradaDto(mac, _licenca.GerarChaveEsperada(mac), _licenca.GerarSenhaDesenvolvedor(mac));
     }
 }
-#endif

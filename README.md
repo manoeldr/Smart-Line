@@ -111,12 +111,21 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 - Gráfico com seletor **Produção** (por hora, com campos extras; no Semi a hora em andamento aparece tracejada e a produção sem comunicação em cinza), **Paradas por hora** (empilhadas por tipo) e **Paradas por motivo** (Pareto)
 - Linha do tempo de Marcha, Parada e Sem comunicação, com data, início, fim e duração (ou "até agora"), editar motivo, histórico de classificação e foto da parada
 
+### Relatórios (PDF para o cliente)
+- Tela **Relatórios**: escolhe o recorte (uma linha, um dia — o dia vem do filtro de data do topo), preenche Produto e Responsável do Cliente, confere a folha A4 na tela e exporta
+- Página 1: Dados da medição, Resumo geral e Indicadores gerais da linha; depois **uma seção por máquina** (indicadores, produção por hora, produção acumulada × esperada, paradas por motivo e por hora, linha do tempo em barra e em tabela)
+- Campo **Conteúdo** liga/desliga blocos (padrão: tudo menos a tabela da linha do tempo); a escolha fica no navegador
+- **Folha timbrada** opcional (Configurações → Relatório): imagem de fundo e margens do conteúdo
+- **Exportar PDF**: o servidor abre a própria tela num navegador sem janela (Edge/Chrome) e imprime — no desktop grava o arquivo direto, sem a caixa de impressão; também dá para **enviar por e-mail** com o PDF anexado (Outlook)
+- Listas de Produto, Responsável e e-mail ficam no navegador, de propósito (não vão para o banco)
+
 ### Cálculo de OEE
 - Disponibilidade, Performance e Qualidade calculados no backend, num lugar só (`OeeService`); telas, dashboard e relatório mostram esses números
 - **Fatias de tempo (21/10):** tempo total = fim − início = **rodando + parada interna + parada externa + programadas + sem comunicação**. Disponível = total − sem comunicação − programadas. **Tempo rodando = disponível − internas − externas** — é o único "tempo rodando" do sistema
 - Disponibilidade = rodando ÷ disponível (paradas internas e externas descontam); Performance (Eficiência) = produção real ÷ (rodando × velocidade nominal), limitada a 100 %
 - Produção Total exibida na tela é sempre a última leitura (o contador); internamente, Performance usa a produção real do turno (última leitura menos a leitura inicial)
 - Tempo e produção sem comunicação (IoT) ficam fora do OEE, mas o tempo aparece como fatia no relatório
+- **OEE indisponível ("—") em vez de 0 %:** máquina sem contador de produção, sem sessão no período, ou sessão que ainda não tem a **segunda leitura** (os primeiros minutos de uma medição, quando só existe a "produção até então"). Sem intervalo medido não há Performance nem OEE; Disponibilidade, Qualidade e a Produção exibida continuam valendo. Na visão Linha, uma máquina sem OEE nunca é a referência — antes uma medição recém-iniciada zerava o indicador da linha inteira
 - **Confiabilidade:** "falha" é parada interna. MTTR = tempo parado interno ÷ nº de paradas internas; MTBF = tempo rodando ÷ nº de paradas internas. As externas têm estatística própria: intervalo médio entre paradas externas = tempo rodando ÷ nº de paradas externas
 - Fórmulas validadas contra o sistema legado (Python), migrando dados históricos reais e conferindo OEE/MTBF com precisão
 
@@ -136,7 +145,7 @@ Não há servidor WS Protocol no PLC: o bloco existe como vocabulário, não com
 Só o nível Desenvolvedor vê o item "Desenvolvedor" no menu, em qualquer instalação:
 - **Logs**: as últimas 2.000 linhas do log do backend desde que ele subiu, dentro do sistema, sem terminal — filtro por nível (tudo, avisos e erros, só erros) e por texto, atualização sozinha a cada 2 s, exceções abertas ao clicar. Somem ao reiniciar o backend.
 - **Coleta**: situação do broker MQTT (porta, WISE conectados, mensagens processadas, descartadas e perdidas) e cada coleta Semi Automática em andamento como o motor a vê: WISE e conexão, situação, parada aberta, última mensagem, sessão, sensores e contadores brutos. Embaixo, todo WISE que publicou no broker desde que o backend subiu (cadastrado ou não, conectado ou não, identificação, tópico, mensagens, última) — se o IP está aqui, rede e MQTT estão certos.
-- **Licença** (só em desenvolvimento): gera a chave de licença e a **senha do Desenvolvedor** de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. O controller fica dentro de `#if DEBUG` e só responde com `ASPNETCORE_ENVIRONMENT=Development`: o publish de produção (Release) não leva esse código, e a aba some.
+- **Licença**: gera a chave de licença e a **senha do Desenvolvedor** de um MAC, como o `SmartLine.LicenseGenerator`, e mostra as placas de rede deste computador. Vale também no pacote instalado (22/10), para o suporte ativar outra máquina do cliente ali mesmo — quem protege é o nível Desenvolvedor, cuja senha deriva do segredo da licença e do MAC daquele computador.
 - **Simulador de WISE**: os mesmos WISE simulados do console, ligados por dentro do backend — formulário com máquinas, pulsos por minuto (um pulso por unidade; o multiplicador é o da medição), paradas e quedas automáticas; cada máquina com os comandos como botões (rodando, falta, mínimo, saída, caixas, sem causa, sem energia, sem rede, reiniciar, automático/manual). Os IPs simulados (`127.0.0.21`…) aparecem em Dispositivos IoT como aparelhos reais.
 
 ### Usabilidade
@@ -217,6 +226,11 @@ MQTT_LOG_BRUTO=false    # true escreve no log cada mensagem recebida do WISE
 WISE_HTTP_PORTA=80      # interface HTTP dos WISE: o SmartLine zera os contadores por ela ao iniciar a medição
 WISE_HTTP_USUARIO=root  # usuário e senha de acesso ao WISE (os mesmos da tela web dele), iguais para todos os WISE da instalação
 WISE_HTTP_SENHA=00000000
+
+# Relatórios (opcionais)
+RELATORIO_URL_BASE=http://localhost:5173  # de onde o servidor abre a tela para gerar o PDF; em
+                                          # produção é o próprio backend (deixe em branco)
+NAVEGADOR_PDF=                            # caminho do Edge/Chrome, se a busca automática falhar
 ```
 
 ### 3. Inicie o backend
@@ -314,6 +328,8 @@ dotnet publish SmartLine.API/SmartLine.API.csproj -c Release -r win-x64 --self-c
 Copia `SmartLine.API.exe` (de `publish/`) e o `.env` pra dentro da pasta de build do `SmartLine.Desktop` (`bin\Debug\net10.0-windows\` ou `bin\Release\...`), junto com o `wwwroot`. O `SmartLine.Desktop.exe` sobe o backend automaticamente como processo filho (porta 5278 fixa via `ASPNETCORE_URLS`), espera ele responder, e abre a interface numa janela nativa via WebView2. Fechar a janela encerra o backend junto.
 
 Pra distribuir, crie um atalho apontando direto pro `SmartLine.Desktop.exe`.
+
+**Um servidor e várias estações:** o PC servidor roda com o `servidor.txt` **vazio** — ele sobe o backend escutando em `0.0.0.0:5278` (todas as interfaces) e também usa o sistema. Cada estação recebe a mesma pasta, mas com o IP do servidor no `servidor.txt` (`192.168.10.171` ou `192.168.10.171:5278`): a estação não sobe backend nenhum, só abre a tela do servidor. No servidor, libere a porta 5278 no firewall (ver abaixo).
 
 > **Semi Automático em produção:** o PC que recebe os WISE precisa liberar no firewall a porta 1883 (MQTT), a 5278 (estações) e o ping (ICMP). Em PowerShell como administrador:
 >
@@ -415,12 +431,14 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - Exportação/Importação leva regras, textos das entradas, cadastro de WISE, Z, histórico de paradas e trechos sem comunicação
 - Filtros de data com um dia só, começando por hoje; tempo de parada (Z) no Adicionar máquina; SQLite nativo atualizado
 - **Bancada com o WISE-4051 real (13/10)**: tópico e JSON no formato esperado, contadores e sensores lidos, zerar por HTTP funcionando, perda e retorno de comunicação; guia de configuração do WISE neste README
+- **Relatório em PDF para o cliente**: tela de Relatórios com folha A4 na tela, blocos liga/desliga, folha timbrada, exportação pelo servidor e envio por e-mail
+- **Fechamento do IoT (22/10)**: fatias de tempo do OEE num cálculo só, MTBF/MTTR por parada interna, OEE indisponível em vez de 0 %, Área do Desenvolvedor completa no pacote instalado e modo servidor atendendo as estações na rede
 
 ### Próximo
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
 
 ### Em aberto
-- [ ] Rede/Multi-usuário — IP fixo no PC central, faixa do roteador e liberação das portas no firewall
+- [ ] Rede/Multi-usuário — testar em campo um servidor com várias estações (o backend já escuta a rede; falta IP fixo no PC central, faixa do roteador e firewall)
 - [ ] Levantar os valores numéricos de `WS_Cur_Mode_00100` e `WS_Cur_Prog_00200` (Networks 26 e 27 da FC)
 
 ---

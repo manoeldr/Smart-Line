@@ -97,6 +97,37 @@ public class OeeServiceTests
     }
 
     [Fact]
+    public void SemSegundaLeitura_OeeEPerformanceFicamNulos_MasAProducaoAparece()
+    {
+        // Medição recém-iniciada: só a leitura de "produção até então". Não há intervalo medido,
+        // então Performance e OEE são indisponíveis — antes saía 0 % e zerava o OEE da linha.
+        var inicio = new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+        var sessao = CriarSessao(inicio, inicio.AddMinutes(3));
+        sessao.Producoes = [new Producao { Quantidade = 15_000, Refugo = 10, Hora = inicio }];
+
+        var r = _sut.Calcular(sessao, 1000);
+
+        Assert.Null(r.Performance);
+        Assert.Null(r.Oee);
+        Assert.Equal(100.0, r.Disponibilidade);   // sem paradas, continua medindo o tempo
+        Assert.Equal(15_000, r.Producao);         // o contador informado continua na tela
+    }
+
+    [Fact]
+    public void ComSegundaLeituraSemProduzirNada_OeeEhZero()
+    {
+        // Diferente do caso acima: houve intervalo medido e a máquina não produziu → 0 % é real.
+        var inicio = new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+        var sessao = CriarSessao(inicio, inicio.AddHours(1));
+        sessao.Producoes = Leituras(inicio, quantidadeFinal: 0, refugoFinal: 0);
+
+        var r = _sut.Calcular(sessao, 1000);
+
+        Assert.Equal(0.0, r.Performance);
+        Assert.Equal(0.0, r.Oee);
+    }
+
+    [Fact]
     public void Fatias_SomamOTempoTotal()
     {
         // Total 6 h = rodando 2 h + interna 1 h + externa 1 h + programada 1 h + sem comunicação 1 h.

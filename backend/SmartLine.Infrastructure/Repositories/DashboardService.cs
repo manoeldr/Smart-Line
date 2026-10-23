@@ -37,13 +37,15 @@ public class DashboardService : IDashboardService
 
             if (sessao is null)
             {
+                // Sem sessão no período não há nada medido: OEE e Performance ficam nulos
+                // (a tela mostra "—"), não 0 % — que pareceria uma máquina com desempenho zero.
                 resultado.Add(new MaquinaDashboardDto(
                     MaquinaLinhaId: ml.Id.ToString(),
                     MaquinaNome: ml.Maquina.Nome,
                     Critica: ml.Critica,
-                    Oee: ml.MedeProducao ? 0 : null,
+                    Oee: null,
                     Disponibilidade: 0,
-                    Performance: ml.MedeProducao ? 0 : null,
+                    Performance: null,
                     Qualidade: 0,
                     Producao: 0,
                     Refugo: 0,
@@ -97,11 +99,14 @@ public class DashboardService : IDashboardService
         }
 
         // Referência do OEE da linha: a máquina crítica (a de pior OEE, se houver mais de uma);
-        // sem crítica com sessão, a de pior OEE entre as que medem produção.
-        var medem = itens.Where(i => i.Sessao is not null && i.Ml.MedeProducao).ToList();
+        // sem crítica, a de pior OEE entre as que medem produção. Só entram as que têm OEE
+        // calculável: uma sessão recém-iniciada (ainda sem a segunda leitura) tem OEE nulo e
+        // não pode ser a referência — senão a linha inteira apareceria zerada enquanto as
+        // máquinas produzem. Ninguém com OEE ainda: a linha mostra "—".
+        var medem = itens.Where(i => i.Sessao is not null && i.Ml.MedeProducao && i.Oee!.Oee is not null).ToList();
         var criticas = medem.Where(i => i.Ml.Critica).ToList();
         var referencia = (criticas.Count > 0 ? criticas : medem)
-            .OrderBy(i => i.Oee!.Oee ?? double.MaxValue)
+            .OrderBy(i => i.Oee!.Oee)
             .Select(i => ((Core.Entities.Tenant.MaquinaLinha Ml, Core.Entities.Tenant.Sessao? Sessao, OeeResultado? Oee)?)i)
             .FirstOrDefault();
 

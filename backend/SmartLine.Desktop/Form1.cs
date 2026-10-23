@@ -98,7 +98,10 @@ public partial class Form1 : Form
 
         // Força a porta explicitamente — em produção (fora do dotnet run/launchSettings.json),
         // o Kestrel usa 5000 por padrão, mas o resto do app assume 5278.
-        startInfo.EnvironmentVariables["ASPNETCORE_URLS"] = "http://localhost:5278";
+        // Escuta em todas as interfaces (0.0.0.0), não só em localhost: este PC é o servidor das
+        // estações, que apontam para o IP dele no servidor.txt delas. Quem não usa estações não
+        // é afetado — sem a regra de firewall da porta 5278, ninguém de fora alcança.
+        startInfo.EnvironmentVariables["ASPNETCORE_URLS"] = "http://0.0.0.0:5278";
 
         _processoBackend = new Process { StartInfo = startInfo };
         _processoBackend.Start();

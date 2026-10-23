@@ -6,9 +6,11 @@ export interface MaquinaDashboardDto {
   maquinaLinhaId: string
   maquinaNome: string
   critica: boolean
-  oee: number
+  // Nulos quando não há como medir: máquina sem contador de produção, sem sessão no período,
+  // ou sessão que ainda não tem a segunda leitura (primeiros minutos da medição)
+  oee: number | null
   disponibilidade: number
-  performance: number
+  performance: number | null
   qualidade: number
   producao: number
   refugo: number

@@ -1,6 +1,7 @@
 // Aba "Licença" da Área do Desenvolvedor: gera a chave de licença de um MAC (o mesmo cálculo do
-// SmartLine.LicenseGenerator), para ativar o sistema no computador do cliente. Só aparece quando
-// o backend está em desenvolvimento (fora dele a API responde 404 e a aba some).
+// SmartLine.LicenseGenerator), para ativar o sistema no computador do cliente. Vale também no
+// pacote instalado — o suporte ativa outra máquina do cliente ali mesmo; quem protege é o nível
+// Desenvolvedor, cuja senha deriva do segredo da licença e do MAC do computador.
 import { useEffect, useState } from 'react'
 import { desenvolvedorService, type ChaveGeradaDto, type SituacaoLicencaDevDto } from '../../services/desenvolvedorService'
 import { mensagemErro } from '../../services/api'

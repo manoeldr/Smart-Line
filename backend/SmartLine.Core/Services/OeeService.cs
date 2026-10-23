@@ -77,6 +77,11 @@ public class OeeService : IOeeService
         // Máquinas sem contador de produção (MedeProducao = false) não têm como calcular
         // Performance nem OEE — ficam nulos (indisponíveis), não zero, pra distinguir de
         // "calculou e deu zero". Disponibilidade e Qualidade continuam calculáveis normalmente.
+        // O mesmo vale para a sessão que ainda não tem uma SEGUNDA leitura (22/10): a produção
+        // do turno é "última − inicial", então com uma leitura só (a "produção até então", nos
+        // primeiros minutos de uma medição) não há intervalo para medir. Antes disso saía 0 %,
+        // e uma máquina recém-iniciada derrubava o OEE da linha inteira para 0. A Produção
+        // exibida continua sendo a última leitura, e Disponibilidade e Qualidade seguem valendo.
         int producao = 0;
         int refugo = 0;
         double? performance = null;
@@ -107,20 +112,25 @@ public class OeeService : IOeeService
                 ? Math.Max(0, leituraFinal.Refugo - leituraInicial.Refugo - refugoSemComunicacao)
                 : 0;
 
-            // Performance
+            // Performance — só com uma SEGUNDA leitura: com uma só (a "produção até então",
+            // nos primeiros minutos da medição) não há intervalo medido, e o resultado seria
+            // um 0 % enganoso. Fica nula, como numa máquina que não mede produção.
             var tempoRodandoHoras = tempoRodandoMs / 3_600_000;
             var producaoEsperada = tempoRodandoHoras * (double)velocidadeNominal;
-            performance = producaoEsperada > 0
-                ? Math.Min(producaoReal / producaoEsperada * 100, 100)
-                : 0.0;
+            performance = sessao.Producoes.Count < 2 ? null
+                : producaoEsperada > 0
+                    ? Math.Min(producaoReal / producaoEsperada * 100, 100)
+                    : 0.0;
 
             // Qualidade
             qualidade = producaoReal > 0 && refugoReal > 0
                 ? Math.Max(0, (double)(producaoReal - refugoReal) / producaoReal * 100)
                 : 100.0;
 
-            // OEE
-            oee = disponibilidade / 100 * (performance.Value / 100) * (qualidade / 100) * 100;
+            // OEE — sem Performance não há OEE (nulo = indisponível, não zero).
+            oee = performance is { } p
+                ? disponibilidade / 100 * (p / 100) * (qualidade / 100) * 100
+                : null;
         }
 
         // ── Contagens ──────────────────────────────────────────────
