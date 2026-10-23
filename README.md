@@ -329,9 +329,13 @@ Copia `SmartLine.API.exe` (de `publish/`) e o `.env` pra dentro da pasta de buil
 
 Pra distribuir, crie um atalho apontando direto pro `SmartLine.Desktop.exe`.
 
-**Um servidor e várias estações:** o PC servidor roda com o `servidor.txt` **vazio** — ele sobe o backend escutando em `0.0.0.0:5278` (todas as interfaces) e também usa o sistema. Cada estação recebe a mesma pasta, mas com o IP do servidor no `servidor.txt` (`192.168.10.171` ou `192.168.10.171:5278`): a estação não sobe backend nenhum, só abre a tela do servidor. No servidor, libere a porta 5278 no firewall (ver abaixo).
+**Um servidor e várias estações:** o PC servidor roda com o `servidor.txt` **vazio** — ele sobe o backend escutando em `0.0.0.0:5278` (todas as interfaces) e também usa o sistema. Cada estação recebe a mesma pasta, mas com o IP do servidor no `servidor.txt` (`192.168.10.171` ou `192.168.10.171:5278`): a estação não sobe backend nenhum, só abre a tela do servidor.
 
-> **Semi Automático em produção:** o PC que recebe os WISE precisa liberar no firewall a porta 1883 (MQTT), a 5278 (estações) e o ping (ICMP). Em PowerShell como administrador:
+**Pela tela (sem editar arquivo):** em **Configurações → Servidor**, cada computador escolhe entre *"Utilizar esse PC como servidor"* e *"Conectar-se a um servidor"* (com o endereço), e o botão **Liberar agora** cria as regras de firewall do servidor (5278, 1883 e ping) com uma confirmação do Windows. Salvar reinicia o programa.
+
+A aba grava o `servidor.txt` **do computador onde o programa está aberto**, não do servidor: o pedido vai pela ponte do WebView2 (`utils/desktop.ts` ↔ `Form1.WebView_WebMessageReceived`), nunca pela API — numa estação a tela vem do servidor, e uma chamada de API configuraria o servidor. Por isso a aba só funciona dentro do `.exe`; aberta pelo navegador, ela avisa isso. O servidor mostra nela o próprio endereço na rede, que é o que as estações devem informar.
+
+> **Firewall na mão:** o que o botão faz, em PowerShell como administrador (o PC que recebe os WISE precisa da 1883; o que atende estações, da 5278):
 >
 > ```powershell
 > New-NetFirewallRule -DisplayName "Smart Line Scan - MQTT" -Direction Inbound -Protocol TCP -LocalPort 1883 -Action Allow
@@ -438,7 +442,7 @@ No Semi Automático, cadastrar WISE, validar entradas e ping são do Administrad
 - [ ] Modo Automático: classificação de estado, processamento de leituras, reconexão, serviço de coleta e telas
 
 ### Em aberto
-- [ ] Rede/Multi-usuário — testar em campo um servidor com várias estações (o backend já escuta a rede; falta IP fixo no PC central, faixa do roteador e firewall)
+- [ ] Rede/Multi-usuário — testar em campo um servidor com várias estações (backend escutando a rede, aba Configurações → Servidor e firewall automático já prontos; falta só o teste com um segundo PC real)
 - [ ] Levantar os valores numéricos de `WS_Cur_Mode_00100` e `WS_Cur_Prog_00200` (Networks 26 e 27 da FC)
 
 ---

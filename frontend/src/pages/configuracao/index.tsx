@@ -1,6 +1,7 @@
 // Tela de Configurações — navegação por abas.
 // Visibilidade das abas por nível: Administrador e Desenvolvedor veem tudo; Auditor só vê Clientes (modo restrito) e Máquinas.
-// Dispositivos IoT (WISE do Semi Automático) e Relatório (folha timbrada) são só Administrador e Desenvolvedor, como no backend.
+// Dispositivos IoT (WISE do Semi Automático), Relatório (folha timbrada) e Servidor (papel deste
+// computador na rede) são só Administrador e Desenvolvedor, como no backend.
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AbaUsuarios from './AbaUsuarios'
@@ -9,9 +10,10 @@ import AbaMaquinas from './AbaMaquinas'
 import AbaExportImport from './AbaExportImport'
 import AbaDispositivosIot from './AbaDispositivosIot'
 import AbaRelatorio from './AbaRelatorio'
+import AbaServidor from './AbaServidor'
 import { tabButton } from '../../styles/tables'
 
-type Aba = 'usuarios' | 'clientes' | 'maquinas' | 'dispositivos' | 'relatorio' | 'exportimport'
+type Aba = 'usuarios' | 'clientes' | 'maquinas' | 'dispositivos' | 'relatorio' | 'servidor' | 'exportimport'
 
 export default function Configuracao() {
   const { usuario } = useAuth()
@@ -26,6 +28,7 @@ export default function Configuracao() {
     { id: 'maquinas', label: 'Máquinas', niveis: ['Administrador', 'Desenvolvedor', 'Auditor'] },
     { id: 'dispositivos', label: 'Dispositivos IoT', niveis: ['Administrador', 'Desenvolvedor'] },
     { id: 'relatorio', label: 'Relatório', niveis: ['Administrador', 'Desenvolvedor'] },
+    { id: 'servidor', label: 'Servidor', niveis: ['Administrador', 'Desenvolvedor'] },
     { id: 'exportimport', label: 'Exportar/Importar', niveis: ['Administrador', 'Desenvolvedor'] },
   ]
 
@@ -57,6 +60,7 @@ export default function Configuracao() {
         {abaAtiva === 'maquinas' && <AbaMaquinas />}
         {abaAtiva === 'dispositivos' && <AbaDispositivosIot />}
         {abaAtiva === 'relatorio' && <AbaRelatorio />}
+        {abaAtiva === 'servidor' && <AbaServidor />}
         {abaAtiva === 'exportimport' && <AbaExportImport />}
       </div>
     </div>

@@ -27,6 +27,7 @@ import { BLOCOS, type Bloco, lerBlocos, guardarBlocos } from './blocos'
 import Switch from '../../components/Switch'
 import EnviarRelatorioEmailModal from '../../modals/EnviarRelatorioEmailModal'
 import { btnSecondary } from '../../styles/buttons'
+import { noDesktop, pedirAoDesktop, ouvirDesktop } from '../../utils/desktop'
 import { relatorioService } from '../../services/relatorioService'
 import Logo from '../../components/Logo'
 import { useModeloRelatorio } from '../../hooks/useModeloRelatorio'
@@ -57,23 +58,6 @@ function nomeArquivoPdf(cliente: string, linha: string, data: string): string {
   const limpar = (t: string) => t.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ')
   const [ano, mes, dia] = data.split('-')
   return `SmartLineScan_${limpar(cliente)}_${limpar(linha)}_${dia}-${mes}-${ano}`
-}
-
-// Ponte do desktop (WebView2): existe só quando a página roda dentro do SmartLine.Desktop
-declare global {
-  interface Window {
-    chrome?: {
-      webview?: {
-        postMessage: (mensagem: unknown) => void
-        addEventListener: (tipo: 'message', ouvinte: (e: { data: unknown }) => void) => void
-        removeEventListener: (tipo: 'message', ouvinte: (e: { data: unknown }) => void) => void
-      }
-    }
-  }
-}
-
-function noDesktop(): boolean {
-  return typeof window !== 'undefined' && !!window.chrome?.webview
 }
 
 function hojeTexto() {
@@ -153,19 +137,12 @@ export default function Relatorios() {
   const [avisoEmail, setAvisoEmail] = useState<{ ok: boolean; texto: string } | null>(null)
 
   // Desktop: resposta da janela depois de gravar o PDF
-  useEffect(() => {
-    const webview = window.chrome?.webview
-    if (!webview) return
-    function aoReceber(e: { data: unknown }) {
-      const msg = e.data as { tipo?: string; caminho?: string; mensagem?: string } | null
-      if (msg?.tipo === 'pdfExportado' && msg.caminho) setPdfSalvoEm(msg.caminho)
-      if (msg?.tipo === 'emailAberto') setAvisoEmail({ ok: true, texto: 'E-mail aberto no seu programa de e-mail com o PDF anexado.' })
-      if (msg?.tipo === 'emailErro') setAvisoEmail({ ok: false, texto: msg.mensagem ?? 'Não foi possível abrir o e-mail.' })
-      if (msg?.tipo === 'emailSemAnexo') setAvisoEmail({ ok: true, texto: msg.mensagem ?? 'Mensagem aberta sem o anexo: arraste o PDF para ela.' })
-    }
-    webview.addEventListener('message', aoReceber)
-    return () => webview.removeEventListener('message', aoReceber)
-  }, [])
+  useEffect(() => ouvirDesktop(msg => {
+    if (msg.tipo === 'pdfExportado' && msg.caminho) setPdfSalvoEm(msg.caminho)
+    if (msg.tipo === 'emailAberto') setAvisoEmail({ ok: true, texto: 'E-mail aberto no seu programa de e-mail com o PDF anexado.' })
+    if (msg.tipo === 'emailErro') setAvisoEmail({ ok: false, texto: msg.mensagem ?? 'Não foi possível abrir o e-mail.' })
+    if (msg.tipo === 'emailSemAnexo') setAvisoEmail({ ok: true, texto: msg.mensagem ?? 'Mensagem aberta sem o anexo: arraste o PDF para ela.' })
+  }), [])
 
   // Campos digitados
   const [produto, setProduto] = useState(urlInicial.produto)
@@ -275,7 +252,7 @@ export default function Relatorios() {
     // No desktop (WebView2) a janela grava o PDF direto: só o "Salvar como" do Windows,
     // sem a caixa de impressão. A resposta chega pela mensagem "pdfExportado" (ver useEffect).
     if (noDesktop()) {
-      window.chrome!.webview!.postMessage({ tipo: 'exportarPdf', nome })
+      pedirAoDesktop({ tipo: 'exportarPdf', nome })
       return
     }
 
@@ -304,7 +281,7 @@ export default function Relatorios() {
     setProdutos(lembrarNaLista(clienteId, 'produtos', dados.produto))
     setResponsaveis(lembrarNaLista(clienteId, 'responsaveisCliente', dados.responsavelCliente))
     setEmails(lembrarNaLista(clienteId, 'emailsCliente', email.para))
-    window.chrome!.webview!.postMessage({
+    pedirAoDesktop({
       tipo: 'enviarEmail',
       nome: nomeArquivoPdf(dados.clienteNome, dados.linhaNome, data),
       ...email,
